@@ -13,9 +13,11 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
-plan tests => 40;
 
-ok(defined $dbh, "Connected to database");
+plan tests => 39*2;
+
+for my $mysql_server_prepare (0, 1) {
+$dbh->{mysql_server_prepare} = $mysql_server_prepare;
 
 ok($dbh->do(qq{DROP TABLE IF EXISTS t1}), "making slate clean");
 
@@ -104,6 +106,8 @@ ok(!($sv->FLAGS & (SVf_NOK|SVf_POK)), "scalar is not double or string");
 
 ok($dbh->do(qq{DROP TABLE t1}), "cleaning up");
 };
+
+}
 
 $dbh->disconnect();
 

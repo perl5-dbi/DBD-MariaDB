@@ -4186,7 +4186,9 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
       buffer->error= (my_bool*) &(fbh->error);
 #endif
 
-      if (fields[i].flags & ZEROFILL_FLAG)
+      /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by IV or NV */
+      if ((fields[i].flags & ZEROFILL_FLAG) ||
+         ((fields[i].type == MYSQL_TYPE_FLOAT || fields[i].type == MYSQL_TYPE_DOUBLE) && fields[i].decimals < NOT_FIXED_DEC))
         buffer->buffer_type = MYSQL_TYPE_STRING;
 
       switch (buffer->buffer_type) {
@@ -4704,7 +4706,8 @@ process:
 
         switch (mysql_to_perl_type(fields[i].type)) {
         case PERL_TYPE_NUMERIC:
-          if (!(fields[i].flags & ZEROFILL_FLAG))
+          /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by NV */
+          if (!(fields[i].flags & ZEROFILL_FLAG) && fields[i].decimals >= NOT_FIXED_DEC)
           {
             /* Coerce to dobule and set scalar as NV */
             sv_setnv(sv, SvNV(sv));
@@ -4712,6 +4715,7 @@ process:
           break;
 
         case PERL_TYPE_INTEGER:
+          /* Integer with leading zeros cannot be represented by IV */
           if (!(fields[i].flags & ZEROFILL_FLAG))
           {
             /* Coerce to integer and set scalar as UV resp. IV */
