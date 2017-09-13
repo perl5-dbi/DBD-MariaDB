@@ -105,6 +105,11 @@
 #define true 1
 #define false 0
 
+/* MYSQL_SECURE_AUTH became a no-op from MySQL 5.7.5 and is removed from MySQL 8.0.3 */
+#if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID <= 50704
+#define HAVE_SECURE_AUTH
+#endif
+
 /*
  * Check which SSL settings are supported by API at compile time
  */
