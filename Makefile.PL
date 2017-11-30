@@ -393,6 +393,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
       'meta-spec' => {
         version => 2,
       },
+      dynamic_config => 0,
       resources => {
         repository  => {
           url  => 'git://github.com/perl5-dbi/DBD-mysql.git',
