@@ -22,7 +22,7 @@ our $opt = { "help" => \&Usage, };
 
 {
 local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config);
-eval { require "./t/mysql.mtest"; 1; } || eval { require "../t/mysql.mtest"; 1; } and do {
+eval { require "./t/MariaDB.mtest"; 1; } || eval { require "../t/MariaDB.mtest"; 1; } and do {
 $opt->{'testhost'} = $::test_host;
 $opt->{'testport'} = $::test_port;
 $opt->{'testuser'} = $::test_user;
@@ -110,14 +110,14 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
   $source->{testhost} = 'guessed';
 }
 
-#We have to rename/move Makefile.PL in mysqlEmb directory
+#We have to rename/move Makefile.PL in MariaDBEmb directory
 #since MakeMaker will find it and will try to execute it.
-if (-f "mysqlEmb/Makefile.PL")
+if (-f "MariaDBEmb/Makefile.PL")
 {
-  move ("mysqlEmb/Makefile.PL", "mysqlEmb/Makefile.PL.old");
+  move ("MariaDBEmb/Makefile.PL", "MariaDBEmb/Makefile.PL.old");
 }
 
-#Disable of building of dbd::mysqlEmb driver by default
+#Disable of building of DBD::MariaDBEmb driver by default
 if (!$opt->{'force-embedded'})
 {
   $opt->{'embedded'} = '';
@@ -145,16 +145,16 @@ if ($opt->{'embedded'})
   {
      warn <<"MSG";
 
-You intended to build DBD::mysqlEmb driver by using option:
+You intended to build DBD::MariaDBEmb driver by using option:
 --embedded=$opt->{'embedded'}.
-But we failed to determine directory of @files. Building of DBD::mysqlEmb
+But we failed to determine directory of @files. Building of DBD::MariaDBEmb
 driver was disabled.
 
 Please use
 
   perl Makefile.PL --embedded="-L<dir> <flags>"
 
-to set correct directory. For details see DBD::mysql::INSTALL,
+to set correct directory. For details see DBD::MariaDB::INSTALL,
 section "Linker flags" or type
 
   perl Makefile.PL --help
@@ -167,7 +167,7 @@ MSG
 if ($opt->{'embedded'} && !check_include_version($opt->{'cflags'}, 40003)) {
   die <<"MSG";
 
-WARNING: Wrong version or unable to check version of mysql include files.
+WARNING: Wrong version or unable to check version of mariadb/mysql include files.
 To build embedded  version of DBD you ought to be sure that you use include
 files from MySQL server >= 4.0.3.
 
@@ -201,7 +201,7 @@ for my $key (sort { $a cmp $b} keys %$opt)
 print <<"MSG";
 
 To change these settings, see 'perl Makefile.PL --help' and
-'perldoc DBD::mysql::INSTALL'.
+'perldoc DBD::MariaDB::INSTALL'.
 
 MSG
 
@@ -223,7 +223,7 @@ elsif (exists $opt->{'bind-type-guessing'}) {
     $dsn= "\$::test_dsn .= \";mysql_bind_type_guessing=1\";\n";
 }
 my $fileName = $@ ?
-  "t/mysql.mtest" : File::Spec->catfile("t", "mysql.mtest");
+  "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
  (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
 	      " local " . Data::Dumper->Dump([$source], ["source"]) .
@@ -233,7 +233,7 @@ my $fileName = $@ ?
               "\$::test_socket = \$opt->{'testsocket'};\n" .
 	      "\$::test_password = \$opt->{'testpassword'};\n" .
 	      "\$::test_db = \$opt->{'testdb'};\n" .
-	      "\$::test_dsn = \"DBI:mysql:\$::test_db\";\n" .
+	      "\$::test_dsn = \"DBI:MariaDB:\$::test_db\";\n" .
 	      "\$::test_dsn .= \";mysql_socket=\$::test_socket\" if \$::test_socket;\n" .
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
@@ -252,19 +252,19 @@ $cflags .= " -DDBD_MYSQL_WITH_SSL" if !$opt->{'nossl'};
 $cflags .= " -DDBD_MYSQL_INSERT_ID_IS_GOOD" if $DBI::VERSION > 1.42;
 $cflags .= " -DDBD_MYSQL_NO_CLIENT_FOUND_ROWS" if $opt->{'nofoundrows'};
 $cflags .= " -g ";
-my %o = ( 'NAME' => 'DBD::mysql',
+my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
 	  'dist'         => { 'SUFFIX'       => ".gz",
 			      'DIST_DEFAULT' => 'all tardist',
 			      'COMPRESS'     => "gzip -9f" },
 	  'clean' => { 'FILES' => '*.xsi' },
-		'realclean' => { 'FILES' => 't/mysql.mtest' },
-          'C' => ["dbdimp.c", "mysql.c", "socket.c"],
-          'XS' => {'mysql.xs' => 'mysql.c'},
+		'realclean' => { 'FILES' => 't/MariaDB.mtest' },
+          'C' => ["dbdimp.c", "MariaDB.c", "socket.c"],
+          'XS' => {'MariaDB.xs' => 'MariaDB.c'},
 	  'OBJECT' => '$(O_FILES)',
 	  'LIBS' => $opt->{'libs'},
 	  $opt->{'ldflags'} ? ('LDFLAGS' => $opt->{'ldflags'}) : (),
-	  'VERSION_FROM' => 'lib/DBD/mysql.pm'
+	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
 	);
 
 my %embedded_files=();
@@ -272,85 +272,85 @@ my %embedded_files=();
 if ($opt->{'embedded'})
 {
 
- %embedded_files = ( 'mysql.xs' => { filename  => 'mysqlEmb/mysqlEmb.xs',
-                                       replace   => { ':mysql'    => ':mysqlEmb',
-                                                      'mysql.xsi' => 'mysqlEmb.xsi'},
-                                       makedir => 'mysqlEmb'
+ %embedded_files = ( 'MariaDB.xs' => { filename  => 'MariaDBEmb/MariaDBEmb.xs',
+                                       replace   => { ':MariaDB'    => ':MariaDBEmb',
+                                                      'MariaDB.xsi' => 'MariaDBEmb.xsi'},
+                                       makedir => 'MariaDBEmb'
                                      },
-                       'lib/DBD/mysql.pm' => { filename => 'mysqlEmb/lib/DBD/mysqlEmb.pm',
-                                               replace  => { ':mysql'   => ':mysqlEmb',
-                                                    '=> \'mysql\'' => '=> \'mysqlEmb\''},
-                                               makedir => 'mysqlEmb/lib/DBD'
+                       'lib/DBD/MariaDB.pm' => { filename => 'MariaDBEmb/lib/DBD/MariaDBEmb.pm',
+                                               replace  => { ':MariaDB'   => ':MariaDBEmb',
+                                                    '=> \'MariaDB\'' => '=> \'MariaDBEmb\''},
+                                               makedir => 'MariaDBEmb/lib/DBD'
                                              },
-                       'lib/DBD/mysql/GetInfo.pm' => { filename => 'mysqlEmb/lib/DBD/mysqlEmb/GetInfo.pm',
-                                                       replace => {':mysql'   => ':mysqlEmb',
-                                                    '\'mysql\'' => '\'mysqlEmb\''},
-                                                       makedir => 'mysqlEmb/lib/DBD/mysqlEmb'
+                       'lib/DBD/MariaDB/GetInfo.pm' => { filename => 'MariaDBEmb/lib/DBD/MariaDBEmb/GetInfo.pm',
+                                                       replace => {':MariaDB'   => ':MariaDBEmb',
+                                                    '\'MariaDB\'' => '\'MariaDBEmb\''},
+                                                       makedir => 'MariaDBEmb/lib/DBD/MariaDBEmb'
                                                      },
-                       't/mysql.dbtest' => { filename => 'mysqlEmb/t/mysqlEmb.dbtest',
-                                             makedir => 'mysqlEmb/t'
+                       't/MariaDB.dbtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.dbtest',
+                                             makedir => 'MariaDBEmb/t'
                                            },
-                       't/mysql.mtest' => { filename => 'mysqlEmb/t/mysqlEmb.mtest',
-                                             makedir => 'mysqlEmb/t',
-                                             replace =>  { 'DBI:mysql'=> 'DBI:mysqlEmb',
+                       't/MariaDB.mtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.mtest',
+                                             makedir => 'MariaDBEmb/t',
+                                             replace =>  { 'DBI:MariaDB'=> 'DBI:MariaDBEmb',
                                                             'test_db";' => 'test_db;mysql_embedded_options=--datadir=./t,--skip-innodb";'
                                                          }
                                            },
-                       't/lib.pl' => { filename => 'mysqlEmb/t/lib.pl',
-                                       replace =>  { '\$mdriver =.*' => "\$mdriver =\'mysqlEmb\';"},
-                                       makedir => 'mysqlEmb/t'
+                       't/lib.pl' => { filename => 'MariaDBEmb/t/lib.pl',
+                                       replace =>  { '\$mdriver =.*' => "\$mdriver =\'MariaDBEmb\';"},
+                                       makedir => 'MariaDBEmb/t'
                                     },
-                       't/20createdrop.t' => { filename => 'mysqlEmb/t/20createdrop.t',
-                                               makedir => 'mysqlEmb/t'
+                       't/20createdrop.t' => { filename => 'MariaDBEmb/t/20createdrop.t',
+                                               makedir => 'MariaDBEmb/t'
                                              },
-                       't/30insertfetch.t' => { filename => 'mysqlEmb/t/30insertfetch.t',
-                                                makedir => 'mysqlEmb/t'
+                       't/30insertfetch.t' => { filename => 'MariaDBEmb/t/30insertfetch.t',
+                                                makedir => 'MariaDBEmb/t'
                                               },
-                       't/40bindparam.t' => { filename => 'mysqlEmb/t/40bindparam.t',
-                                              makedir => 'mysqlEmb/t'
+                       't/40bindparam.t' => { filename => 'MariaDBEmb/t/40bindparam.t',
+                                              makedir => 'MariaDBEmb/t'
                                              },
-                       't/40blobs.t' => { filename => 'mysqlEmb/t/40blobs.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/40blobs.t' => { filename => 'MariaDBEmb/t/40blobs.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/40listfields.t' => { filename => 'mysqlEmb/t/40listfields.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/40listfields.t' => { filename => 'MariaDBEmb/t/40listfields.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/40nulls.t' => { filename => 'mysqlEmb/t/40nulls.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/40nulls.t' => { filename => 'MariaDBEmb/t/40nulls.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/40numrows.t' => { filename => 'mysqlEmb/t/40numrows.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/40numrows.t' => { filename => 'MariaDBEmb/t/40numrows.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/50chopblanks.t' => { filename => 'mysqlEmb/t/50chopblanks.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/50chopblanks.t' => { filename => 'MariaDBEmb/t/50chopblanks.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/50commit.t' => { filename => 'mysqlEmb/t/50commit.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/50commit.t' => { filename => 'MariaDBEmb/t/50commit.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/60leaks.t' => { filename => 'mysqlEmb/t/60leaks.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/60leaks.t' => { filename => 'MariaDBEmb/t/60leaks.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
-                       't/00base.t' => { filename => 'mysqlEmb/t/00base.t',
-                                                                    makedir => 'mysqlEmb/t'
+                       't/00base.t' => { filename => 'MariaDBEmb/t/00base.t',
+                                                                    makedir => 'MariaDBEmb/t'
                                                                   },
 
-                       'myld' => { filename => 'mysqlEmb/myld',
-                                   makedir => 'mysqlEmb'
+                       'myld' => { filename => 'MariaDBEmb/myld',
+                                   makedir => 'MariaDBEmb'
                                  },
-                       'socket.c' => { filename => 'mysqlEmb/socket.c',
-                                   makedir => 'mysqlEmb'
+                       'socket.c' => { filename => 'MariaDBEmb/socket.c',
+                                   makedir => 'MariaDBEmb'
                                  },
-                       'dbdimp.c' => { filename => 'mysqlEmb/dbdimp.c',
-                                   makedir => 'mysqlEmb'
+                       'dbdimp.c' => { filename => 'MariaDBEmb/dbdimp.c',
+                                   makedir => 'MariaDBEmb'
                                  },
-                       'dbdimp.h' => { filename => 'mysqlEmb/dbdimp.h',
-                                   makedir => 'mysqlEmb'
+                       'dbdimp.h' => { filename => 'MariaDBEmb/dbdimp.h',
+                                   makedir => 'MariaDBEmb'
                                  },
-                       'constants.h' => { filename => 'mysqlEmb/constants.h',
-                                   makedir => 'mysqlEmb'
+                       'constants.h' => { filename => 'MariaDBEmb/constants.h',
+                                   makedir => 'MariaDBEmb'
                                  },
-                       'Makefile.PL.embedded' => { filename => 'mysqlEmb/Makefile.PL',
-                                   makedir => 'mysqlEmb'
+                       'Makefile.PL.embedded' => { filename => 'MariaDBEmb/Makefile.PL',
+                                   makedir => 'MariaDBEmb'
                                  },
             );
 
@@ -360,20 +360,20 @@ if ($opt->{'embedded'})
 
   my %e=%o;
 
-  $o{'clean'}->{'FILES'} .= " ./mysqlEmb";
-  $o{'DIR'}=['mysqlEmb'];
+  $o{'clean'}->{'FILES'} .= " ./MariaDBEmb";
+  $o{'DIR'}=['MariaDBEmb'];
 
-  $e{'NAME'} = 'DBD::mysqlEmb';
-  $e{'C'} = ["dbdimp.c", "mysqlEmb.c", "socket.c"];
-  $e{'XS'} = {'mysqlEmb.xs' => 'mysqlEmb.c'};
-  $e{'VERSION_FROM'} = 'lib/DBD/mysqlEmb.pm';
+  $e{'NAME'} = 'DBD::MariaDBEmb';
+  $e{'C'} = ["dbdimp.c", "MariaDBEmb.c", "socket.c"];
+  $e{'XS'} = {'MariaDBEmb.xs' => 'MariaDBEmb.c'};
+  $e{'VERSION_FROM'} = 'lib/DBD/MariaDBEmb.pm';
   $e{'LIBS'} = $opt->{'embedded'};
 
   $e{'INC'} .= " -DDBD_MYSQL_EMBEDDED";
 
   print "Preparing embedded Makefile\n";
 
-  #Create Makefile.conf for mysqlEmb Makefile.PL
+  #Create Makefile.conf for MariaDBEmb Makefile.PL
   create_makefile(Data::Dumper->Dump([\%e], ["o"]));
 
 }
@@ -384,7 +384,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
 	&&  $Config::Config{'archname'} =~ /-object\b/i);
   $o{'AUTHOR'} = 'Patrick Galbraith <patg@patg.net>';
   $o{'ABSTRACT'} =
-    'A MySQL driver for the Perl5 Database Interface (DBI)';
+    'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)';
   $o{'PREREQ_PM'} = { 'DBI' => 1.609 };
   %o=(%o,
     LICENSE => 'perl',
@@ -553,7 +553,7 @@ it can be found):
   mysql_config --embedded
   mysql_config --testdb
 
-and so on. See DBD::mysql::INSTALL for details.
+and so on. See DBD::MariaDB::INSTALL for details.
 USAGE
   exit 1;
 }
@@ -652,7 +652,7 @@ sub Configure {
 PLEASE NOTE:
 
 For 'make test' to run properly, you must ensure that the
-database user '$user' can connect to your MySQL server
+database user '$user' can connect to your MariaDB or MySQL server
 and has the proper privileges that these tests require such
 as 'drop table', 'create table', 'drop procedure', 'create procedure'
 as well as others.
@@ -695,7 +695,7 @@ Failed to determine directory of mysql.h. Use
 
   perl Makefile.PL --cflags=-I<dir>
 
-to set this directory. For details see DBD::mysql::INSTALL,
+to set this directory. For details see DBD::MariaDB::INSTALL,
 section "C Compiler flags" or type
 
   perl Makefile.PL --help
@@ -734,7 +734,7 @@ Failed to determine directory of $f. Use
 
   perl Makefile.PL "--$param=-L<dir> $default_libs"
 
-to set this directory. For details see the DBD::mysql::INSTALL,
+to set this directory. For details see the DBD::MariaDB::INSTALL,
 section "Linker flags" or type
 
   perl Makefile.PL --help
@@ -818,7 +818,7 @@ sub check_include_version {
   {
     print  <<"MSG";
 
-Version of MySQL include files in $dir - $1
+Version of MariaDB or MySQL include files in $dir - $1
 MSG
     return 0;
   }
@@ -877,7 +877,7 @@ sub create_makefile
 {
   my ($cnf)=@_;
 
-  open(LOG, ">mysqlEmb/Makefile.conf") or die "Can't write to file mysqlEmb/Makefile.conf";
+  open(LOG, ">MariaDBEmb/Makefile.conf") or die "Can't write to file MariaDBEmb/Makefile.conf";
   print LOG $cnf;
   close(LOG);
 }

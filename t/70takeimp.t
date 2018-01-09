@@ -8,7 +8,7 @@ require 'lib.pl';
 $|= 1;
 use vars qw($test_dsn $test_user $test_password);
 
-my $drh = eval { DBI->install_driver('mysql') } or do {
+my $drh = eval { DBI->install_driver('MariaDB') } or do {
     plan skip_all => "Can't obtain driver handle ERROR: $@. Can't continue test";
 };
 

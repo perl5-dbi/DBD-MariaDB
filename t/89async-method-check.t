@@ -95,7 +95,7 @@ foreach my $method (@db_safe_methods) {
     $dbh->do('SELECT 1', { async => 1 });
     my $args = $dbh_args{$method} || [];
     $dbh->$method(@$args);
-    ok !$dbh->errstr, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
+    ok !$dbh->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
 
     ok defined($dbh->mysql_async_result);
 }
@@ -107,7 +107,7 @@ foreach my $method (@db_unsafe_methods) {
     $dbh->do('SELECT 1', { async => 1 });
     my $args = $dbh_args{$method} || [];
     my @values = $dbh->$method(@$args); # some methods complain unless they're called in list context
-    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
+    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
 
     ok defined($dbh->mysql_async_result);
 }
@@ -117,7 +117,7 @@ foreach my $method (@common_safe_methods) {
     $sth->execute;
     my $args = $dbh_args{$method} || []; # they're common methods, so this should be ok!
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
+    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
     ok defined($sth->mysql_async_result);
     ok defined($sth->mysql_async_result);
 }
@@ -127,11 +127,11 @@ foreach my $method (@st_safe_methods) {
     $sth->execute;
     my $args = $sth_args{$method} || [];
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::mysql::st during asynchronous operation";
+    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
 
     # statement safe methods cache async result and mysql_async_result can be called multiple times
-    ok defined($sth->mysql_async_result), "Testing DBD::mysql::st method '$method' for async result";
-    ok defined($sth->mysql_async_result), "Testing DBD::mysql::st method '$method' for async result";
+    ok defined($sth->mysql_async_result), "Testing DBD::MariaDB::st method '$method' for async result";
+    ok defined($sth->mysql_async_result), "Testing DBD::MariaDB::st method '$method' for async result";
 }
 
 foreach my $method (@st_safe_methods) {
@@ -158,7 +158,7 @@ foreach my $method (@st_unsafe_methods) {
     $sth->execute(1);
     my $args = $sth_args{$method} || [];
     my @values = $sth->$method(@$args);
-    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::mysql::st during asynchronous operation";
+    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
 
     ok(defined $sth->mysql_async_result);
 }

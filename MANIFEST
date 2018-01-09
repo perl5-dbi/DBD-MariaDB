@@ -2,17 +2,16 @@ Changes
 constants.h
 dbdimp.c
 dbdimp.h
-lib/Bundle/DBD/mysql.pm
-lib/DBD/mysql.pm
-lib/DBD/mysql/GetInfo.pm
-lib/DBD/mysql/INSTALL.pod
+lib/DBD/MariaDB.pm
+lib/DBD/MariaDB/GetInfo.pm
+lib/DBD/MariaDB/INSTALL.pod
 LICENSE
 Makefile.PL
 Makefile.PL.embedded
 MANIFEST			This list of files
 MANIFEST.SKIP
 myld
-mysql.xs
+MariaDB.xs
 README.md
 socket.c
 t/00base.t
@@ -81,7 +80,7 @@ t/cve-2017-3302.t
 t/lib.pl
 t/magic.t
 t/manifest.t
-t/mysql.dbtest
+t/MariaDB.dbtest
 t/pod.t
 t/rt110983-valid-mysqlfd.t
 t/rt118977-zerofill.t
@@ -95,4 +94,3 @@ t/rt85919-fetch-lost-connection.t
 t/rt86153-reconnect-fail-memory.t
 t/rt88006-bit-prepare.t
 t/rt91715.t
-t/version.t

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 require 5.008_001; # just as DBI
 
-package DBD::mysql;
+package DBD::MariaDB;
 
 use DBI;
 use DynaLoader();
@@ -14,10 +14,9 @@ our @ISA = qw(DynaLoader);
 # please make sure the sub-version does not increase above '099'
 # SQL_DRIVER_VER is formatted as dd.dd.dddd
 # for version 5.x please switch to 5.00(_00) version numbering
-# keep $VERSION in Bundle/DBD/mysql.pm in sync
 our $VERSION = '4.042_01';
 
-bootstrap DBD::mysql $VERSION;
+bootstrap DBD::MariaDB $VERSION;
 
 
 our $err = 0;	    # holds error code for DBI::err
@@ -32,19 +31,18 @@ sub driver{
     $class .= "::dr";
 
     # not a 'my' since we use it above to prevent multiple drivers
-    $drh = DBI::_new_drh($class, { 'Name' => 'mysql',
+    $drh = DBI::_new_drh($class, { 'Name' => 'MariaDB',
 				   'Version' => $VERSION,
-				   'Err'    => \$DBD::mysql::err,
-				   'Errstr' => \$DBD::mysql::errstr,
-				   'Attribution' => 'DBD::mysql by Patrick Galbraith'
+				   'Err'    => \$DBD::MariaDB::err,
+				   'Errstr' => \$DBD::MariaDB::errstr,
 				 });
 
     if (!$methods_are_installed) {
-	DBD::mysql::db->install_method('mysql_fd');
-	DBD::mysql::db->install_method('mysql_async_result');
-	DBD::mysql::db->install_method('mysql_async_ready');
-	DBD::mysql::st->install_method('mysql_async_result');
-	DBD::mysql::st->install_method('mysql_async_ready');
+	DBD::MariaDB::db->install_method('mysql_fd');
+	DBD::MariaDB::db->install_method('mysql_async_result');
+	DBD::MariaDB::db->install_method('mysql_async_ready');
+	DBD::MariaDB::st->install_method('mysql_async_result');
+	DBD::MariaDB::st->install_method('mysql_async_ready');
 
 	$methods_are_installed++;
     }
@@ -100,7 +98,7 @@ sub _OdbcParseHost ($$) {
 }
 
 sub AUTOLOAD {
-    my ($meth) = $DBD::mysql::AUTOLOAD;
+    my ($meth) = $DBD::MariaDB::AUTOLOAD;
     my ($smeth) = $meth;
     $smeth =~ s/(.*)\:\://;
 
@@ -113,7 +111,7 @@ sub AUTOLOAD {
 1;
 
 
-package DBD::mysql::dr; # ====== DRIVER ======
+package DBD::MariaDB::dr; # ====== DRIVER ======
 use strict;
 use DBI qw(:sql_types);
 use DBI::Const::GetInfoType;
@@ -140,7 +138,7 @@ sub connect {
 	'password' => $password
     };
 
-    DBD::mysql->_OdbcParse($dsn, $privateAttrHash,
+    DBD::MariaDB->_OdbcParse($dsn, $privateAttrHash,
 				    ['database', 'host', 'port']);
 
 
@@ -157,7 +155,7 @@ sub connect {
       return undef;
     }
 
-    DBD::mysql::db::_login($this, $dsn, $username, $password)
+    DBD::MariaDB::db::_login($this, $dsn, $username, $password)
 	  or $this = undef;
 
     if ($this && ($ENV{MOD_PERL} || $ENV{GATEWAY_INTERFACE})) {
@@ -181,7 +179,7 @@ sub data_sources {
     $utf8 = $utf8 ? ";mysql_enable_utf8=1" : "";
     my($i);
     for ($i = 0;  $i < @dsn;  $i++) {
-	$dsn[$i] = "DBI:mysql:$dsn[$i]$utf8";
+	$dsn[$i] = "DBI:MariaDB:$dsn[$i]$utf8";
     }
     @dsn;
 }
@@ -191,7 +189,7 @@ sub admin {
     my($command) = shift;
     my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
 	shift : '';
-    my($host, $port) = DBD::mysql->_OdbcParseHost(shift(@_) || '');
+    my($host, $port) = DBD::MariaDB->_OdbcParseHost(shift(@_) || '');
     my($user) = shift || '';
     my($password) = shift || '';
 
@@ -202,11 +200,11 @@ sub admin {
 	       $user, $password, '_admin_internal');
 }
 
-package DBD::mysql::db; # ====== DATABASE ======
+package DBD::MariaDB::db; # ====== DATABASE ======
 use strict;
 use DBI qw(:sql_types);
 
-%DBD::mysql::db::db2ANSI = (
+%DBD::MariaDB::db::db2ANSI = (
     "INT"   =>  "INTEGER",
     "CHAR"  =>  "CHAR",
     "REAL"  =>  "REAL",
@@ -214,7 +212,7 @@ use DBI qw(:sql_types);
 );
 
 ### ANSI datatype mapping to MySQL datatypes
-%DBD::mysql::db::ANSI2db = (
+%DBD::MariaDB::db::ANSI2db = (
     "CHAR"          => "CHAR",
     "VARCHAR"       => "CHAR",
     "LONGVARCHAR"   => "CHAR",
@@ -245,7 +243,7 @@ sub prepare {
     my $sth = DBI::_new_sth($dbh, {'Statement' => $statement});
 
     # Populate internal handle data.
-    if (!DBD::mysql::st::_prepare($sth, $statement, $attribs)) {
+    if (!DBD::MariaDB::st::_prepare($sth, $statement, $attribs)) {
 	$sth = undef;
     }
 
@@ -255,13 +253,13 @@ sub prepare {
 sub db2ANSI {
     my $self = shift;
     my $type = shift;
-    return $DBD::mysql::db::db2ANSI{"$type"};
+    return $DBD::MariaDB::db::db2ANSI{"$type"};
 }
 
 sub ANSI2db {
     my $self = shift;
     my $type = shift;
-    return $DBD::mysql::db::ANSI2db{"$type"};
+    return $DBD::MariaDB::db::ANSI2db{"$type"};
 }
 
 sub admin {
@@ -409,7 +407,7 @@ sub table_info ($) {
 
 sub _ListTables {
   my $dbh = shift;
-  if (!$DBD::mysql::QUIET) {
+  if (!$DBD::MariaDB::QUIET) {
     Carp::carp "_ListTables is deprecated, use \$dbh->tables()";
   }
   return map { $_ =~ s/.*\.//; $_ } $dbh->tables();
@@ -829,8 +827,8 @@ sub get_info {
     my($dbh, $info_type) = @_;
 
     return unless $dbh->func('_async_check');
-    require DBD::mysql::GetInfo;
-    my $v = $DBD::mysql::GetInfo::info{int($info_type)};
+    require DBD::MariaDB::GetInfo;
+    my $v = $DBD::MariaDB::GetInfo::info{int($info_type)};
     $v = $v->($dbh) if ref $v eq 'CODE';
     return $v;
 }
@@ -851,7 +849,7 @@ BEGIN {
 }
 
 
-package DBD::mysql::st; # ====== STATEMENT ======
+package DBD::MariaDB::st; # ====== STATEMENT ======
 use strict;
 
 BEGIN {

@@ -1,5 +1,5 @@
 /*
- *  DBD::mysql - DBI driver for the mysql database
+ *  DBD::MariaDB - DBI driver for the MariaDB and MySQL database
  *
  *  Copyright (c) 2015-2017 Pali Rohár
  *  Copyright (c) 2004-2017 Patrick Galbraith
@@ -24,7 +24,7 @@
 
 #define ASYNC_CHECK_RETURN(h, value)\
   if(imp_dbh->async_query_in_flight) {\
-      do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
+      mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
       return (value);\
   }
 
@@ -37,7 +37,7 @@ PERL_STATIC_INLINE bool str_is_nonascii(const char *str, STRLEN len)
   return false;
 }
 
-void get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len)
+void mariadb_dr_get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len)
 {
   char *buf;
   STRLEN len;
@@ -71,7 +71,7 @@ void get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, cha
   *out_len = len;
 }
 
-void get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len)
+void mariadb_dr_get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len)
 {
   char *buf;
   STRLEN len;
@@ -936,7 +936,7 @@ static void bind_param(imp_sth_ph_t *ph, SV *value, IV sql_type, int field, bool
   if (SvOK(value))
   {
     is_binary = sql_type_is_binary(sql_type);
-    get_param(aTHX_ value, field, enable_utf8, is_binary, &buf, &ph->len);
+    mariadb_dr_get_param(aTHX_ value, field, enable_utf8, is_binary, &buf, &ph->len);
     ph->value = savepvn(buf, ph->len);
     ph->utf8 = (enable_utf8 && !is_binary);
   }
@@ -1543,7 +1543,7 @@ static const sql_type_info_t *native2sql(int t)
 
 /***************************************************************************
  *
- *  Name:    dbd_init
+ *  Name:    mariadb_dr_init
  *
  *  Purpose: Called when the driver is installed by DBI
  *
@@ -1554,7 +1554,7 @@ static const sql_type_info_t *native2sql(int t)
  *
  **************************************************************************/
 
-void dbd_init(dbistate_t* dbistate)
+void mariadb_dr_init(dbistate_t* dbistate)
 {
     dTHX;
     DBISTATE_INIT;
@@ -1564,7 +1564,7 @@ void dbd_init(dbistate_t* dbistate)
 
 /**************************************************************************
  *
- *  Name:    do_error, do_warn
+ *  Name:    mariadb_dr_do_error, mariadb_dr_do_warn
  *
  *  Purpose: Called to associate an error code and an error message
  *           to some handle
@@ -1577,7 +1577,7 @@ void dbd_init(dbistate_t* dbistate)
  *
  **************************************************************************/
 
-void do_error(SV* h, int rc, const char* what, const char* sqlstate)
+void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
 {
   dTHX;
   D_imp_xxh(h);
@@ -1598,7 +1598,7 @@ void do_error(SV* h, int rc, const char* what, const char* sqlstate)
   enable_utf8 = (dbh->enable_utf8 || dbh->enable_utf8mb4);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> do_error\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
   errstr= DBIc_ERRSTR(imp_xxh);
   sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
   SvUTF8_off(errstr);
@@ -1619,13 +1619,10 @@ void do_error(SV* h, int rc, const char* what, const char* sqlstate)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n",
     what, rc, SvPV_nolen(errstr));
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- do_error\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- mariadb_dr_do_error\n");
 }
 
-/*
-  void do_warn(SV* h, int rc, char* what)
-*/
-void do_warn(SV* h, int rc, char* what)
+void mariadb_dr_do_warn(SV* h, int rc, char* what)
 {
   dTHX;
   D_imp_xxh(h);
@@ -1657,9 +1654,9 @@ void do_warn(SV* h, int rc, char* what)
 }
 
 #if defined(DBD_MYSQL_EMBEDDED)
- #define DBD_MYSQL_NAMESPACE "DBD::mysqlEmb::QUIET";
+ #define DBD_MYSQL_NAMESPACE "DBD::MariaDBEmb::QUIET";
 #else
- #define DBD_MYSQL_NAMESPACE "DBD::mysql::QUIET";
+ #define DBD_MYSQL_NAMESPACE "DBD::MariaDB::QUIET";
 #endif
 
 #define doquietwarn(s) \
@@ -1696,7 +1693,7 @@ static void set_ssl_error(MYSQL *sock, const char *error)
 
 /***************************************************************************
  *
- *  Name:    mysql_dr_connect
+ *  Name:    mariadb_dr_connect
  *
  *  Purpose: Replacement for mysql_connect
  *
@@ -1712,11 +1709,11 @@ static void set_ssl_error(MYSQL *sock, const char *error)
  *           char* imp_dbh - Pointer to internal dbh structure
  *
  *  Returns: The sock argument for success, NULL otherwise;
- *           you have to call do_error in the latter case.
+ *           you have to call mariadb_dr_do_error in the latter case.
  *
  **************************************************************************/
 
-MYSQL *mysql_dr_connect(
+MYSQL *mariadb_dr_connect(
                         SV* dbh,
                         MYSQL* sock,
                         char* mysql_socket,
@@ -1748,7 +1745,7 @@ MYSQL *mysql_dr_connect(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-		  "imp_dbh->mysql_dr_connect: host = |%s|, port = %d," \
+		  "imp_dbh->mariadb_dr_connect: host = |%s|, port = %d," \
 		  " uid = %s, pwd = %s\n",
 		  host ? host : "NULL", portNr,
 		  user ? user : "NULL",
@@ -1821,7 +1818,7 @@ MYSQL *mysql_dr_connect(
           }
           if (mysql_server_init(server_args_cnt, server_args, server_groups))
           {
-            do_warn(dbh, AS_ERR_EMBEDDED, "Embedded server was not started. \
+            mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED, "Embedded server was not started. \
                     Could not initialize environment.");
             return NULL;
           }
@@ -1849,7 +1846,7 @@ MYSQL *mysql_dr_connect(
 
           if (rc)
           {
-            do_warn(dbh, AS_ERR_EMBEDDED,
+            mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED,
                     "Embedded server was already started. You cannot pass init\
                     parameters to embedded server once");
             return NULL;
@@ -1884,7 +1881,7 @@ MYSQL *mysql_dr_connect(
           char* df = SvPV_nomg(*svp, lna);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                           "imp_dbh->mysql_dr_connect: Setting" \
+                           "imp_dbh->mariadb_dr_connect: Setting" \
                            " init command (%s).\n", df);
           mysql_options(sock, MYSQL_INIT_COMMAND, df);
         }
@@ -1893,7 +1890,7 @@ MYSQL *mysql_dr_connect(
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Enabling" \
+                          "imp_dbh->mariadb_dr_connect: Enabling" \
                           " compression.\n");
           mysql_options(sock, MYSQL_OPT_COMPRESS, NULL);
         }
@@ -1903,7 +1900,7 @@ MYSQL *mysql_dr_connect(
           int to = SvIV_nomg(*svp);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting" \
                           " connect timeout (%d).\n",to);
           mysql_options(sock, MYSQL_OPT_CONNECT_TIMEOUT,
                         (const char *)&to);
@@ -1914,7 +1911,7 @@ MYSQL *mysql_dr_connect(
           int to = SvIV_nomg(*svp);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting" \
                           " write timeout (%d).\n",to);
           mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT,
                         (const char *)&to);
@@ -1925,7 +1922,7 @@ MYSQL *mysql_dr_connect(
           int to = SvIV_nomg(*svp);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting" \
                           " read timeout (%d).\n",to);
           mysql_options(sock, MYSQL_OPT_READ_TIMEOUT,
                         (const char *)&to);
@@ -1938,7 +1935,7 @@ MYSQL *mysql_dr_connect(
           my_bool secauth = 0;
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Skipping" \
+                          "imp_dbh->mariadb_dr_connect: Skipping" \
                           " secure auth\n");
           error = mysql_options(sock, MYSQL_SECURE_AUTH, &secauth);
 #endif
@@ -1956,7 +1953,7 @@ MYSQL *mysql_dr_connect(
           char* df = SvPV_nomg(*svp, lna);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mysql_dr_connect: Reading" \
+                          "imp_dbh->mariadb_dr_connect: Reading" \
                           " default file %s.\n", df);
           mysql_options(sock, MYSQL_READ_DEFAULT_FILE, df);
         }
@@ -1966,7 +1963,7 @@ MYSQL *mysql_dr_connect(
           char* gr = SvPV_nomg(*svp, lna);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "imp_dbh->mysql_dr_connect: Using" \
+                    "imp_dbh->mariadb_dr_connect: Using" \
                     " default group %s.\n", gr);
 
           mysql_options(sock, MYSQL_READ_DEFAULT_GROUP, gr);
@@ -2205,7 +2202,7 @@ MYSQL *mysql_dr_connect(
 
 	    if (ssl_verify) {
 	      if (!ssl_verify_usable() && ssl_enforce && ssl_verify_set) {
-	        set_ssl_error(sock, "mysql_ssl_verify_server_cert=1 is broken by current version of MySQL client");
+	        set_ssl_error(sock, "mysql_ssl_verify_server_cert=1 is broken by current version of MariaDB/MySQL client");
 	        return NULL;
 	      }
     #ifdef HAVE_SSL_VERIFY
@@ -2244,7 +2241,7 @@ MYSQL *mysql_dr_connect(
 	  unsigned int flag = SvTRUE(*svp);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
 	    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-        "imp_dbh->mysql_dr_connect: Using" \
+        "imp_dbh->mariadb_dr_connect: Using" \
         " local infile %u.\n", flag);
 	  mysql_options(sock, MYSQL_OPT_LOCAL_INFILE, (const char *) &flag);
 	}
@@ -2252,7 +2249,7 @@ MYSQL *mysql_dr_connect(
       }
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mysql_dr_connect: client_flags = %d\n",
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: client_flags = %d\n",
 		    client_flag);
 
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
@@ -2261,13 +2258,13 @@ MYSQL *mysql_dr_connect(
     result = mysql_real_connect(sock, host, user, password, dbname,
 				portNr, mysql_socket, client_flag);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mysql_dr_connect: <-");
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
 
     if (result)
     {
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
       /* connection succeeded. */
-      /* imp_dbh == NULL when mysql_dr_connect() is called from mysql.xs
+      /* imp_dbh == NULL when mariadb_dr_connect() is called from mysql.xs
          functions (_admin_internal(),_ListDBs()). */
       if (!(result->client_flag & CLIENT_PROTOCOL_41) && imp_dbh)
         imp_dbh->use_server_side_prepare = FALSE;
@@ -2291,7 +2288,7 @@ MYSQL *mysql_dr_connect(
       Safefree(sock);
 
          rurban: No, we still need this handle later in mysql_dr_error().
-         RT #97625. It will be freed as imp_dbh->pmysql in dbd_db_destroy(),
+         RT #97625. It will be freed as imp_dbh->pmysql in mariadb_db_destroy(),
          which is called by the DESTROY handler.
       */
     }
@@ -2318,9 +2315,9 @@ static char *safe_hv_fetch(pTHX_ HV *hv, const char *name, int name_length)
 }
 
 /*
- Frontend for mysql_dr_connect
+ Frontend for mariadb_dr_connect
 */
-static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
+static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 {
   SV* sv;
   HV* hv;
@@ -2341,14 +2338,14 @@ static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
     if (DBIc_has(imp_dbh, DBIcf_ACTIVE))
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "my_login skip connect\n");
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mariadb_db_my_login skip connect\n");
       /* tell our parent we've adopted an active child */
       ++DBIc_ACTIVE_KIDS(DBIc_PARENT_COM(imp_dbh));
       return TRUE;
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "my_login IMPSET but not ACTIVE so connect not skipped\n");
+                    "mariadb_db_my_login IMPSET but not ACTIVE so connect not skipped\n");
   }
 #endif
 
@@ -2370,7 +2367,7 @@ static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-		  "imp_dbh->my_login : dbname = %s, uid = %s, pwd = %s," \
+		  "imp_dbh->mariadb_db_my_login : dbname = %s, uid = %s, pwd = %s," \
 		  "host = %s, port = %s\n",
 		  dbname ? dbname : "NULL",
 		  user ? user : "NULL",
@@ -2382,7 +2379,7 @@ static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
      Newz(908, imp_dbh->pmysql, 1, MYSQL);
      imp_dbh->pmysql->net.fd = -1;
   }
-  result = mysql_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
+  result = mariadb_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
 			  password, dbname, imp_dbh) ? TRUE : FALSE;
   return result;
 }
@@ -2390,7 +2387,7 @@ static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
 /**************************************************************************
  *
- *  Name:    dbd_db_login
+ *  Name:    mariadb_db_login
  *
  *  Purpose: Called for connecting to a database and logging in.
  *
@@ -2401,12 +2398,12 @@ static int my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
  *           user - user name to connect as
  *           password - password to connect with
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error has already
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
 
-int dbd_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
+int mariadb_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
 		 char* password) {
 #ifdef dTHR
   dTHR;
@@ -2432,10 +2429,10 @@ int dbd_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
   imp_dbh->enable_utf8 = FALSE;     /* initialize mysql_enable_utf8 */
   imp_dbh->enable_utf8mb4 = FALSE;  /* initialize mysql_enable_utf8mb4 */
 
-  if (!my_login(aTHX_ dbh, imp_dbh))
+  if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
   {
     if(imp_dbh->pmysql) {
-        do_error(dbh, mysql_errno(imp_dbh->pmysql),
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                 mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
         Safefree(imp_dbh->pmysql);
 
@@ -2457,21 +2454,21 @@ int dbd_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
 
 /***************************************************************************
  *
- *  Name:    dbd_db_commit
- *           dbd_db_rollback
+ *  Name:    mariadb_db_commit
+ *           mariadb_db_rollback
  *
  *  Purpose: You guess what they should do. 
  *
  *  Input:   dbh - database handle being committed or rolled back
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error has already
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
 
 int
-dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
+mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
   if (DBIc_has(imp_dbh, DBIcf_AutoCommit))
     return FALSE;
@@ -2486,22 +2483,22 @@ dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
     if (mysql_commit(imp_dbh->pmysql))
 #endif
     {
-      do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql)
+      mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql)
                ,mysql_sqlstate(imp_dbh->pmysql));
       return FALSE;
     }
   }
   else
-    do_warn(dbh, JW_ERR_NOT_IMPLEMENTED,
+    mariadb_dr_do_warn(dbh, JW_ERR_NOT_IMPLEMENTED,
             "Commit ineffective because transactions are not available");
   return TRUE;
 }
 
 /*
- dbd_db_rollback
+ mariadb_db_rollback
 */
 int
-dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
+mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
   /* report error, if not in AutoCommit mode */
   if (DBIc_has(imp_dbh, DBIcf_AutoCommit))
     return FALSE;
@@ -2516,13 +2513,13 @@ dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
       if (mysql_rollback(imp_dbh->pmysql))
 #endif
       {
-        do_error(dbh, mysql_errno(imp_dbh->pmysql),
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
         return FALSE;
       }
   }
   else
-    do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
+    mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
              "Rollback ineffective because transactions are not available" ,NULL);
   return TRUE;
 }
@@ -2530,19 +2527,19 @@ dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 /*
  ***************************************************************************
  *
- *  Name:    dbd_db_disconnect
+ *  Name:    mariadb_db_disconnect
  *
  *  Purpose: Disconnect a database handle from its database
  *
  *  Input:   dbh - database handle being disconnected
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error has already
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
 
-int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
+int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
 #ifdef dTHR
   dTHR;
@@ -2567,19 +2564,19 @@ int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
 /***************************************************************************
  *
- *  Name:    dbd_discon_all
+ *  Name:    mariadb_dr_discon_all
  *
  *  Purpose: Disconnect all database handles at shutdown time
  *
  *  Input:   dbh - database handle being disconnected
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error has already
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
 
-int dbd_discon_all (SV *drh, imp_drh_t *imp_drh) {
+int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 #if defined(dTHR)
   dTHR;
 #endif
@@ -2631,7 +2628,7 @@ int dbd_discon_all (SV *drh, imp_drh_t *imp_drh) {
 
 /****************************************************************************
  *
- *  Name:    dbd_db_destroy
+ *  Name:    mariadb_db_destroy
  *
  *  Purpose: Our part of the dbh destructor
  *
@@ -2642,7 +2639,7 @@ int dbd_discon_all (SV *drh, imp_drh_t *imp_drh) {
  *
  **************************************************************************/
 
-void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
+void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
 
     /*
      *  Being on the safe side never hurts ...
@@ -2657,9 +2654,9 @@ void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
 #else
         if (mysql_rollback(imp_dbh->pmysql))
 #endif
-            do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
+            mariadb_dr_do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
     }
-    dbd_db_disconnect(dbh, imp_dbh);
+    mariadb_db_disconnect(dbh, imp_dbh);
   }
   Safefree(imp_dbh->pmysql);
 
@@ -2670,7 +2667,7 @@ void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
 /* 
  ***************************************************************************
  *
- *  Name:    dbd_db_STORE_attrib
+ *  Name:    mariadb_db_STORE_attrib
  *
  *  Purpose: Function for storing dbh attributes; we currently support
  *           just nothing. :-)
@@ -2684,7 +2681,7 @@ void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
  *
  **************************************************************************/
 int
-dbd_db_STORE_attrib(
+mariadb_db_STORE_attrib(
                     SV* dbh,
                     imp_dbh_t* imp_dbh,
                     SV* keysv,
@@ -2720,7 +2717,7 @@ dbd_db_STORE_attrib(
 #endif
            )
         {
-          do_error(dbh, TX_ERR_AUTOCOMMIT,
+          mariadb_dr_do_error(dbh, TX_ERR_AUTOCOMMIT,
                    bool_value ?
                    "Turning on AutoCommit failed" :
                    "Turning off AutoCommit failed"
@@ -2738,7 +2735,7 @@ dbd_db_STORE_attrib(
       */
       if (!bool_value)
       {
-        do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
+        mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
                  "Transactions not supported by database" ,NULL);
         return FALSE;
       }
@@ -2774,7 +2771,7 @@ dbd_db_STORE_attrib(
         mysql_options(imp_dbh->pmysql, FABRIC_OPT_DEFAULT_MODE, len == 0 ? NULL : str);
       else
       {
-        do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_DEFAULT_MODE are 'ro', 'rw', or undef/empty string", "HY000");
+        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_DEFAULT_MODE are 'ro', 'rw', or undef/empty string", "HY000");
         return FALSE;
       }
     }
@@ -2788,7 +2785,7 @@ dbd_db_STORE_attrib(
     const char *str = SvPV_nomg(valuesv, len);
     if (len != 2 || (strnNE(str, "ro", 3) && strnNE(str, "rw", 3)))
     {
-      do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
+      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
       return FALSE;
     }
 
@@ -2796,7 +2793,7 @@ dbd_db_STORE_attrib(
   }
   else if (kl == 34 && strEQ(key, "mysql_fabric_opt_group_credentials"))
   {
-    do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "'fabric_opt_group_credentials' is not supported", "HY000");
+    mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "'fabric_opt_group_credentials' is not supported", "HY000");
     return FALSE;
   }
 #endif
@@ -2807,22 +2804,6 @@ dbd_db_STORE_attrib(
     (void)hv_store((HV*)SvRV(dbh), key, kl, cachesv, 0);
   return TRUE;
 }
-
-/***************************************************************************
- *
- *  Name:    dbd_db_FETCH_attrib
- *
- *  Purpose: Function for fetching dbh attributes
- *
- *  Input:   dbh - database handle being queried
- *           imp_dbh - drivers private database handle data
- *           keysv - the attribute name
- *
- *  Returns: An SV*, if successful; NULL otherwise
- *
- *  Notes:   Do not forget to call sv_2mortal in the former case!
- *
- **************************************************************************/
 
 #if IVSIZE < 8
 static char *
@@ -2893,7 +2874,23 @@ my_ulonglong2sv(pTHX_ my_ulonglong val)
 #endif
 }
 
-SV* dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
+/***************************************************************************
+ *
+ *  Name:    mariadb_db_FETCH_attrib
+ *
+ *  Purpose: Function for fetching dbh attributes
+ *
+ *  Input:   dbh - database handle being queried
+ *           imp_dbh - drivers private database handle data
+ *           keysv - the attribute name
+ *
+ *  Returns: An SV*, if successful; NULL otherwise
+ *
+ *  Notes:   Do not forget to call sv_2mortal in the former case!
+ *
+ **************************************************************************/
+
+SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
 {
   dTHX;
   STRLEN kl;
@@ -3080,11 +3077,12 @@ SV* dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   return result;
 }
 
+static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
 
 /* 
  **************************************************************************
  *
- *  Name:    dbd_st_prepare
+ *  Name:    mariadb_st_prepare_sv
  *
  *  Purpose: Called for preparing an SQL statement; our part of the
  *           statement handle constructor
@@ -3094,12 +3092,12 @@ SV* dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
  *           statement - pointer to string with SQL statement
  *           attribs - statement attributes, currently not in use
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
 int
-dbd_st_prepare_sv(
+mariadb_st_prepare_sv(
   SV *sth,
   imp_sth_t *imp_sth,
   SV *statement_sv,
@@ -3125,13 +3123,13 @@ dbd_st_prepare_sv(
   D_imp_dbh_from_sth;
   bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
-  get_statement(aTHX_ statement_sv, enable_utf8, &statement, &statement_len);
+  mariadb_dr_get_statement(aTHX_ statement_sv, enable_utf8, &statement, &statement_len);
   imp_sth->statement = savepvn(statement, statement_len);
   imp_sth->statement_len = statement_len;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                 "\t-> dbd_st_prepare MYSQL_VERSION_ID %d, SQL statement: %s\n",
+                 "\t-> mariadb_st_prepare_sv MYSQL_VERSION_ID %d, SQL statement: %s\n",
                   MYSQL_VERSION_ID, statement);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
@@ -3160,7 +3158,7 @@ dbd_st_prepare_sv(
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         if (imp_sth->disable_fallback_for_server_prepare)
         {
-          do_error(sth, ER_UNSUPPORTED_PS,
+          mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
                    "Async option not supported with server side prepare", "HY000");
           return 0;
         }
@@ -3185,7 +3183,7 @@ dbd_st_prepare_sv(
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mysql_st_free_result_sets(sth, imp_sth);
+  mariadb_st_free_result_sets(sth, imp_sth);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION && MYSQL_VERSION_ID < CALL_PLACEHOLDER_VERSION
   if (imp_sth->use_server_side_prepare)
@@ -3225,7 +3223,7 @@ dbd_st_prepare_sv(
                     "\t\tLIMIT and ? found, set to use_server_side_prepare=0\n");
           if (imp_sth->disable_fallback_for_server_prepare)
           {
-            do_error(sth, ER_UNSUPPORTED_PS,
+            mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
                      "\"LIMIT ?\" not supported with server side prepare",
                      "HY000");
             mysql_stmt_close(imp_sth->stmt);
@@ -3265,7 +3263,7 @@ dbd_st_prepare_sv(
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Disable PS mode for CALL()\n");
           if (imp_sth->disable_fallback_for_server_prepare)
           {
-            do_error(sth, ER_UNSUPPORTED_PS,
+            mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
                      "\"CALL()\" not supported with server side prepare",
                      "HY000");
             mysql_stmt_close(imp_sth->stmt);
@@ -3307,7 +3305,7 @@ dbd_st_prepare_sv(
                                        statement,
                                        statement_len);
 
-    if (prepare_retval && mysql_db_reconnect(sth))
+    if (prepare_retval && mariadb_db_reconnect(sth))
         prepare_retval= mysql_stmt_prepare(imp_sth->stmt,
                                            statement,
                                            statement_len);
@@ -3336,7 +3334,7 @@ dbd_st_prepare_sv(
       }
       else
       {
-        do_error(sth, mysql_stmt_errno(imp_sth->stmt),
+        mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt),
                  mysql_stmt_error(imp_sth->stmt),
                 mysql_sqlstate(imp_dbh->pmysql));
         mysql_stmt_close(imp_sth->stmt);
@@ -3391,12 +3389,12 @@ dbd_st_prepare_sv(
   DBIc_IMPSET_on(imp_sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_prepare\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_prepare_sv\n");
   return 1;
 }
 
 /***************************************************************************
- * Name: dbd_st_free_result_sets
+ * Name: mariadb_st_free_result_sets
  *
  * Purpose: Clean-up single or multiple result sets (if any)
  *
@@ -3406,7 +3404,7 @@ dbd_st_prepare_sv(
  * Returns: 1 ok
  *          0 error
  *************************************************************************/
-int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
+static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 {
   dTHX;
   D_imp_dbh_from_sth;
@@ -3414,13 +3412,13 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
   int next_result_rc= -1;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- dbd_st_free_result_sets\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- mariadb_st_free_result_sets\n");
 
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
   do
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_free_result_sets RC %d\n", next_result_rc);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets RC %d\n", next_result_rc);
 
     if (next_result_rc == 0)
     {
@@ -3430,10 +3428,10 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
         if (mysql_field_count(imp_dbh->pmysql))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_free_result_sets ERROR: %s\n",
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets ERROR: %s\n",
                                   mysql_error(imp_dbh->pmysql));
 
-          do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
+          mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
                    mysql_sqlstate(imp_dbh->pmysql));
           return 0;
         }
@@ -3449,10 +3447,10 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
   if (next_result_rc > 0)
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_free_result_sets: Error while processing multi-result set: %s\n",
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets: Error while processing multi-result set: %s\n",
                     mysql_error(imp_dbh->pmysql));
 
-    do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
+    mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
              mysql_sqlstate(imp_dbh->pmysql));
   }
 
@@ -3466,7 +3464,7 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 #endif
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_free_result_sets\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets\n");
 
   return 1;
 }
@@ -3474,7 +3472,7 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
 /***************************************************************************
- * Name: dbd_st_more_results
+ * Name: mariadb_st_more_results
  *
  * Purpose: Move onto the next result set (if any)
  *
@@ -3485,7 +3483,7 @@ int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
  *          0 if there are not
  *         -1 for errors.
  *************************************************************************/
-int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
+int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   D_imp_dbh_from_sth;
@@ -3503,14 +3501,14 @@ int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
     /* No more pending result set(s)*/
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-		    "\n      <- dbs_st_more_results no more results\n");
+		    "\n      <- mariadb_st_more_results no more results\n");
     return 0;
   }
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (imp_sth->use_server_side_prepare)
   {
-    do_warn(sth, JW_ERR_NOT_IMPLEMENTED,
+    mariadb_dr_do_warn(sth, JW_ERR_NOT_IMPLEMENTED,
             "Processing of multiple result set is not possible with server side prepare");
     return 0;
   }
@@ -3549,7 +3547,7 @@ int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
    */
   if (next_result_return_code > 0)
   {
-    do_error(sth, mysql_errno(svsock), mysql_error(svsock),
+    mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock),
              mysql_sqlstate(svsock));
 
     return 0;
@@ -3566,7 +3564,7 @@ int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
     if (mysql_errno(svsock))
     {
-      do_error(sth, mysql_errno(svsock), mysql_error(svsock), 
+      mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock), 
                mysql_sqlstate(svsock));
       return 0;
     }
@@ -3625,7 +3623,7 @@ int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
 #endif
 /**************************************************************************
  *
- *  Name:    mysql_st_internal_execute
+ *  Name:    mariadb_st_internal_execute
  *
  *  Purpose: Internal version for executing a statement, called both from
  *           within the "do" and the "execute" method.
@@ -3641,7 +3639,7 @@ int dbd_st_more_results(SV* sth, imp_sth_t* imp_sth)
  **************************************************************************/
 
 
-my_ulonglong mysql_st_internal_execute(
+my_ulonglong mariadb_st_internal_execute(
                                        SV *h, /* could be sth or dbh */
                                        char *sbuf,
                                        STRLEN slen,
@@ -3705,7 +3703,7 @@ my_ulonglong mysql_st_internal_execute(
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mysql_st_internal_execute MYSQL_VERSION_ID %d\n",
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mariadb_st_internal_execute MYSQL_VERSION_ID %d\n",
                   MYSQL_VERSION_ID );
 
   salloc= parse_params(imp_xxh,
@@ -3734,12 +3732,12 @@ my_ulonglong mysql_st_internal_execute(
 
     if (!slen)
     {
-      do_error(h, JW_ERR_QUERY, "Missing table name" ,NULL);
+      mariadb_dr_do_error(h, JW_ERR_QUERY, "Missing table name" ,NULL);
       return -2;
     }
     if (!(table= malloc(slen+1)))
     {
-      do_error(h, JW_ERR_MEM, "Out of memory" ,NULL);
+      mariadb_dr_do_error(h, JW_ERR_MEM, "Out of memory" ,NULL);
       return -2;
     }
 
@@ -3759,7 +3757,7 @@ my_ulonglong mysql_st_internal_execute(
 
     if (!(*result))
     {
-      do_error(h, mysql_errno(svsock), mysql_error(svsock)
+      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock)
                ,mysql_sqlstate(svsock));
       return -2;
     }
@@ -3769,7 +3767,7 @@ my_ulonglong mysql_st_internal_execute(
 
   if(async) {
     if((mysql_send_query(svsock, sbuf, slen)) &&
-       (!mysql_db_reconnect(h) ||
+       (!mariadb_db_reconnect(h) ||
         (mysql_send_query(svsock, sbuf, slen))))
     {
         rows = -2;
@@ -3778,7 +3776,7 @@ my_ulonglong mysql_st_internal_execute(
     }
   } else {
       if ((mysql_real_query(svsock, sbuf, slen))  &&
-          (!mysql_db_reconnect(h)  ||
+          (!mariadb_db_reconnect(h)  ||
            (mysql_real_query(svsock, sbuf, slen))))
       {
         rows = -2;
@@ -3804,7 +3802,7 @@ my_ulonglong mysql_st_internal_execute(
     Safefree(salloc);
 
   if(rows == (my_ulonglong)-2) {
-    do_error(h, mysql_errno(svsock), mysql_error(svsock), 
+    mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock), 
              mysql_sqlstate(svsock));
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "IGNORING ERROR errno %d\n", mysql_errno(svsock));
@@ -3814,7 +3812,7 @@ my_ulonglong mysql_st_internal_execute(
 
  /**************************************************************************
  *
- *  Name:    mysql_st_internal_execute41
+ *  Name:    mariadb_st_internal_execute41
  *
  *  Purpose: Internal version for executing a prepared statement, called both
  *           from within the "do" and the "execute" method.
@@ -3833,7 +3831,7 @@ my_ulonglong mysql_st_internal_execute(
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
 
-my_ulonglong mysql_st_internal_execute41(
+my_ulonglong mariadb_st_internal_execute41(
                                          SV *sth,
                                          int num_params,
                                          MYSQL_RES **result,
@@ -3850,7 +3848,7 @@ my_ulonglong mysql_st_internal_execute41(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t-> mysql_st_internal_execute41\n");
+                  "\t-> mariadb_st_internal_execute41\n");
 
   /* free result if exists */
   if (*result)
@@ -3874,11 +3872,11 @@ my_ulonglong mysql_st_internal_execute41(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t\tmysql_st_internal_execute41 calling mysql_execute with %d num_params\n",
+                  "\t\tmariadb_st_internal_execute41 calling mysql_execute with %d num_params\n",
                   num_params);
 
   execute_retval= mysql_stmt_execute(stmt);
-  if (execute_retval && mysql_db_reconnect(sth))
+  if (execute_retval && mariadb_db_reconnect(sth))
     execute_retval= mysql_stmt_execute(stmt);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -3938,13 +3936,13 @@ error:
                   "     errno %d err message %s\n",
                   mysql_stmt_errno(stmt),
                   mysql_stmt_error(stmt));
-  do_error(sth, mysql_stmt_errno(stmt), mysql_stmt_error(stmt),
+  mariadb_dr_do_error(sth, mysql_stmt_errno(stmt), mysql_stmt_error(stmt),
            mysql_stmt_sqlstate(stmt));
   mysql_stmt_reset(stmt);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t<- mysql_st_internal_execute41\n");
+                  "\t<- mariadb_st_internal_execute41\n");
   return -2;
 
 }
@@ -3953,7 +3951,7 @@ error:
 
 /***************************************************************************
  *
- *  Name:    dbd_st_execute
+ *  Name:    mariadb_st_execute
  *
  *  Purpose: Called for preparing an SQL statement; our part of the
  *           statement handle constructor
@@ -3961,12 +3959,12 @@ error:
  *  Input:   sth - statement handle being initialized
  *           imp_sth - drivers private statement handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
 
-int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
+int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   char actual_row_num[64];
@@ -3985,7 +3983,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-      " -> dbd_st_execute for %p\n", sth);
+      " -> mariadb_st_execute for %p\n", sth);
 
   if (!SvROK(sth)  ||  SvTYPE(SvRV(sth)) != SVt_PVHV)
     croak("Expected hash array");
@@ -4003,7 +4001,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mysql_st_free_result_sets (sth, imp_sth);
+  mariadb_st_free_result_sets (sth, imp_sth);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (use_server_side_prepare)
@@ -4012,7 +4010,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
     {
       if (disable_fallback_for_server_prepare)
       {
-        do_error(sth, ER_UNSUPPORTED_PS,
+        mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
                  "\"mysql_use_result\" not supported with server side prepare",
                  "HY000");
         return 0;
@@ -4022,7 +4020,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 
     if (use_server_side_prepare)
     {
-      imp_sth->row_num= mysql_st_internal_execute41(
+      imp_sth->row_num= mariadb_st_internal_execute41(
                                                     sth,
                                                     DBIc_NUM_PARAMS(imp_sth),
                                                     &imp_sth->result,
@@ -4044,7 +4042,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
   if (!use_server_side_prepare)
 #endif
   {
-    imp_sth->row_num= mysql_st_internal_execute(
+    imp_sth->row_num= mariadb_st_internal_execute(
                                                 sth,
                                                 imp_sth->statement,
                                                 imp_sth->statement_len,
@@ -4094,7 +4092,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
     */
     sprintf(actual_row_num, "%llu", imp_sth->row_num);
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  " <- dbd_st_execute returning imp_sth->row_num %s\n",
+                  " <- mariadb_st_execute returning imp_sth->row_num %s\n",
                   actual_row_num);
   }
 
@@ -4103,7 +4101,7 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 
  /**************************************************************************
  *
- *  Name:    dbd_describe
+ *  Name:    mariadb_st_describe
  *
  *  Purpose: Called from within the fetch method to describe the result
  *
@@ -4111,17 +4109,17 @@ int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
  *           imp_sth - our part of the statement handle, there's no
  *               need for supplying both; Tim just doesn't remove it
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
 
-int dbd_describe(SV* sth, imp_sth_t* imp_sth)
+static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   D_imp_xxh(sth);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t--> dbd_describe\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t--> mariadb_st_describe\n");
 
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
@@ -4135,7 +4133,7 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
     MYSQL_FIELD *fields;
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tdbd_describe() num_fields %d\n",
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_describe() num_fields %d\n",
                     num_fields);
 
     if (imp_sth->done_desc)
@@ -4144,7 +4142,7 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
     if (!num_fields || !imp_sth->result)
     {
       /* no metadata */
-      do_error(sth, JW_ERR_SEQUENCE,
+      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
                "no metadata information while trying describe result set",
                NULL);
       return 0;
@@ -4155,8 +4153,8 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
           || !(imp_sth->buffer= alloc_bind(num_fields)) )
     {
       /* Out of memory */
-      do_error(sth, JW_ERR_SEQUENCE,
-               "Out of memory in dbd_sescribe()",NULL);
+      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
+               "Out of memory in mariadb_st_describe()",NULL);
       return 0;
     }
 
@@ -4258,7 +4256,7 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
 
     if (mysql_stmt_bind_result(imp_sth->stmt, imp_sth->buffer))
     {
-      do_error(sth, mysql_stmt_errno(imp_sth->stmt),
+      mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt),
                mysql_stmt_error(imp_sth->stmt),
                mysql_stmt_sqlstate(imp_sth->stmt));
       return 0;
@@ -4268,13 +4266,13 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
 
   imp_sth->done_desc= 1;
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_describe\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_describe\n");
   return TRUE;
 }
 
 /**************************************************************************
  *
- *  Name:    dbd_st_fetch
+ *  Name:    mariadb_st_fetch
  *
  *  Purpose: Called for fetching a result row
  *
@@ -4289,7 +4287,7 @@ int dbd_describe(SV* sth, imp_sth_t* imp_sth)
  **************************************************************************/
 
 AV*
-dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
+mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 {
   dTHX;
   int num_fields, ChopBlanks, i, rc;
@@ -4310,10 +4308,10 @@ dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
   bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> dbd_st_fetch\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> mariadb_st_fetch\n");
 
   if(imp_dbh->async_query_in_flight) {
-      if(mysql_db_async_result(sth, &imp_sth->result) <= 0) {
+      if(mariadb_db_async_result(sth, &imp_sth->result) <= 0) {
         return Nullav;
       }
   }
@@ -4323,21 +4321,21 @@ dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
   {
     if (!DBIc_ACTIVE(imp_sth) )
     {
-      do_error(sth, JW_ERR_SEQUENCE, "no statement executing\n",NULL);
+      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "no statement executing\n",NULL);
       return Nullav;
     }
 
     if (imp_sth->fetch_done)
     {
-      do_error(sth, JW_ERR_SEQUENCE, "fetch() but fetch already done",NULL);
+      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "fetch() but fetch already done",NULL);
       return Nullav;
     }
 
     if (!imp_sth->done_desc)
     {
-      if (!dbd_describe(sth, imp_sth))
+      if (!mariadb_st_describe(sth, imp_sth))
       {
-        do_error(sth, JW_ERR_SEQUENCE, "Error while describe result set.",
+        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "Error while describe result set.",
                  NULL);
         return Nullav;
       }
@@ -4349,12 +4347,12 @@ dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t\tdbd_st_fetch for %p, chopblanks %d\n",
+                  "\t\tmariadb_st_fetch for %p, chopblanks %d\n",
                   sth, ChopBlanks);
 
   if (!imp_sth->result)
   {
-    do_error(sth, JW_ERR_SEQUENCE, "fetch() without execute()" ,NULL);
+    mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "fetch() without execute()" ,NULL);
     return Nullav;
   }
 
@@ -4365,14 +4363,14 @@ dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
   if (imp_sth->use_server_side_prepare)
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tdbd_st_fetch calling mysql_fetch\n");
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch calling mysql_fetch\n");
 
     if ((rc= mysql_stmt_fetch(imp_sth->stmt)))
     {
 #if MYSQL_VERSION_ID >= MYSQL_VERSION_5_0 
       if (rc == MYSQL_DATA_TRUNCATED) {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tdbd_st_fetch data truncated\n");
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch data truncated\n");
         goto process;
       }
 #endif
@@ -4383,16 +4381,16 @@ dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
         imp_sth->row_num= mysql_stmt_affected_rows(imp_sth->stmt);
         imp_sth->fetch_done=1;
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tdbd_st_fetch no data\n");
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch no data\n");
       }
       else if (rc == 1)
       {
-        do_error(sth, mysql_stmt_errno(imp_sth->stmt),
+        mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt),
                  mysql_stmt_error(imp_sth->stmt),
                  mysql_stmt_sqlstate(imp_sth->stmt));
       }
 
-      dbd_st_finish(sth, imp_sth);
+      mariadb_st_finish(sth, imp_sth);
 
       return Nullav;
     }
@@ -4404,7 +4402,7 @@ process:
     num_fields=mysql_stmt_field_count(imp_sth->stmt);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tdbd_st_fetch called mysql_fetch, rc %d num_fields %d\n",
+                    "\t\tmariadb_st_fetch called mysql_fetch, rc %d num_fields %d\n",
                     rc, num_fields);
 
     for (
@@ -4428,7 +4426,7 @@ process:
       else
       {
         /* In case of BLOB/TEXT fields we allocate only 8192 bytes
-           in dbd_describe() for data. Here we know real size of field
+           in mariadb_st_describe() for data. Here we know real size of field
            so we should increase buffer size and refetch column value
         */
         if (mysql_type_has_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
@@ -4458,7 +4456,7 @@ process:
           /*TODO: Use offset instead of 0 to fetch only remain part of data*/
           if (mysql_stmt_fetch_column(imp_sth->stmt, buffer , i, 0))
           {
-            do_error(sth, mysql_stmt_errno(imp_sth->stmt),
+            mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt),
                      mysql_stmt_error(imp_sth->stmt),
                      mysql_stmt_sqlstate(imp_sth->stmt));
             return Nullav;
@@ -4610,7 +4608,7 @@ process:
     }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_fetch, %d cols\n", num_fields);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %d cols\n", num_fields);
 
     return av;
   }
@@ -4622,7 +4620,7 @@ process:
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     {
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tdbd_st_fetch result set details\n");
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch result set details\n");
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\timp_sth->result=%p\n", imp_sth->result);
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_num_fields=%u\n",
                     mysql_num_fields(imp_sth->result));
@@ -4630,7 +4628,7 @@ process:
                     mysql_num_rows(imp_sth->result));
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_affected_rows=%llu\n",
                     mysql_affected_rows(imp_dbh->pmysql));
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tdbd_st_fetch for %p, currow= %d\n",
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch for %p, currow= %d\n",
                     sth,imp_sth->currow);
     }
 
@@ -4638,10 +4636,10 @@ process:
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       {
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tdbd_st_fetch, no more rows to fetch");
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch, no more rows to fetch");
       }
       if (mysql_errno(imp_dbh->pmysql))
-        do_error(sth, mysql_errno(imp_dbh->pmysql),
+        mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql),
                  mysql_sqlstate(imp_dbh->pmysql));
 
@@ -4649,7 +4647,7 @@ process:
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
       if (!mysql_more_results(svsock))
 #endif
-        dbd_st_finish(sth, imp_sth);
+        mariadb_st_finish(sth, imp_sth);
       return Nullav;
     }
 
@@ -4664,11 +4662,11 @@ process:
       if (av_length != num_fields)              /* Resize array if necessary */
       {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_fetch, size of results array(%d) != num_fields(%d)\n",
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, size of results array(%d) != num_fields(%d)\n",
                                    av_length, num_fields);
 
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_fetch, result fields(%d)\n",
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, result fields(%d)\n",
                                    DBIc_NUM_FIELDS(imp_sth));
 
         av_readonly = SvREADONLY(av);
@@ -4758,7 +4756,7 @@ process:
     }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- dbd_st_fetch, %d cols\n", num_fields);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %d cols\n", num_fields);
     return av;
 
 #if MYSQL_VERSION_ID  >= SERVER_PREPARE_VERSION
@@ -4775,9 +4773,9 @@ process:
   2. call st_execute again when we have some unfetched data in stmt
  */
 
-int mysql_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
+static int mariadb_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
 
-  if (DBIc_ACTIVE(imp_sth) && dbd_describe(sth, imp_sth) &&
+  if (DBIc_ACTIVE(imp_sth) && mariadb_st_describe(sth, imp_sth) &&
       !imp_sth->fetch_done)
     mysql_stmt_free_result(imp_sth->stmt);
   return 1;
@@ -4786,19 +4784,19 @@ int mysql_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
 
 /***************************************************************************
  *
- *  Name:    dbd_st_finish
+ *  Name:    mariadb_st_finish
  *
  *  Purpose: Called for freeing a mysql result
  *
  *  Input:   sth - statement handle being finished
  *           imp_sth - drivers private statement handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error() will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error() will
  *           be called in the latter case
  *
  **************************************************************************/
 
-int dbd_st_finish(SV* sth, imp_sth_t* imp_sth) {
+int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
   dTHX;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
@@ -4808,22 +4806,22 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth) {
 #endif
 
   if(imp_dbh->async_query_in_flight) {
-    mysql_db_async_result(sth, &imp_sth->result);
+    mariadb_db_async_result(sth, &imp_sth->result);
   }
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
   {
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n--> dbd_st_finish\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n--> mariadb_st_finish\n");
   }
 
   if (imp_sth->use_server_side_prepare)
   {
     if (imp_sth && imp_sth->stmt)
     {
-      if (!mysql_st_clean_cursor(sth, imp_sth))
+      if (!mariadb_st_clean_cursor(sth, imp_sth))
       {
-        do_error(sth, JW_ERR_SEQUENCE,
+        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
                  "Error happened while tried to clean up stmt",NULL);
         return 0;
       }
@@ -4842,12 +4840,12 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth) {
       Clean-up previous result set(s) for sth to prevent
       'Commands out of sync' error
     */
-    mysql_st_free_result_sets(sth, imp_sth);
+    mariadb_st_free_result_sets(sth, imp_sth);
   }
   DBIc_ACTIVE_off(imp_sth);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
   {
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n<-- dbd_st_finish\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n<-- mariadb_st_finish\n");
   }
   return 1;
 }
@@ -4855,7 +4853,7 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth) {
 
 /**************************************************************************
  *
- *  Name:    dbd_st_destroy
+ *  Name:    mariadb_st_destroy
  *
  *  Purpose: Our part of the statement handles destructor
  *
@@ -4866,7 +4864,7 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth) {
  *
  **************************************************************************/
 
-void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
+void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   dTHX;
   D_imp_xxh(sth);
 
@@ -4918,9 +4916,9 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 #endif
 
 
-  /* dbd_st_finish has already been called by .xs code if needed.	*/
+  /* mariadb_st_finish has already been called by .xs code if needed.	*/
 
-  /* Free values allocated by dbd_bind_ph */
+  /* Free values allocated by mariadb_st_bind_ph */
   if (imp_sth->params)
   {
     free_param(aTHX_ imp_sth->params, DBIc_NUM_PARAMS(imp_sth));
@@ -4942,7 +4940,7 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 /*
  **************************************************************************
  *
- *  Name:    dbd_st_STORE_attrib
+ *  Name:    mariadb_st_STORE_attrib
  *
  *  Purpose: Modifies a statement handles attributes; we currently
  *           support just nothing
@@ -4952,12 +4950,12 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
  *           keysv - attribute name
  *           valuesv - attribute value
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
 int
-dbd_st_STORE_attrib(
+mariadb_st_STORE_attrib(
                     SV *sth,
                     imp_sth_t *imp_sth,
                     SV *keysv,
@@ -4972,7 +4970,7 @@ dbd_st_STORE_attrib(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t\t-> dbd_st_STORE_attrib for %p, key %s\n",
+                  "\t\t-> mariadb_st_STORE_attrib for %p, key %s\n",
                   sth, key);
 
   if (strEQ(key, "mysql_use_result"))
@@ -4982,7 +4980,7 @@ dbd_st_STORE_attrib(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t\t<- dbd_st_STORE_attrib for %p, result %d\n",
+                  "\t\t<- mariadb_st_STORE_attrib for %p, result %d\n",
                   sth, retval);
 
   return retval;
@@ -4992,7 +4990,7 @@ dbd_st_STORE_attrib(
 /*
  **************************************************************************
  *
- *  Name:    dbd_st_FETCH_internal
+ *  Name:    mariadb_st_fetch_internal
  *
  *  Purpose: Retrieves a statement handles array attributes; we use
  *           a separate function, because creating the array
@@ -5008,7 +5006,7 @@ dbd_st_STORE_attrib(
  *           cacheit - TRUE, if results may be cached in the sth.
  *
  *  Returns: RV pointing to result array in case of success, NULL
- *           otherwise; do_error has already been called in the latter
+ *           otherwise; mariadb_dr_do_error has already been called in the latter
  *           case.
  *
  **************************************************************************/
@@ -5021,8 +5019,7 @@ dbd_st_STORE_attrib(
 #define IS_AUTO_INCREMENT(A) (((A) & AUTO_INCREMENT_FLAG) != 0)
 #endif
 
-SV*
-dbd_st_FETCH_internal(
+static SV* mariadb_st_fetch_internal(
   SV *sth,
   int what,
   MYSQL_RES *res,
@@ -5038,7 +5035,7 @@ dbd_st_FETCH_internal(
 
   /* Are we asking for a legal value? */
   if (what < 0 ||  what >= AV_ATTRIB_LAST)
-    do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Not implemented", NULL);
+    mariadb_dr_do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Not implemented", NULL);
 
   /* Return cached value, if possible */
   else if (cacheit  &&  imp_sth->av_attr[what])
@@ -5046,7 +5043,7 @@ dbd_st_FETCH_internal(
 
   /* Does this sth really have a result? */
   else if (!res)
-    do_error(sth, JW_ERR_NOT_ACTIVE,
+    mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE,
 	     "statement contains no result" ,NULL);
   /* Do the real work. */
   else
@@ -5118,7 +5115,7 @@ dbd_st_FETCH_internal(
         sv= boolSV(IS_AUTO_INCREMENT(curField->flags));
         break;
 #else
-        do_error(dbh, JW_ERR_NOT_IMPLEMENTED, "AUTO_INCREMENT_FLAG is not supported on this machine", "HY000");
+        mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED, "AUTO_INCREMENT_FLAG is not supported on this machine", "HY000");
         return &PL_sv_undef;
 #endif
 
@@ -5147,7 +5144,7 @@ dbd_st_FETCH_internal(
     }
 
     /* Ensure that this value is kept, decremented in
-     *  dbd_st_destroy and dbd_st_execute.  */
+     *  mariadb_st_destroy and mariadb_st_execute.  */
     if (!cacheit)
       return sv_2mortal(newRV_noinc((SV*)av));
     imp_sth->av_attr[what]= av;
@@ -5163,7 +5160,7 @@ dbd_st_FETCH_internal(
 /*
  **************************************************************************
  *
- *  Name:    dbd_st_FETCH_attrib
+ *  Name:    mariadb_st_FETCH_attrib
  *
  *  Purpose: Retrieves a statement handles attributes
  *
@@ -5177,9 +5174,9 @@ dbd_st_FETCH_internal(
  **************************************************************************/
 
 #define ST_FETCH_AV(what) \
-    dbd_st_FETCH_internal(sth, (what), imp_sth->result, TRUE)
+    mariadb_st_fetch_internal(sth, (what), imp_sth->result, TRUE)
 
-  SV* dbd_st_FETCH_attrib(
+SV* mariadb_st_FETCH_attrib(
                           SV *sth,
                           imp_sth_t *imp_sth,
                           SV *keysv
@@ -5196,7 +5193,7 @@ dbd_st_FETCH_internal(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "    -> dbd_st_FETCH_attrib for %p, key %s\n",
+                  "    -> mariadb_st_FETCH_attrib for %p, key %s\n",
                   sth, key);
 
   switch (*key) {
@@ -5322,10 +5319,10 @@ dbd_st_FETCH_internal(
 
 /***************************************************************************
  *
- *  Name:    dbd_st_blob_read
+ *  Name:    mariadb_st_blob_read
  *
  *  Purpose: Used for blob reads if the statement handles "LongTruncOk"
- *           attribute (currently not supported by DBD::mysql)
+ *           attribute (currently not supported by DBD::MariaDB)
  *
  *  Input:   SV* - statement handle from which a blob will be fetched
  *           imp_sth - drivers private statement handle data
@@ -5336,12 +5333,12 @@ dbd_st_FETCH_internal(
  *           destrv - RV* that tells us where to store
  *           destoffset - destination offset
  *
- *  Returns: TRUE for success, FALSE otherwise; do_error will
+ *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
 
-int dbd_st_blob_read (
+int mariadb_st_blob_read (
   SV *sth,
   imp_sth_t *imp_sth,
   int field,
@@ -5364,7 +5361,7 @@ int dbd_st_blob_read (
 
 /***************************************************************************
  *
- *  Name:    dbd_bind_ph
+ *  Name:    mariadb_st_bind_ph
  *
  *  Purpose: Binds a statement value to a parameter
  *
@@ -5383,7 +5380,7 @@ int dbd_st_blob_read (
  *
  **************************************************************************/
 
-int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
+int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 		 IV sql_type, SV *attribs, int is_inout, IV maxlen) {
   dTHX;
   int param_num= SvIV(param); /* needs to process get magic */
@@ -5409,14 +5406,14 @@ int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "   Called: dbd_bind_ph\n");
+                  "   Called: mariadb_st_bind_ph\n");
 
   attribs= attribs;
   maxlen= maxlen;
 
   if (param_num <= 0  ||  param_num > DBIc_NUM_PARAMS(imp_sth))
   {
-    do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, "Illegal parameter number", NULL);
+    mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, "Illegal parameter number", NULL);
     return FALSE;
   }
 
@@ -5432,14 +5429,14 @@ int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
       err_msg = SvPVX(sv_2mortal(newSVpvf(
               "Binding non-numeric field %d, value %s as a numeric!",
               param_num, neatsvpv(value,0))));
-      do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
+      mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
       return FALSE;
     }
   }
 
   if (is_inout)
   {
-    do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Output parameters not implemented", NULL);
+    mariadb_dr_do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Output parameters not implemented", NULL);
     return FALSE;
   }
 
@@ -5666,7 +5663,7 @@ int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
 /***************************************************************************
  *
- *  Name:    mysql_db_reconnect
+ *  Name:    mariadb_db_reconnect
  *
  *  Purpose: If the server has disconnected, try to reconnect.
  *
@@ -5676,7 +5673,7 @@ int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
  *
  **************************************************************************/
 
-int mysql_db_reconnect(SV* h)
+int mariadb_db_reconnect(SV* h)
 {
   dTHX;
   D_imp_xxh(h);
@@ -5705,7 +5702,7 @@ int mysql_db_reconnect(SV* h)
     return FALSE;
   }
 
-  /* my_login will blow away imp_dbh->mysql so we save a copy of
+  /* mariadb_db_my_login will blow away imp_dbh->mysql so we save a copy of
    * imp_dbh->mysql and put it back where it belongs if the reconnect
    * fail.  Think server is down & reconnect fails but the application eval{}s
    * the execute, so next time $dbh->quote() gets called, instant SIGSEGV!
@@ -5715,12 +5712,12 @@ int mysql_db_reconnect(SV* h)
   memset (imp_dbh->pmysql,0,sizeof(*(imp_dbh->pmysql)));
 
   /* we should disconnect the db handle before reconnecting, this will
-   * prevent my_login from thinking it's adopting an active child which
+   * prevent mariadb_db_my_login from thinking it's adopting an active child which
    * would prevent the handle from actually reconnecting
    */
-  if (!dbd_db_disconnect(h, imp_dbh) || !my_login(aTHX_ h, imp_dbh))
+  if (!mariadb_db_disconnect(h, imp_dbh) || !mariadb_db_my_login(aTHX_ h, imp_dbh))
   {
-    do_error(h, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
+    mariadb_dr_do_error(h, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
              mysql_sqlstate(imp_dbh->pmysql));
     memcpy (imp_dbh->pmysql, &save_socket, sizeof(save_socket));
     ++imp_dbh->stats.auto_reconnects_failed;
@@ -5739,7 +5736,7 @@ int mysql_db_reconnect(SV* h)
 
 /**************************************************************************
  *
- *  Name:    dbd_db_type_info_all
+ *  Name:    mariadb_db_type_info_all
  *
  *  Purpose: Implements $dbh->type_info_all
  *
@@ -5761,7 +5758,7 @@ int mysql_db_reconnect(SV* h)
 
 #define IV_PUSH(i) sv= newSViv((i)); SvREADONLY_on(sv); av_push(row, sv);
 
-AV *dbd_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
+AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
 {
   dTHX;
   AV *av= newAV();
@@ -5846,11 +5843,11 @@ AV *dbd_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
 
 
 /*
-  dbd_db_quote
+  mariadb_db_quote
 
   Properly quotes a value 
 */
-SV* dbd_db_quote(SV *dbh, SV *str, SV *type)
+SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 {
   dTHX;
   SV *result;
@@ -5904,7 +5901,7 @@ SV* dbd_db_quote(SV *dbh, SV *str, SV *type)
 }
 
 #ifdef DBD_MYSQL_INSERT_ID_IS_GOOD
-SV *mysql_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
+SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
         SV *catalog, SV *schema, SV *table, SV *field, SV *attr)
 {
   dTHX;
@@ -5922,7 +5919,7 @@ SV *mysql_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
 }
 #endif
 
-int mysql_db_async_result(SV* h, MYSQL_RES** resp)
+int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 {
   dTHX;
   D_imp_xxh(h);
@@ -5953,11 +5950,11 @@ int mysql_db_async_result(SV* h, MYSQL_RES** resp)
   if(! dbh->async_query_in_flight) {
       if (async_sth)
           return retval;
-      do_error(h, 2000, "Gathering asynchronous results for a synchronous handle", "HY000");
+      mariadb_dr_do_error(h, 2000, "Gathering asynchronous results for a synchronous handle", "HY000");
       return -1;
   }
   if(dbh->async_query_in_flight != imp_xxh) {
-      do_error(h, 2000, "Gathering async_query_in_flight results for the wrong handle", "HY000");
+      mariadb_dr_do_error(h, 2000, "Gathering async_query_in_flight results for the wrong handle", "HY000");
       return -1;
   }
   dbh->async_query_in_flight = NULL;
@@ -5969,7 +5966,7 @@ int mysql_db_async_result(SV* h, MYSQL_RES** resp)
 
     if (mysql_errno(svsock))
     {
-      do_error(h, mysql_errno(svsock), mysql_error(svsock), mysql_sqlstate(svsock));
+      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock), mysql_sqlstate(svsock));
       return -1;
     }
     if (!*resp)
@@ -6001,14 +5998,14 @@ int mysql_db_async_result(SV* h, MYSQL_RES** resp)
       imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
     }
   } else {
-     do_error(h, mysql_errno(svsock), mysql_error(svsock),
+     mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock),
               mysql_sqlstate(svsock));
      return -1;
   }
  return retval;
 }
 
-int mysql_db_async_ready(SV* h)
+int mariadb_db_async_ready(SV* h)
 {
   dTHX;
   D_imp_xxh(h);
@@ -6032,23 +6029,23 @@ int mysql_db_async_ready(SV* h)
 
   if(dbh->async_query_in_flight) {
       if(dbh->async_query_in_flight == imp_xxh && dbh->pmysql->net.fd != -1) {
-          int retval = mysql_socket_ready(dbh->pmysql->net.fd);
+          int retval = mariadb_dr_socket_ready(dbh->pmysql->net.fd);
           if(retval < 0) {
-              do_error(h, -retval, strerror(-retval), "HY000");
+              mariadb_dr_do_error(h, -retval, strerror(-retval), "HY000");
           }
           return retval;
       } else {
-          do_error(h, 2000, "Calling mysql_async_ready on the wrong handle", "HY000");
+          mariadb_dr_do_error(h, 2000, "Calling mysql_async_ready on the wrong handle", "HY000");
           return -1;
       }
   } else {
       if (async_sth) {
           if (async_active)
               return 1;
-          do_error(h, 2000, "Asynchronous handle was not executed yet", "HY000");
+          mariadb_dr_do_error(h, 2000, "Asynchronous handle was not executed yet", "HY000");
           return -1;
       }
-      do_error(h, 2000, "Handle is not in asynchronous mode", "HY000");
+      mariadb_dr_do_error(h, 2000, "Handle is not in asynchronous mode", "HY000");
       return -1;
   }
 }

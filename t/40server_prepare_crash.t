@@ -91,7 +91,7 @@ ok $sth2->execute();
 ok $dbh->disconnect();
 $dbh = undef;
 
-# check CVE 2017-3302 that libmysqlclient.so does not return to DBD::mysql dangling pointer to already freed libmysqlclient.so structures
+# check CVE 2017-3302 that libmysqlclient.so does not return to DBD::MariaDB dangling pointer to already freed libmysqlclient.so structures
 # "mysql_sock" sth attribute return values:
 # undef - attribute not supported by driver
 # 0     - NULL pointer, correct behavior
