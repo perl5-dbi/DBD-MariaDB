@@ -1,14 +1,14 @@
-# DBD::mysql - database driver for Perl
+# DBD::MariaDB - database driver for Perl
 
-This is the Perl [DBI](https://metacpan.org/pod/DBI) driver for access to MySQL databases.
+This is the Perl [DBI](https://metacpan.org/pod/DBI) driver for access to MariaDB and MySQL databases.
 
 ## Usage
 
-Usage is described in [DBD::mysql](https://metacpan.org/pod/DBD::mysql).
+Usage is described in [DBD::MariaDB](https://metacpan.org/pod/DBD::MariaDB).
 
 ## Installation
 
-Installation is described in [DBD::mysql::INSTALL](https://metacpan.org/pod/DBD::mysql::INSTALL).
+Installation is described in [DBD::MariaDB::INSTALL](https://metacpan.org/pod/DBD::MariaDB::INSTALL).
 
 ## Support
 

@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-DBD::mysql::INSTALL - How to install and configure DBD::mysql
+DBD::MariaDB::INSTALL - How to install and configure DBD::MariaDB
 
 =head1 SYNOPSIS
 
@@ -15,13 +15,13 @@ DBD::mysql::INSTALL - How to install and configure DBD::mysql
 =head1 DESCRIPTION
 
 This document describes the installation and configuration of
-DBD::mysql, the Perl DBI driver for the MySQL database. Before
+DBD::MariaDB, the Perl DBI driver for the MySQL database. Before
 reading on, make sure that you have the prerequisites available:
 Perl, MySQL and DBI. For details see the separate section
 L</PREREQUISITES>.
 
 Depending on your version of Perl, it might be possible to
-use a binary distribution of DBD::mysql. If possible, this is
+use a binary distribution of DBD::MariaDB. If possible, this is
 recommended. Otherwise you need to install from the sources.
 If so, you will definitely need a C compiler. Installation
 from binaries and sources are both described in separate
@@ -65,14 +65,14 @@ MySQL setup program.
 
 =item DBI
 
-DBD::mysql is a DBI driver, hence you need DBI. It is available
-from the same source where you got the DBD::mysql distribution
+DBD::MariaDB is a DBI driver, hence you need DBI. It is available
+from the same source where you got the DBD::MariaDB distribution
 from.
 
 =item C compiler
 
 A C compiler is only required if you install from source. In
-most cases there are binary distributions of DBD::mysql
+most cases there are binary distributions of DBD::MariaDB
 available. However, if you need a C compiler, make sure, that
 it is the same C compiler that was used for compiling Perl and
 MySQL! Otherwise you will almost definitely encounter problems
@@ -101,22 +101,22 @@ on your system.
 
 =head3 Strawberry Perl
 
-Strawberry Perl comes bundled with DBD::mysql and the needed
+Strawberry Perl comes bundled with DBD::MariaDB and the needed
 client libraries.
 
 =head3 ActiveState Perl
 
-ActivePerl offers a PPM archive of DBD::mysql. All you need to
+ActivePerl offers a PPM archive of DBD::MariaDB. All you need to
 do is typing in a cmd.exe window:
 
-  ppm install DBD-mysql
+  ppm install DBD-MariaDB
 
 This will fetch the module via HTTP and install them. If you
 need to use a WWW proxy server, the environment variable
 HTTP_proxy must be set:
 
   set HTTP_proxy=http://myproxy.example.com:8080/
-  ppm install DBD-mysql
+  ppm install DBD-MariaDB
 
 Of course you need to replace the host name C<myproxy.example.com>
 and the port number C<8080> with your local values.
@@ -131,28 +131,28 @@ need to upgrade your perl or contact ActiveState about a subscription.
 =head2 Red Hat Enterprise Linux (RHEL), CentOS and Fedora
 
 Red Hat Enterprise Linux, its community derivatives such as
-CentOS, and Fedora come with MySQL and DBD::mysql.
+CentOS, and Fedora come with MySQL and DBD::MariaDB.
 
-Use the following command to install DBD::mysql:
+Use the following command to install DBD::MariaDB:
 
-    yum install "perl(DBD::mysql)"
+    yum install "perl(DBD::MariaDB)"
 
 
 =head2 Debian and Ubuntu
 
-On Debian, Ubuntu and derivatives you can install DBD::mysql from
+On Debian, Ubuntu and derivatives you can install DBD::MariaDB from
 the repositories with the following command:
 
-    sudo apt-get install libdbd-mysql-perl
+    sudo apt-get install libdbd-mariadb-perl
 
 
 =head2 SLES and openSUSE
 
 On SUSE Linux Enterprise and the community version openSUSE, you
-can install DBD::mysql from the repositories with the following
+can install DBD::MariaDB from the repositories with the following
 command:
 
-    zypper install perl-DBD-mysql
+    zypper install perl-DBD-MariaDB
 
 
 =head2 Other systems
@@ -175,7 +175,7 @@ installation.
 All of these installation types have their own section:
 L</CPAN installation>, L</Manual installation> and L</Configuration>.
 
-The DBD::mysql Makefile.PL needs to know where to find your MySQL
+The DBD::MariaDB Makefile.PL needs to know where to find your MySQL
 installation. This may be achieved using command line switches
 (see L</Configuration>) or automatically using the mysql_config binary
 which comes with most MySQL distributions. If your MySQL distribution
@@ -190,7 +190,7 @@ e.g.
   PATH=$PATH:/usr/local/mysql/bin
   export PATH
 
-As stated, to compile DBD::mysql you'll need a C compiler. This should
+As stated, to compile DBD::MariaDB you'll need a C compiler. This should
 be the same compiler as the one used to build perl AND the mysql client
 libraries. If you're on linux, this is most typically the case and you
 need not worry. If you're on UNIX systems, you might want to pay
@@ -217,7 +217,7 @@ tests against.
 =head2 Environment Variables
 
 For ease of use, you can set environment variables for
-DBD::mysql installation. You can set any or all of the options, and
+DBD::MariaDB installation. You can set any or all of the options, and
 export them by putting them in your .bashrc or the like:
 
     export DBD_MYSQL_CFLAGS=-I/usr/local/mysql/include/mysql
@@ -240,9 +240,9 @@ environment variables, and then it will guess with intelligent defaults.
 
 =head2 CPAN installation
 
-Installation of DBD::mysql can be incredibly easy:
+Installation of DBD::MariaDB can be incredibly easy:
 
-  cpan DBD::mysql
+  cpan DBD::MariaDB
 
 Please note that this will only work if the prerequisites are
 fulfilled, which means you have a C-compiler installed, and you
@@ -263,22 +263,22 @@ described in more details later. L</Configuration>.
 
 =head2 Manual installation
 
-For a manual installation you need to fetch the DBD::mysql
+For a manual installation you need to fetch the DBD::MariaDB
 source distribution. The latest version is always available
 from
 
-  https://metacpan.org/module/DBD::mysql
+  https://metacpan.org/module/DBD::MariaDB
 
 The name is typically something like
 
-  DBD-mysql-4.025.tar.gz
+  DBD-MariaDB-4.025.tar.gz
 
 The archive needs to be extracted. On Windows you may use a tool
 like 7-zip, on *nix you type
 
-  tar xf DBD-mysql-4.025.tar.gz
+  tar xf DBD-MariaDB-4.025.tar.gz
 
-This will create a subdirectory DBD-mysql-4.025. Enter this
+This will create a subdirectory DBD-MariaDB-4.025. Enter this
 subdirectory and type
 
   perl Makefile.PL
@@ -440,7 +440,7 @@ to the C compiler flags, for example C<-L/usr/include/mysql>.
 =head2 Linker flags
 
 Appropriate linker flags are the most common source of problems
-while installing DBD::mysql. I will only give a rough overview,
+while installing DBD::MariaDB. I will only give a rough overview,
 you'll find more details in the troubleshooting section.
 L</KNOWN PROBLEMS>
 
@@ -526,10 +526,10 @@ if you enabled this setting at build time. Since version 4.034, this is the
 default.
 
 Attempting to connect to a server that requires an encrypted connection without
-first having L<DBD::mysql> compiled with the C<--ssl> option will result in
+first having L<DBD::MariaDB> compiled with the C<--ssl> option will result in
 an error that makes things appear as if your password is incorrect.
 
-If you want to compile L<DBD::mysql> without SSL support, which you might
+If you want to compile L<DBD::MariaDB> without SSL support, which you might
 probably only want if you for some reason can't install libssl headers, you
 can do this by passing the C<--nossl> option to Makefile.PL or by setting the
 DBD_MYSQL_NOSSL environment variable to '1'.
@@ -538,7 +538,7 @@ DBD_MYSQL_NOSSL environment variable to '1'.
 =head1 MARIADB NATIVE CLIENT INSTALLATION
 
 The MariaDB native client is another option for connecting to a MySQL·
-database licensed LGPL 2.1. To build DBD::mysql against this client, you
+database licensed LGPL 2.1. To build DBD::MariaDB against this client, you
 will first need to build the client. Generally, this is done with
 the following:
 
@@ -547,7 +547,7 @@ the following:
   make
   sudo make install
 
-Once the client is built and installed, you can build DBD::mysql against
+Once the client is built and installed, you can build DBD::MariaDB against
 it:
 
   perl Makefile.PL --testuser=xxx --testpassword=xxx --testsocket=/path/to//mysqld.sock --mysql_config=/usr/local/bin/mariadb_config·
@@ -561,7 +561,7 @@ Below you find information on particular systems:
 
 =head2 macOS
 
-For installing DBD::mysql you need to have the libssl header files and the
+For installing DBD::MariaDB you need to have the libssl header files and the
 mysql client libs. The easiest way to install these is using Homebrew
 (L<https://brew.sh/>).
 
@@ -569,7 +569,7 @@ Once you have Homebrew set up, you can simply install the dependencies using
 
     brew install openssl mysql-connector-c
 
-Then you can install DBD::mysql using your cpan client.
+Then you can install DBD::MariaDB using your cpan client.
 
 =head2 Cygwin
 
@@ -585,9 +585,9 @@ procedure of
 
 The Windows binary distribution of MySQL runs smoothly under Cygwin.
 You can start/stop the server and use all Windows clients without problem.
-But to install DBD::mysql you have to take a little special action.
+But to install DBD::MariaDB you have to take a little special action.
 
-Don't attempt to build DBD::mysql against either the MySQL Windows or
+Don't attempt to build DBD::MariaDB against either the MySQL Windows or
 Linux/Unix BINARY distributions: neither will work!
 
 You MUST compile the MySQL clients yourself under Cygwin, to get a
@@ -657,18 +657,18 @@ At the 'mysql>' prompt do a quick check:
   mysql> select * from db;
   mysql> exit
 
-You are now ready to build DBD::mysql!
+You are now ready to build DBD::MariaDB!
 
-=head3 compile DBD::mysql
+=head3 compile DBD::MariaDB
 
-download and extract DBD-mysql-<version>.tar.gz from CPAN
+download and extract DBD-MariaDB-<version>.tar.gz from CPAN
 
-cd into unpacked dir DBD-mysql-<version>
+cd into unpacked dir DBD-MariaDB-<version>
 you probably did that already, if you are reading this!
 
   cp /usr/local/mysql/bin/mysql_config .
 
-This copies the executable script mentioned in the DBD::mysql docs
+This copies the executable script mentioned in the DBD::MariaDB docs
 from your just built Cywin/MySQL client directory; it knows about
 your Cygwin installation, especially about the right libraries to link
 with.
@@ -686,7 +686,7 @@ This should run without error
   make test
   make install
 
-This installs DBD::mysql into the Perl hierarchy.
+This installs DBD::MariaDB into the Perl hierarchy.
 
 
 =head1 KNOWN PROBLEMS
@@ -716,7 +716,7 @@ with another compiler or on another system, an error message like
 this is very likely when running "Make test":
 
   t/00base............install_driver(mysql) failed: Can't load
-  '../blib/arch/auto/DBD/mysql/mysql.so' for module DBD::mysql:
+  '../blib/arch/auto/DBD/mysql/mysql.so' for module DBD::MariaDB:
   ../blib/arch/auto/DBD/mysql/mysql.so: undefined symbol: _umoddi3
   at /usr/local/perl-5.005/lib/5.005/i586-linux-thread/DynaLoader.pm
   line 168.
