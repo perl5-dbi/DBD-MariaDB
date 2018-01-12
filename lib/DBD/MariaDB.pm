@@ -38,6 +38,7 @@ sub driver{
 				 });
 
     if (!$methods_are_installed) {
+	local $SIG{__WARN__} = sub {}; # disable warning: method name prefix 'mariadb_' is not associated with a registered driver
 	DBD::MariaDB::db->install_method('mariadb_fd');
 	DBD::MariaDB::db->install_method('mariadb_async_result');
 	DBD::MariaDB::db->install_method('mariadb_async_ready');
