@@ -12,7 +12,7 @@ my $tb = Test::More->builder;
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0, mysql_server_prepare_disable_fallback => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0, mariadb_server_prepare_disable_fallback => 1 });
 
 if (!MinimumVersion($dbh, '4.1')) {
     plan skip_all =>
@@ -22,12 +22,12 @@ plan tests => 288*2;
 
 $dbh->do("CREATE TEMPORARY TABLE t(i INT)");
 
-foreach my $mysql_enable_utf8 (0, 1) {
-    $dbh->{mysql_enable_utf8} = $mysql_enable_utf8;
-    foreach my $mysql_server_prepare (0, 1) {
-        $dbh->{mysql_server_prepare} = $mysql_server_prepare;
+foreach my $mariadb_enable_utf8 (0, 1) {
+    $dbh->{mariadb_enable_utf8} = $mariadb_enable_utf8;
+    foreach my $mariadb_server_prepare (0, 1) {
+        $dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
         foreach my $val ('1', 1, 1.0, 1.1, undef, 'XX', "\N{U+100}") {
-            next if defined $val and (my $tmp1 = $val) eq "\N{U+100}" and not $mysql_enable_utf8;
+            next if defined $val and (my $tmp1 = $val) eq "\N{U+100}" and not $mariadb_enable_utf8;
             {
                 my $param_str = $val;
                 tie my $param, 'TieScalarCounter', $param_str;

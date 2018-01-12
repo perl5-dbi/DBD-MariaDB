@@ -12,7 +12,7 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       {
-                          mysql_auto_reconnect  => 1,
+                          mariadb_auto_reconnect  => 1,
                           RaiseError => 1,
                           PrintError => 1,
                           AutoCommit => 1 });
@@ -25,7 +25,7 @@ ok(defined $dbh, "Handle 1 Connected to database");
 ok(defined $dbh2, "Handle 2 Connected to database");
 
 #kill first db connection to trigger an auto reconnect
-ok ($dbh2->do('kill ' . $dbh->{'mysql_thread_id'}));
+ok ($dbh2->do('kill ' . $dbh->{'mariadb_thread_id'}));
 
 #insert a temporary delay, try uncommenting this if it's not seg-faulting at first,
 # one of my initial tests without this delay didn't seg fault

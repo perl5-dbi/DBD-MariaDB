@@ -323,20 +323,20 @@ do(dbh, statement, attr=Nullsv, ...)
    * Globaly enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
    * to use server side prepared statement mechanism by adding
-   * 'mysql_server_prepare' attribute to do() method localy:
-   * $dbh->do($stmt, {mysql_server_prepared=>1});
+   * 'mariadb_server_prepare' attribute to do() method localy:
+   * $dbh->do($stmt, {mariadb_server_prepare=>1});
   */
   use_server_side_prepare = imp_dbh->use_server_side_prepare;
   if (attr)
   {
     SV** svp;
     DBD_ATTRIBS_CHECK("do", dbh, attr);
-    svp = DBD_ATTRIB_GET_SVP(attr, "mysql_server_prepare", 20);
+    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare", strlen("mariadb_server_prepare"));
 
     use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp = DBD_ATTRIB_GET_SVP(attr, "mysql_server_prepare_disable_fallback", 37);
+    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"));
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
@@ -572,7 +572,7 @@ quote(dbh, str, type=NULL)
 	XSRETURN(1);
     }
 
-void mysql_fd(dbh)
+void mariadb_fd(dbh)
     SV* dbh
   PPCODE:
     {
@@ -584,7 +584,7 @@ void mysql_fd(dbh)
         }
     }
 
-void mysql_async_result(dbh)
+void mariadb_async_result(dbh)
     SV* dbh
   PPCODE:
     {
@@ -601,7 +601,7 @@ void mysql_async_result(dbh)
         }
     }
 
-void mysql_async_ready(dbh)
+void mariadb_async_ready(dbh)
     SV* dbh
   PPCODE:
     {
@@ -725,7 +725,7 @@ rows(sth)
 
   ST(0) = sv_2mortal(newSVpvn(buf, strlen(buf)));
 
-int mysql_async_result(sth)
+int mariadb_async_result(sth)
     SV* sth
   CODE:
     {
@@ -747,7 +747,7 @@ int mysql_async_result(sth)
   OUTPUT:
     RETVAL
 
-void mysql_async_ready(sth)
+void mariadb_async_ready(sth)
     SV* sth
   PPCODE:
     {

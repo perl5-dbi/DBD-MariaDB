@@ -13,7 +13,7 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 0, PrintError => 0, AutoCommit => 0 });
-if ($dbh->{mysql_serverversion} < 50012) {
+if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
 plan tests => 92;
@@ -29,8 +29,8 @@ CREATE TEMPORARY TABLE async_test (
 );
 SQL
 
-ok $dbh->mysql_fd;
-ok !defined($dbh->mysql_async_ready);
+ok $dbh->mariadb_fd;
+ok !defined($dbh->mariadb_async_ready);
 
 my ( $start, $end );
 my $rows;
@@ -46,7 +46,7 @@ cmp_ok(($end - $start), '>=', 1.9);
 
 $start = Time::HiRes::gettimeofday();
 $rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { async => 1 });
-ok(defined($dbh->mysql_async_ready)) or die;
+ok(defined($dbh->mariadb_async_ready)) or die;
 $end = Time::HiRes::gettimeofday();
 
 ok $rows;
@@ -54,12 +54,12 @@ is $rows, '0E0';
 
 cmp_ok(($end - $start), '<', 2);
 
-sleep 1 until $dbh->mysql_async_ready;
+sleep 1 until $dbh->mariadb_async_ready;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
-$rows = $dbh->mysql_async_result;
-ok !defined($dbh->mysql_async_ready);
+$rows = $dbh->mariadb_async_result;
+ok !defined($dbh->mariadb_async_ready);
 
 is $rows, 1;
 
@@ -78,11 +78,11 @@ is $rows, '0E0';
 
 cmp_ok(($end - $start), '<', 2);
 
-sleep 1 until $dbh->mysql_async_ready;
+sleep 1 until $dbh->mariadb_async_ready;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
-$rows = $dbh->mysql_async_result;
+$rows = $dbh->mariadb_async_result;
 
 is $rows, 1;
 
@@ -93,21 +93,21 @@ is $b, 1;
 is $c, 2;
 
 $sth = $dbh->prepare('SELECT SLEEP(2)');
-ok !defined($sth->mysql_async_ready);
+ok !defined($sth->mariadb_async_ready);
 $start = Time::HiRes::gettimeofday();
 ok $sth->execute;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
 $sth = $dbh->prepare('SELECT SLEEP(2)', { async => 1 });
-ok !defined($sth->mysql_async_ready);
+ok !defined($sth->mariadb_async_ready);
 $start = Time::HiRes::gettimeofday();
 ok $sth->execute;
-ok defined($sth->mysql_async_ready);
+ok defined($sth->mariadb_async_ready);
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '<', 2);
 
-sleep 1 until $sth->mysql_async_ready;
+sleep 1 until $sth->mariadb_async_ready;
 
 my $row = $sth->fetch;
 $end = Time::HiRes::gettimeofday();
@@ -119,7 +119,7 @@ $rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?', { async => 1 },
 
 ok $rows;
 ok !$dbh->errstr;
-$rows = $dbh->mysql_async_result;
+$rows = $dbh->mariadb_async_result;
 ok !$rows;
 ok $dbh->errstr;
 
@@ -133,7 +133,7 @@ cmp_ok(($end - $start), '<', 2);
 ok $rows;
 is $rows, '0E0';
 
-$rows = $sth->mysql_async_result;
+$rows = $sth->mariadb_async_result;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 is $rows, 1;
@@ -153,13 +153,13 @@ $dbh->selectrow_array('SELECT SLEEP(2)', { async => 1 });
 $end = Time::HiRes::gettimeofday();
 
 cmp_ok(($end - $start), '>=', 1.9);
-ok !defined($dbh->mysql_async_result);
-ok !defined($dbh->mysql_async_ready);
+ok !defined($dbh->mariadb_async_result);
+ok !defined($dbh->mariadb_async_ready);
 
 $rows = $dbh->do('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { async => 1 });
 ok $rows;
 is $rows, '0E0';
-$rows = $dbh->mysql_async_result;
+$rows = $dbh->mariadb_async_result;
 ok $rows;
 is $rows, '0E0';
 
@@ -167,7 +167,7 @@ $sth  = $dbh->prepare('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { a
 $rows = $sth->execute;
 ok $rows;
 is $rows, '0E0';
-$rows = $sth->mysql_async_result;
+$rows = $sth->mariadb_async_result;
 ok $rows;
 is $rows, '0E0';
 
@@ -194,7 +194,7 @@ is $sth->{'SCALE'}, undef;
 is $sth->{'NULLABLE'}, undef;
 is $sth->{'Database'}, $dbh;
 is $sth->{'Statement'}, 'SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?';
-$sth->mysql_async_result;
+$sth->mariadb_async_result;
 is $sth->{'NUM_OF_FIELDS'}, 4;
 is $sth->{'NUM_OF_PARAMS'}, 1;
 cmp_bag $sth->{'NAME'}, [qw/1 value0 value1 value2/];

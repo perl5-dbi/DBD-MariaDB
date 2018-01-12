@@ -13,7 +13,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 1, 
                         AutoCommit => 0,
-                        mysql_bind_comment_placeholders => 1,}
+                        mariadb_bind_comment_placeholders => 1,}
                         );
 
 my $create= <<"EOTABLE";
@@ -38,7 +38,7 @@ $sth->finish();
 
 my $retrow;
 
-if ( $test_dsn =~ m/mysql_server_prepare=1/ ) {
+if ( $test_dsn =~ m/mariadb_server_prepare=1/ ) {
     # server_prepare can't bind placeholder on comment.
     ok 1;
     ok 2;

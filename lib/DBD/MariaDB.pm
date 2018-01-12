@@ -38,11 +38,11 @@ sub driver{
 				 });
 
     if (!$methods_are_installed) {
-	DBD::MariaDB::db->install_method('mysql_fd');
-	DBD::MariaDB::db->install_method('mysql_async_result');
-	DBD::MariaDB::db->install_method('mysql_async_ready');
-	DBD::MariaDB::st->install_method('mysql_async_result');
-	DBD::MariaDB::st->install_method('mysql_async_ready');
+	DBD::MariaDB::db->install_method('mariadb_fd');
+	DBD::MariaDB::db->install_method('mariadb_async_result');
+	DBD::MariaDB::db->install_method('mariadb_async_ready');
+	DBD::MariaDB::st->install_method('mariadb_async_result');
+	DBD::MariaDB::st->install_method('mariadb_async_ready');
 
 	$methods_are_installed++;
     }
@@ -127,8 +127,8 @@ sub connect {
     $username ||= '';
     $password ||= '';
     $attrhash ||= {};
-    $attrhash->{mysql_conn_attrs} ||= {};
-    $attrhash->{mysql_conn_attrs}->{'program_name'} ||= $0;
+    $attrhash->{mariadb_conn_attrs} ||= {};
+    $attrhash->{mariadb_conn_attrs}->{'program_name'} ||= $0;
 
     # create a 'blank' dbh
     my($this, $privateAttrHash) = (undef, $attrhash);
@@ -159,7 +159,7 @@ sub connect {
 	  or $this = undef;
 
     if ($this && ($ENV{MOD_PERL} || $ENV{GATEWAY_INTERFACE})) {
-        $this->{mysql_auto_reconnect} = 1;
+        $this->{mariadb_auto_reconnect} = 1;
     }
     $this;
 }
@@ -173,10 +173,10 @@ sub data_sources {
       $port = $attributes->{port} || '';
       $user = $attributes->{user} || '';
       $password = $attributes->{password} || '';
-      $utf8 = $attributes->{utf8} || $attributes->{mysql_enable_utf8};
+      $utf8 = $attributes->{utf8} || $attributes->{mariadb_enable_utf8};
     }
     my(@dsn) = $self->func($host, $port, $user, $password, $utf8, '_ListDBs');
-    $utf8 = $utf8 ? ";mysql_enable_utf8=1" : "";
+    $utf8 = $utf8 ? ";mariadb_enable_utf8=1" : "";
     my($i);
     for ($i = 0;  $i < @dsn;  $i++) {
 	$dsn[$i] = "DBI:MariaDB:$dsn[$i]$utf8";
@@ -277,9 +277,7 @@ sub _SelectDB ($$) {
 
 sub table_info ($) {
   my ($dbh, $catalog, $schema, $table, $type, $attr) = @_;
-  $dbh->{mysql_server_prepare}||= 0;
-  my $mysql_server_prepare_save= $dbh->{mysql_server_prepare};
-  $dbh->{mysql_server_prepare}= 0;
+  local $dbh->{mariadb_server_prepare} = 0;
   my @names = qw(TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS);
   my @rows;
 
@@ -299,12 +297,10 @@ sub table_info ($) {
       (!defined($table) || $table eq ""))
   {
     my $sth = $dbh->prepare("SHOW DATABASES")
-      or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-          return undef);
+      or return undef;
 
     $sth->execute()
-      or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-        return DBI::set_err($dbh, $sth->err(), $sth->errstr()));
+      or return DBI::set_err($dbh, $sth->err(), $sth->errstr());
 
     while (my $ref = $sth->fetchrow_arrayref())
     {
@@ -340,11 +336,9 @@ sub table_info ($) {
     {
       my $sth = $dbh->prepare("SHOW DATABASES LIKE " .
           $dbh->quote($schema))
-        or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-        return undef);
+        or return undef;
       $sth->execute()
-        or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-        return DBI::set_err($dbh, $sth->err(), $sth->errstr()));
+        or return DBI::set_err($dbh, $sth->err(), $sth->errstr());
 
       while (my $ref = $sth->fetchrow_arrayref())
       {
@@ -374,12 +368,10 @@ sub table_info ($) {
       my $sth = $dbh->prepare("SHOW /*!50002 FULL*/ TABLES FROM " .
           $dbh->quote_identifier($database) .
           " LIKE " .  $dbh->quote($table))
-          or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-          return undef);
+          or return undef;
 
-      $sth->execute() or
-          ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-          return DBI::set_err($dbh, $sth->err(), $sth->errstr()));
+      $sth->execute()
+          or return DBI::set_err($dbh, $sth->err(), $sth->errstr());
 
       while (my $ref = $sth->fetchrow_arrayref())
       {
@@ -398,10 +390,8 @@ sub table_info ($) {
     NUM_OF_FIELDS => scalar @names,
     NAME          => \@names,
   })
-    or ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-      return $dbh->DBI::set_err($sponge->err(), $sponge->errstr()));
+    or return $dbh->DBI::set_err($sponge->err(), $sponge->errstr());
 
-  $dbh->{mysql_server_prepare}= $mysql_server_prepare_save;
   return $sth;
 }
 
@@ -419,9 +409,7 @@ sub column_info {
 
   return unless $dbh->func('_async_check');
 
-  $dbh->{mysql_server_prepare}||= 0;
-  my $mysql_server_prepare_save= $dbh->{mysql_server_prepare};
-  $dbh->{mysql_server_prepare}= 0;
+  local $dbh->{mariadb_server_prepare} = 0;
 
   # ODBC allows a NULL to mean all columns, so we'll accept undef
   $column = '%' unless defined $column;
@@ -440,8 +428,8 @@ sub column_info {
       UDT_CAT UDT_SCHEM UDT_NAME DOMAIN_CAT DOMAIN_SCHEM DOMAIN_NAME
       SCOPE_CAT SCOPE_SCHEM SCOPE_NAME MAX_CARDINALITY
       DTD_IDENTIFIER IS_SELF_REF
-      mysql_is_pri_key mysql_type_name mysql_values
-      mysql_is_auto_increment
+      mariadb_is_pri_key mariadb_type_name mariadb_values
+      mariadb_is_auto_increment
       );
   my %col_info;
 
@@ -457,7 +445,6 @@ sub column_info {
     # existing per DBI spec
     if ($err != $ER_NO_SUCH_TABLE)
     {
-      $dbh->{mysql_server_prepare}= $mysql_server_prepare_save;
       return undef;
     }
     $dbh->set_err(undef,undef);
@@ -485,9 +472,9 @@ sub column_info {
 	    TYPE_NAME               => uc($basetype),
 	    COLUMN_DEF              => $row->{default},
 	    ORDINAL_POSITION        => ++$ordinal_pos,
-	    mysql_is_pri_key        => ($row->{key}  eq 'PRI'),
-	    mysql_type_name         => $row->{type},
-      mysql_is_auto_increment => ($row->{extra} =~ /auto_increment/i ? 1 : 0),
+	    mariadb_is_pri_key      => ($row->{key}  eq 'PRI'),
+	    mariadb_type_name       => $row->{type},
+	    mariadb_is_auto_increment => ($row->{extra} =~ /auto_increment/i ? 1 : 0),
     };
     #
 	  # This code won't deal with a pathological case where a value
@@ -536,7 +523,7 @@ sub column_info {
         length($_) > $max_len and $max_len = length($_) for @type_params;
         $info->{COLUMN_SIZE} = $max_len;
 	    }
-	    $info->{"mysql_values"} = \@type_params;
+	    $info->{"mariadb_values"} = \@type_params;
     }
     elsif ($basetype =~ /int/ || $basetype eq 'bit' )
     {
@@ -593,18 +580,15 @@ sub column_info {
   }
 
   my $sponge = DBI->connect("DBI:Sponge:", '','')
-    or (  $dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-          return $dbh->DBI::set_err($DBI::err, "DBI::Sponge: $DBI::errstr"));
+    or return $dbh->DBI::set_err($DBI::err, "DBI::Sponge: $DBI::errstr");
 
   my $sth = $sponge->prepare("column_info $table", {
       rows          => [ map { [ @{$_}{@names} ] } map { $col_info{$_} } @fields ],
       NUM_OF_FIELDS => scalar @names,
       NAME          => \@names,
-      }) or
-  return ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-          $dbh->DBI::set_err($sponge->err(), $sponge->errstr()));
+      })
+      or return $dbh->DBI::set_err($sponge->err(), $sponge->errstr());
 
-  $dbh->{mysql_server_prepare}= $mysql_server_prepare_save;
   return $sth;
 }
 
@@ -614,8 +598,7 @@ sub primary_key_info {
 
   return unless $dbh->func('_async_check');
 
-  $dbh->{mysql_server_prepare}||= 0;
-  my $mysql_server_prepare_save= $dbh->{mysql_server_prepare};
+  local $dbh->{mariadb_server_prepare} = 0;
 
   my $table_id = $dbh->quote_identifier($catalog, $schema, $table);
 
@@ -641,9 +624,7 @@ sub primary_key_info {
   }
 
   my $sponge = DBI->connect("DBI:Sponge:", '','')
-    or
-     ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-      return $dbh->DBI::set_err($DBI::err, "DBI::Sponge: $DBI::errstr"));
+    or return $dbh->DBI::set_err($DBI::err, "DBI::Sponge: $DBI::errstr");
 
   my $sth= $sponge->prepare("primary_key_info $table", {
       rows          => [
@@ -653,11 +634,8 @@ sub primary_key_info {
       ],
       NUM_OF_FIELDS => scalar @names,
       NAME          => \@names,
-      }) or
-       ($dbh->{mysql_server_prepare}= $mysql_server_prepare_save &&
-        return $dbh->DBI::set_err($sponge->err(), $sponge->errstr()));
-
-  $dbh->{mysql_server_prepare}= $mysql_server_prepare_save;
+      })
+      or return $dbh->DBI::set_err($sponge->err(), $sponge->errstr());
 
   return $sth;
 }
@@ -862,8 +840,8 @@ BEGIN {
         my $super = "SUPER::$method";
         *$method = sub {
             my $sth = shift;
-            if(defined $sth->mysql_async_ready) {
-                return unless $sth->mysql_async_result;
+            if(defined $sth->mariadb_async_ready) {
+                return unless $sth->mariadb_async_result;
             }
             return $sth->$super(@_);
         };
@@ -1066,55 +1044,55 @@ Example DSN:
   my $dsn = "DBI:MariaDB:;host=[1a12:2800:6f2:85::f20:8cf];port=3306";
 
 
-=item mysql_client_found_rows
+=item mariadb_client_found_rows
 
 Enables (TRUE value) or disables (FALSE value) the flag CLIENT_FOUND_ROWS
 while connecting to the MariaDB or MySQL server. This has a somewhat funny effect:
-Without mysql_client_found_rows, if you perform a query like
+Without mariadb_client_found_rows, if you perform a query like
 
   UPDATE $table SET id = 1 WHERE id = 1;
 
 then the MariaDB or MySQL engine will always return 0, because no rows have changed.
-With mysql_client_found_rows however, it will return the number of rows
+With mariadb_client_found_rows however, it will return the number of rows
 that have an id 1, as some people are expecting. (At least for compatibility
 to other engines.)
 
-=item mysql_compression
+=item mariadb_compression
 
-If your DSN contains the option "mysql_compression=1", then the communication
+If your DSN contains the option "mariadb_compression=1", then the communication
 between client and server will be compressed.
 
-=item mysql_connect_timeout
+=item mariadb_connect_timeout
 
-If your DSN contains the option "mysql_connect_timeout=##", the connect
+If your DSN contains the option "mariadb_connect_timeout=##", the connect
 request to the server will timeout if it has not been successful after
 the given number of seconds.
 
-=item mysql_write_timeout
+=item mariadb_write_timeout
 
-If your DSN contains the option "mysql_write_timeout=##", the write
+If your DSN contains the option "mariadb_write_timeout=##", the write
 operation to the server will timeout if it has not been successful after
 the given number of seconds.
 
-=item mysql_read_timeout
+=item mariadb_read_timeout
 
-If your DSN contains the option "mysql_read_timeout=##", the read
+If your DSN contains the option "mariadb_read_timeout=##", the read
 operation to the server will timeout if it has not been successful after
 the given number of seconds.
 
-=item mysql_init_command
+=item mariadb_init_command
 
-If your DSN contains the option "mysql_init_command=##", then
+If your DSN contains the option "mariadb_init_command=##", then
 this SQL statement is executed when connecting to the MariaDB or MySQL server.
 It is automatically re-executed if reconnection occurs.
 
-=item mysql_skip_secure_auth
+=item mariadb_skip_secure_auth
 
 This option is for older MySQL databases that don't have secure auth set.
 
-=item mysql_read_default_file
+=item mariadb_read_default_file
 
-=item mysql_read_default_group
+=item mariadb_read_default_group
 
 These options can be used to read a config file like /etc/my.cnf or
 ~/.my.cnf. By default MariaDB's and MySQL's C client library doesn't use any config
@@ -1122,10 +1100,10 @@ files unlike the client programs (mysql, mysqladmin, ...) that do, but
 outside of the C client library. Thus you need to explicitly request
 reading a config file, as in
 
-    $dsn = "DBI:MariaDB:test;mysql_read_default_file=/home/joe/my.cnf";
+    $dsn = "DBI:MariaDB:test;mariadb_read_default_file=/home/joe/my.cnf";
     $dbh = DBI->connect($dsn, $user, $password)
 
-The option mysql_read_default_group can be used to specify the default
+The option mariadb_read_default_group can be used to specify the default
 group in the config file: Usually this is the I<client> group, but
 see the following example:
 
@@ -1141,8 +1119,8 @@ the [client] and [perl] sections!)
 If you read this config file, then you'll be typically connected to
 I<localhost>. However, by using
 
-    $dsn = "DBI:MariaDB:test;mysql_read_default_group=perl;"
-        . "mysql_read_default_file=/home/joe/my.cnf";
+    $dsn = "DBI:MariaDB:test;mariadb_read_default_group=perl;"
+        . "mariadb_read_default_file=/home/joe/my.cnf";
     $dbh = DBI->connect($dsn, $user, $password);
 
 you'll be connected to I<perlhost>. Note that if you specify a
@@ -1150,26 +1128,26 @@ default group and do not specify a file, then the default config
 files will all be read.  See the documentation of
 the C function mysql_options() for details.
 
-=item mysql_socket
+=item mariadb_socket
 
 It is possible to choose the Unix socket that is
 used for connecting to the server. This is done, for example, with
 
-    mysql_socket=/dev/mysql
+    mariadb_socket=/dev/mariadb
 
 Usually there's no need for this option, unless you are using another
 location for the socket than that built into the client.
 
-=item mysql_ssl
+=item mariadb_ssl
 
 A true value turns on the CLIENT_SSL flag when connecting to the MariaDB or MySQL
 server and enforce SSL encryption.  A false value (which is default)
 disable SSL encryption with the MariaDB or MySQL server.
 
 When enabling SSL encryption you should set also other SSL options,
-at least mysql_ssl_ca_file or mysql_ssl_ca_path.
+at least mariadb_ssl_ca_file or mariadb_ssl_ca_path.
 
-  mysql_ssl=1 mysql_ssl_verify_server_cert=1 mysql_ssl_ca_file=/path/to/ca_cert.pem
+  mariadb_ssl=1 mariadb_ssl_verify_server_cert=1 mariadb_ssl_ca_file=/path/to/ca_cert.pem
 
 This means that your communication with the server will be encrypted.
 
@@ -1177,28 +1155,28 @@ Please note that this can only work if you enabled SSL when compiling
 DBD::MariaDB; this is the default starting version 4.034.
 See L<DBD::MariaDB::INSTALL> for more details.
 
-=item mysql_ssl_ca_file
+=item mariadb_ssl_ca_file
 
 The path to a file in PEM format that contains a list of trusted SSL
 certificate authorities.
 
 When set MariaDB or MySQL server certificate is checked that it is signed by some
 CA certificate in the list.  Common Name value is not verified unless
-C<mysql_ssl_verify_server_cert> is enabled.
+C<mariadb_ssl_verify_server_cert> is enabled.
 
-=item mysql_ssl_ca_path
+=item mariadb_ssl_ca_path
 
 The path to a directory that contains trusted SSL certificate authority
 certificates in PEM format.
 
 When set MariaDB or MySQL server certificate is checked that it is signed by some
 CA certificate in the list.  Common Name value is not verified unless
-C<mysql_ssl_verify_server_cert> is enabled.
+C<mariadb_ssl_verify_server_cert> is enabled.
 
 Please note that this option is supported only if your MariaDB or MySQL client was
 compiled with OpenSSL library, and not with default yaSSL library.
 
-=item mysql_ssl_verify_server_cert
+=item mariadb_ssl_verify_server_cert
 
 Checks the server's Common Name value in the certificate that the server
 sends to the client.  The client verifies that name against the host name
@@ -1208,64 +1186,64 @@ man-in-the-middle attacks.
 
 Verification of the host name is disabled by default.
 
-=item mysql_ssl_client_key
+=item mariadb_ssl_client_key
 
 The name of the SSL key file in PEM format to use for establishing
 a secure connection.
 
-=item mysql_ssl_client_cert
+=item mariadb_ssl_client_cert
 
 The name of the SSL certificate file in PEM format to use for
 establishing a secure connection.
 
-=item mysql_ssl_cipher
+=item mariadb_ssl_cipher
 
 A list of permissible ciphers to use for connection encryption.  If no
 cipher in the list is supported, encrypted connections will not work.
 
-  mysql_ssl_cipher=AES128-SHA
-  mysql_ssl_cipher=DHE-RSA-AES256-SHA:AES128-SHA
+  mariadb_ssl_cipher=AES128-SHA
+  mariadb_ssl_cipher=DHE-RSA-AES256-SHA:AES128-SHA
 
-=item mysql_ssl_optional
+=item mariadb_ssl_optional
 
-Setting C<mysql_ssl_optional> to true disables strict SSL enforcement
+Setting C<mariadb_ssl_optional> to true disables strict SSL enforcement
 and makes SSL connection optional.  This option opens security hole
 for man-in-the-middle attacks.  Default value is false which means
-that C<mysql_ssl> set to true enforce SSL encryption.
+that C<mariadb_ssl> set to true enforce SSL encryption.
 
 This option was introduced in 4.043 version of DBD::MariaDB.  Due to
 L<The BACKRONYM|http://backronym.fail/> and L<The Riddle|http://riddle.link/>
-vulnerabilities in libmysqlclient library, enforcement of SSL
-encryption was not possbile and therefore C<mysql_ssl_optional=1>
+vulnerabilities in libmariadb and libmysqlclient libraries, enforcement of SSL
+encryption was not possbile and therefore C<mariadb_ssl_optional=1>
 was effectively set for all DBD::MariaDB versions prior to 4.043.
-Starting with 4.043, DBD::MariaDB with C<mysql_ssl=1> could refuse
+Starting with 4.043, DBD::MariaDB with C<mariadb_ssl=1> could refuse
 connection to MariaDB or MySQL server if underlaying libmariadb or libmysqlclient library is
-vulnerable.  Option C<mysql_ssl_optional> can be used to make SSL
+vulnerable.  Option C<mariadb_ssl_optional> can be used to make SSL
 connection vulnerable.
 
-=item mysql_local_infile
+=item mariadb_local_infile
 
 The LOCAL capability for LOAD DATA may be disabled
 in the MariaDB or MySQL client library by default. If your DSN contains the option
-"mysql_local_infile=1", LOAD DATA LOCAL will be enabled.  (However,
+"mariadb_local_infile=1", LOAD DATA LOCAL will be enabled.  (However,
 this option is *ineffective* if the server has also been configured to
 disallow LOCAL.)
 
-=item mysql_multi_statements
+=item mariadb_multi_statements
 
 Support for multiple statements separated by a semicolon
 (;) may be enabled by using this option. Enabling this option may cause
 problems if server-side prepared statements are also enabled.
 
-=item mysql_server_prepare
+=item mariadb_server_prepare
 
 This option is used to enable server side prepared statements.
 
 To use server side prepared statements, all you need to do is set the variable
-mysql_server_prepare in the connect:
+mariadb_server_prepare in the connect:
 
   $dbh = DBI->connect(
-    "DBI:MariaDB:database=test;host=localhost;mysql_server_prepare=1",
+    "DBI:MariaDB:database=test;host=localhost;mariadb_server_prepare=1",
     "",
     "",
     { RaiseError => 1, AutoCommit => 1 }
@@ -1277,7 +1255,7 @@ or:
     "DBI:MariaDB:database=test;host=localhost",
     "",
     "",
-    { RaiseError => 1, AutoCommit => 1, mysql_server_prepare => 1 }
+    { RaiseError => 1, AutoCommit => 1, mariadb_server_prepare => 1 }
   );
 
 There are many benefits to using server side prepare statements, mostly if you are
@@ -1292,7 +1270,7 @@ need to export the env variable MYSQL_SERVER_PREPARE:
 Please note that MariaDB or MySQL server cannot prepare or execute some prepared statements.
 In this case DBD::MariaDB fallbacks to normal non-prepared statement and tries again.
 
-=item mysql_server_prepare_disable_fallback
+=item mariadb_server_prepare_disable_fallback
 
 This option disable fallback to normal non-prepared statement when MariaDB or MySQL server
 does not support execution of current statement as prepared.
@@ -1301,34 +1279,34 @@ Useful when you want to be sure that statement is going to be executed as
 server side prepared. Error message and code in case of failure is propagated
 back to DBI.
 
-=item mysql_embedded_options
+=item mariadb_embedded_options
 
-The option <mysql_embedded_options> can be used to pass 'command-line'
+The option <mariadb_embedded_options> can be used to pass 'command-line'
 options to embedded server.
 
 Example:
 
   use DBI;
-  $testdsn="DBI:MariaDBEmb:database=test;mysql_embedded_options=--help,--verbose";
+  $testdsn="DBI:MariaDBEmb:database=test;mariadb_embedded_options=--help,--verbose";
   $dbh = DBI->connect($testdsn,"a","b");
 
 This would cause the command line help to the embedded MariaDB or MySQL server library
 to be printed.
 
 
-=item mysql_embedded_groups
+=item mariadb_embedded_groups
 
-The option <mysql_embedded_groups> can be used to specify the groups in the
+The option <mariadb_embedded_groups> can be used to specify the groups in the
 config file(I<my.cnf>) which will be used to get options for embedded server.
 If not specified [server] and [embedded] groups will be used.
 
 Example:
 
-  $testdsn="DBI:MariaDBEmb:database=test;mysql_embedded_groups=embedded_server,common";
+  $testdsn="DBI:MariaDBEmb:database=test;mariadb_embedded_groups=embedded_server,common";
 
-=item mysql_conn_attrs
+=item mariadb_conn_attrs
 
-The option <mysql_conn_attrs> is a hash of attribute names and values which can be
+The option <mariadb_conn_attrs> is a hash of attribute names and values which can be
 used to send custom connection attributes to the server. Some attributes like
 '_os', '_platform', '_client_name' and '_client_version' are added by libmariadb or libmysqlclient
 and 'program_name' is added by DBD::MariaDB.
@@ -1340,7 +1318,7 @@ feature.
 
   my $dbh= DBI->connect($dsn, $user, $password,
     { AutoCommit => 0,
-      mysql_conn_attrs => {
+      mariadb_conn_attrs => {
         foo => 'bar',
         wiz => 'bang'
       },
@@ -1442,16 +1420,16 @@ or with connection arguments
 The DBD::MariaDB driver supports the following attributes of database
 handles (read only):
 
-  $errno = $dbh->{'mysql_errno'};
-  $error = $dbh->{'mysql_error'};
-  $hostinfo = $dbh->{'mysql_hostinfo'};
-  $info = $dbh->{'mysql_info'};
-  $insertid = $dbh->{'mysql_insertid'};
-  $protoinfo = $dbh->{'mysql_protoinfo'};
-  $serverinfo = $dbh->{'mysql_serverinfo'};
-  $ssl_cipher = $dbh->{'mysql_ssl_cipher'};
-  $stat = $dbh->{'mysql_stat'};
-  $thread_id = $dbh->{'mysql_thread_id'};
+  $errno = $dbh->{'mariadb_errno'};
+  $error = $dbh->{'mariadb_error'};
+  $hostinfo = $dbh->{'mariadb_hostinfo'};
+  $info = $dbh->{'mariadb_info'};
+  $insertid = $dbh->{'mariadb_insertid'};
+  $protoinfo = $dbh->{'mariadb_protoinfo'};
+  $serverinfo = $dbh->{'mariadb_serverinfo'};
+  $ssl_cipher = $dbh->{'mariadb_ssl_cipher'};
+  $stat = $dbh->{'mariadb_stat'};
+  $thread_id = $dbh->{'mariadb_thread_id'};
 
 These correspond to mysql_errno(), mysql_error(), mysql_get_host_info(),
 mysql_info(), mysql_insert_id(), mysql_get_proto_info(),
@@ -1460,45 +1438,45 @@ and mysql_thread_id() respectively.
 
 =over 2
 
-=item mysql_clientinfo
+=item mariadb_clientinfo
 
 List information of the MariaDB or MySQL client library that DBD::MariaDB was built
 against:
 
-  print "$dbh->{mysql_clientinfo}\n";
+  print "$dbh->{mariadb_clientinfo}\n";
 
   5.2.0-MariaDB
 
-=item mysql_clientversion
+=item mariadb_clientversion
 
-  print "$dbh->{mysql_clientversion}\n";
-
-  50200
-
-=item mysql_serverversion
-
-  print "$dbh->{mysql_serverversion}\n";
+  print "$dbh->{mariadb_clientversion}\n";
 
   50200
 
-=item mysql_ssl_cipher
+=item mariadb_serverversion
+
+  print "$dbh->{mariadb_serverversion}\n";
+
+  50200
+
+=item mariadb_ssl_cipher
 
 Returns the SSL encryption cipher used for the given connection to
-the server.  In case SSL encryption was not enabled with C<mysql_ssl>
+the server.  In case SSL encryption was not enabled with C<mariadb_ssl>
 or was not established returns undef.
 
-  my $ssl_cipher = $dbh->{mysql_ssl_cipher};
+  my $ssl_cipher = $dbh->{mariadb_ssl_cipher};
   if (defined $ssl_cipher) {
     print "Connection with server is encrypted with cipher: $ssl_cipher\n";
   } else {
     print "Connection with server is not encrypted\n";
   }
 
-=item mysql_dbd_stats
+=item mariadb_dbd_stats
 
-  $info_hashref = $dhb->{mysql_dbd_stats};
+  $info_hashref = $dhb->{mariadb_dbd_stats};
 
-DBD::MariaDB keeps track of some statistics in the mysql_dbd_stats attribute.
+DBD::MariaDB keeps track of some statistics in the mariadb_dbd_stats attribute.
 The following stats are being maintained:
 
 =over 8
@@ -1521,54 +1499,54 @@ handles (read/write):
 
 =over
 
-=item mysql_auto_reconnect
+=item mariadb_auto_reconnect
 
 This attribute determines whether DBD::MariaDB will automatically reconnect
 to MariaDB or MySQL server if the connection be lost. This feature defaults to off; however,
 if either the GATEWAY_INTERFACE or MOD_PERL environment variable is set,
-DBD::MariaDB will turn mysql_auto_reconnect on.  Setting mysql_auto_reconnect
+DBD::MariaDB will turn mariadb_auto_reconnect on.  Setting mariadb_auto_reconnect
 to on is not advised if 'lock tables' is used because if DBD::MariaDB reconnect
 to MariaDB or MySQL server all table locks will be lost.  This attribute is ignored when
 AutoCommit is turned off, and when AutoCommit is turned off, DBD::MariaDB will
 not automatically reconnect to the server.
 
-It is also possible to set the default value of the C<mysql_auto_reconnect>
+It is also possible to set the default value of the C<mariadb_auto_reconnect>
 attribute for the $dbh by passing it in the C<\%attr> hash for C<DBI->connect>.
 
-  $dbh->{mysql_auto_reconnect} = 1;
+  $dbh->{mariadb_auto_reconnect} = 1;
 
 or
 
   my $dbh = DBI->connect($dsn, $user, $password, {
-     mysql_auto_reconnect => 1,
+     mariadb_auto_reconnect => 1,
   });
 
 Note that if you are using a module or framework that performs reconnections
 for you (for example L<DBIx::Connector> in fixup mode), this value must be set
 to 0.
 
-=item mysql_use_result
+=item mariadb_use_result
 
-This attribute forces the driver to use mysql_use_result rather than
-mysql_store_result.  The former is faster and less memory consuming, but
-tends to block other processes.  mysql_store_result is the default due to that
+This attribute forces the driver to use mariadb_use_result rather than
+mariadb_store_result.  The former is faster and less memory consuming, but
+tends to block other processes.  mariadb_store_result is the default due to that
 fact storing the result is expected behavior with most applications.
 
-It is possible to set the default value of the C<mysql_use_result> attribute
+It is possible to set the default value of the C<mariadb_use_result> attribute
 for the $dbh via the DSN:
 
-  $dbh = DBI->connect("DBI:MariaDB:test;mysql_use_result=1", "root", "");
+  $dbh = DBI->connect("DBI:MariaDB:test;mariadb_use_result=1", "root", "");
 
 You can also set it after creation of the database handle:
 
-   $dbh->{mysql_use_result} = 0; # disable
-   $dbh->{mysql_use_result} = 1; # enable
+   $dbh->{mariadb_use_result} = 0; # disable
+   $dbh->{mariadb_use_result} = 1; # enable
 
-You can also set or unset the C<mysql_use_result> setting on your statement
+You can also set or unset the C<mariadb_use_result> setting on your statement
 handle, when creating the statement handle or after it has been created.
 See L</"STATEMENT HANDLES">.
 
-=item mysql_enable_utf8
+=item mariadb_enable_utf8
 
 This attribute affects input data from DBI (statement and bind parameters) and
 output data from the MariaDB or MySQL server.  Applies also for database, table and column
@@ -1589,33 +1567,33 @@ I<Character Set Support> chapter in the MySQL manual:
 L<http://dev.mysql.com/doc/refman/5.7/en/charset.html>
 
 When unset and a statement or bind parameter contains a wide Unicode character then
-DBD::MariaDB gives the warning C<Wide character in ... but mysql_enable_utf8 not set>.
+DBD::MariaDB gives the warning C<Wide character in ... but mariadb_enable_utf8 not set>.
 The MySQL protocol does not support wide characters and so DBD::MariaDB does not know
-how to send a statement with wide characters when C<mysql_enable_utf8> is not set.
+how to send a statement with wide characters when C<mariadb_enable_utf8> is not set.
 
-Please note that when C<mysql_enable_utf8> is set, the input statement and bind
+Please note that when C<mariadb_enable_utf8> is set, the input statement and bind
 parameters are encoded to UTF-8 octets even if the current MySQL session charset
 is not C<utf8> or C<utf8mb4>!  You are responsible for calling the C<SET NAMES utf8>
-or C<SET NAMES utf8mb4> command when setting the C<mysql_enable_utf8> attribute
-B<after> connecting.  The same applies to unsetting the C<mysql_enable_utf8>
+or C<SET NAMES utf8mb4> command when setting the C<mariadb_enable_utf8> attribute
+B<after> connecting.  The same applies to unsetting the C<mariadb_enable_utf8>
 attribute.  You are responsible for calling C<SET NAMES latin1> (resp. with
 correct charset) and then passing perl scalars in the correct encoding.
 Otherwise strings will be sent to MariaDB or MySQL server incorrectly!
 
 Input bind parameters of binary types (C<SQL_BIT>, C<SQL_BLOB>, C<SQL_BINARY>,
 C<SQL_VARBINARY> and C<SQL_LONGVARBINARY>) are not touched regardless of the
-C<mysql_enable_utf8> attribute state.  They are treated as a sequence of octets
+C<mariadb_enable_utf8> attribute state.  They are treated as a sequence of octets
 and sent to the MariaDB or MySQL server as is.  If that bind parameter contains a wide Unicode
 character then DBD::MariaDB gives the warning C<Wide character in binary field ...>
 because binary data is a sequence of octets, not Unicode characters!
 
 Output data fetched from the MariaDB or MySQL server which does not have a C<utf8> or
 C<utf8mb4> charset (so also binary data) is not UTF-8 decoded regardless of the
-C<mysql_enable_utf8> attribute state.  They are treated as a sequence of octets
+C<mariadb_enable_utf8> attribute state.  They are treated as a sequence of octets
 and it is your responsibility to decode them correctly.
 
 B<WARNING>: DBD::MariaDB prior to version 4.042 had different and buggy behaviour
-when the attribute C<mysql_enable_utf8> was enabled!  Input statement and bind
+when the attribute C<mariadb_enable_utf8> was enabled!  Input statement and bind
 parameters were never encoded to UTF-8 octets and retrieved columns were
 always UTF-8 decoded regardless of the column charset (except binary charsets).
 
@@ -1636,8 +1614,8 @@ Unicode strings with codepoints above U+FF).  See following example:
 
   my $byte_param = "\x{D8}\x{A0}\x{39}\x{F8}"; # some bytes (binary data)
 
-  my $dbh = DBI->connect('DBI:MariaDB:database', 'username', 'pass', { mysql_enable_utf8 => 1 });
-  $dbh->do("SET NAMES utf8mb4") if $dbh->{mysql_serverversion} >= 50503; # enable 4-byte UTF-8 characters
+  my $dbh = DBI->connect('DBI:MariaDB:database', 'username', 'pass', { mariadb_enable_utf8 => 1 });
+  $dbh->do("SET NAMES utf8mb4") if $dbh->{mariadb_serverversion} >= 50503; # enable 4-byte UTF-8 characters
 
   utf8::upgrade($statement); # UTF-8 fix for DBD::MariaDB < 4.042
   my $sth = $dbh->prepare($statement);
@@ -1653,9 +1631,9 @@ Unicode strings with codepoints above U+FF).  See following example:
   my $output = $sth->fetchall_arrayref();
   # returned data in $output reference should be already UTF-8 decoded
 
-=item mysql_enable_utf8mb4
+=item mariadb_enable_utf8mb4
 
-Exactly the same as the attribute C<mysql_enable_utf8>.
+Exactly the same as the attribute C<mariadb_enable_utf8>.
 
 Additionally if used as a part of the call to C<connect()> then it issues
 the command C<SET NAMES utf8mb4> instead of C<utf8>.
@@ -1672,7 +1650,7 @@ server can reject or modify the input statement!
 
 MySQL's C<utf8mb4> charset was introduced in MySQL server version 5.5.3.
 
-=item mysql_bind_type_guessing
+=item mariadb_bind_type_guessing
 
 This attribute causes the driver (emulated prepare statements)
 to attempt to guess if a value being bound is a numeric value,
@@ -1682,7 +1660,7 @@ of using quotes in a statement that is inserting or updating a
 large numeric value. This was previously called
 C<unsafe_bind_type_guessing> because it is experimental. I have
 successfully run the full test suite with this option turned on,
-the name can now be simply C<mysql_bind_type_guessing>.
+the name can now be simply C<mariadb_bind_type_guessing>.
 
 CAVEAT: Even though you can insert an integer value into a
 character column, if this column is indexed, if you query that
@@ -1720,18 +1698,18 @@ use the index:
 
 See bug: https://rt.cpan.org/Ticket/Display.html?id=43822
 
-C<mysql_bind_type_guessing> can be turned on via
+C<mariadb_bind_type_guessing> can be turned on via
 
  - through DSN
 
   my $dbh= DBI->connect('DBI:MariaDB:test', 'username', 'pass',
-  { mysql_bind_type_guessing => 1})
+  { mariadb_bind_type_guessing => 1})
 
   - OR after handle creation
 
-  $dbh->{mysql_bind_type_guessing} = 1;
+  $dbh->{mariadb_bind_type_guessing} = 1;
 
-=item mysql_bind_comment_placeholders
+=item mariadb_bind_comment_placeholders
 
 This attribute causes the driver (emulated prepare statements)
 will cause any placeholders in comments to be bound. This is
@@ -1739,7 +1717,7 @@ not correct prepared statement behavior, but some developers
 have come to depend on this behavior, so I have made it available
 in 4.015
 
-=item mysql_no_autocommit_cmd
+=item mariadb_no_autocommit_cmd
 
 This attribute causes the driver to not issue 'set autocommit'
 either through explicit or using mysql_autocommit(). This is
@@ -1750,15 +1728,15 @@ See the bug report:
 https://rt.cpan.org/Public/Bug/Display.html?id=46308
 
 
-C<mysql_no_autocommit_cmd> can be turned on when creating the database
+C<mariadb_no_autocommit_cmd> can be turned on when creating the database
 handle:
 
   my $dbh = DBI->connect('DBI:MariaDB:test', 'username', 'pass',
-  { mysql_no_autocommit_cmd => 1});
+  { mariadb_no_autocommit_cmd => 1});
 
 or using an existing database handle:
 
-  $dbh->{mysql_no_autocommit_cmd} = 1;
+  $dbh->{mariadb_no_autocommit_cmd} = 1;
 
 =item ping
 
@@ -1778,19 +1756,19 @@ of attributes. You access these by using, for example,
 
 Note, that most attributes are valid only after a successful I<execute>.
 An C<undef> value will returned otherwise. The most important exception
-is the C<mysql_use_result> attribute, which forces the driver to use
-mysql_use_result rather than mysql_store_result. The former is faster
+is the C<mariadb_use_result> attribute, which forces the driver to use
+mariadb_use_result rather than mariadb_store_result. The former is faster
 and less memory consuming, but tends to block other processes. (That's why
-mysql_store_result is the default.)
+mariadb_store_result is the default.)
 
-To set the C<mysql_use_result> attribute, use either of the following:
+To set the C<mariadb_use_result> attribute, use either of the following:
 
-  my $sth = $dbh->prepare("QUERY", { mysql_use_result => 1});
+  my $sth = $dbh->prepare("QUERY", { mariadb_use_result => 1});
 
 or
 
   my $sth = $dbh->prepare($sql);
-  $sth->{mysql_use_result} = 1;
+  $sth->{mariadb_use_result} = 1;
 
 Column dependent attributes, for example I<NAME>, the column names,
 are returned as a reference to an array. The array indices are
@@ -1828,45 +1806,45 @@ this attribute determines whether a I<fetchrow> will chop preceding
 and trailing blanks off the column values. Chopping blanks does not
 have impact on the I<max_length> attribute.
 
-=item mysql_insertid
+=item mariadb_insertid
 
 If the statement you executed performs an INSERT, and there is an AUTO_INCREMENT
 column in the table you inserted in, this attribute holds the value stored into
 the AUTO_INCREMENT column, if that value is automatically generated, by
 storing NULL or 0 or was specified as an explicit value.
 
-Typically, you'd access the value via $sth->{mysql_insertid}. The value can
-also be accessed via $dbh->{mysql_insertid} but this can easily
+Typically, you'd access the value via $sth->{mariadb_insertid}. The value can
+also be accessed via $dbh->{mariadb_insertid} but this can easily
 produce incorrect results in case one database handle is shared.
 
-=item mysql_is_blob
+=item mariadb_is_blob
 
 Reference to an array of boolean values; TRUE indicates, that the
 respective column is a blob.
 
-=item mysql_is_key
+=item mariadb_is_key
 
 Reference to an array of boolean values; TRUE indicates, that the
 respective column is a key.
 
-=item mysql_is_num
+=item mariadb_is_num
 
 Reference to an array of boolean values; TRUE indicates, that the
 respective column contains numeric values.
 
-=item mysql_is_pri_key
+=item mariadb_is_pri_key
 
 Reference to an array of boolean values; TRUE indicates, that the
 respective column is a primary key.
 
-=item mysql_is_auto_increment
+=item mariadb_is_auto_increment
 
 Reference to an array of boolean values; TRUE indicates that the
 respective column is an AUTO_INCREMENT column.
 
-=item mysql_length
+=item mariadb_length
 
-=item mysql_max_length
+=item mariadb_max_length
 
 A reference to an array of maximum column sizes. The I<max_length> is
 the maximum physically present in the result table, I<length> gives
@@ -1888,7 +1866,7 @@ You may use this for checking whether a statement returned a result:
 A zero value indicates a non-SELECT statement like I<INSERT>,
 I<DELETE> or I<UPDATE>.
 
-=item mysql_table
+=item mariadb_table
 
 A reference to an array of table names, useful in a I<JOIN> result.
 
@@ -1899,21 +1877,21 @@ types are mapped to portable types like DBI::SQL_INTEGER() or
 DBI::SQL_VARCHAR(), as good as possible. Not all native types have
 a meaningful equivalent, for example DBD::MariaDB::FIELD_TYPE_INTERVAL
 is mapped to DBI::SQL_VARCHAR().
-If you need the native column types, use I<mysql_type>. See below.
+If you need the native column types, use I<mariadb_type>. See below.
 
-=item mysql_type
+=item mariadb_type
 
 A reference to an array of MySQL's native column types, for example
 DBD::MariaDB::FIELD_TYPE_SHORT() or DBD::MariaDB::FIELD_TYPE_STRING().
 Use the I<TYPE> attribute, if you want portable types like
 DBI::SQL_SMALLINT() or DBI::SQL_VARCHAR().
 
-=item mysql_type_name
+=item mariadb_type_name
 
-Similar to mysql, but type names and not numbers are returned.
+Similar to mariadb_type, but type names and not numbers are returned.
 Whenever possible, the ANSI SQL name is preferred.
 
-=item mysql_warning_count
+=item mariadb_warning_count
 
 The number of warnings generated during execution of the SQL statement.
 This attribute is available on both statement handles and database handles.
@@ -2002,7 +1980,7 @@ reconnect.
 =item *
 
 The "reconnect" feature of DBD::MariaDB can be toggled by using the
-L<mysql_auto_reconnect> attribute. This behaviour should be turned off
+L<mariadb_auto_reconnect> attribute. This behaviour should be turned off
 in code that uses LOCK TABLE because if the database server time out
 and DBD::MariaDB reconnect, table locks will be lost without any
 indication of such loss.
@@ -2091,24 +2069,24 @@ setting the 'async' attribute to a true value in the L<DBI/do> method,
 or in the L<DBI/prepare> method.  Statements created with 'async' set to
 true in prepare always run their queries asynchronously when L<DBI/execute>
 is called.  The driver also offers three additional methods:
-C<mysql_async_result>, C<mysql_async_ready>, and C<mysql_fd>.
-C<mysql_async_result> returns what do or execute would have; that is, the
-number of rows affected.  C<mysql_async_ready> returns true if
-C<mysql_async_result> will not block, and zero otherwise.  They both return
+C<mariadb_async_result>, C<mariadb_async_ready>, and C<mariadb_fd>.
+C<mariadb_async_result> returns what do or execute would have; that is, the
+number of rows affected.  C<mariadb_async_ready> returns true if
+C<mariadb_async_result> will not block, and zero otherwise.  They both return
 C<undef> if that handle was not created with 'async' set to true
 or if an asynchronous query was not started yet.
-C<mysql_fd> returns the file descriptor number for the MySQL connection; you
+C<mariadb_fd> returns the file descriptor number for the MySQL connection; you
 can use this in an event loop.
 
 Here's an example of how to use the asynchronous query interface:
 
   use feature 'say';
   $dbh->do('SELECT SLEEP(10)', { async => 1 });
-  until($dbh->mysql_async_ready) {
+  until($dbh->mariadb_async_ready) {
     say 'not ready yet!';
     sleep 1;
   }
-  my $rows = $dbh->mysql_async_result;
+  my $rows = $dbh->mariadb_async_result;
 
 =head1 INSTALLATION
 

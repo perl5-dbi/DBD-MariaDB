@@ -13,7 +13,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError            => 1,
                         PrintError            => 1,
                         AutoCommit            => 1,
-                        mysql_server_prepare  => 0 });
+                        mariadb_server_prepare  => 0 });
 
 plan tests => 78;
 
@@ -264,15 +264,15 @@ SKIP: {
                                   )}), "creating table");
 
   #
-  # Bug #26603: (one part) add mysql_is_autoincrement
+  # Bug #26603: (one part) add mariadb_is_autoincrement
   #
   $sth= $dbh->column_info(undef, undef, "t1", 'a');
   my ($info)= $sth->fetchall_arrayref({});
-  is($info->[0]->{mysql_is_auto_increment}, 1);
+  is($info->[0]->{mariadb_is_auto_increment}, 1);
 
   $sth= $dbh->column_info(undef, undef, "t1", 'b');
   ($info)= $sth->fetchall_arrayref({});
-  is($info->[0]->{mysql_is_auto_increment}, 0);
+  is($info->[0]->{mariadb_is_auto_increment}, 0);
 
   #
   # Test that wildcards and odd names are handled correctly

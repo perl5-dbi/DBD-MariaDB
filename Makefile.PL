@@ -217,10 +217,10 @@ sleep 1;
 
 my $dsn= '';
 if (exists $opt->{'ps-protocol'}) {
-  $dsn = "\$::test_dsn .= \";mysql_server_prepare=1\";\n";
+  $dsn = "\$::test_dsn .= \";mariadb_server_prepare=1\";\n";
 }
 elsif (exists $opt->{'bind-type-guessing'}) {
-    $dsn= "\$::test_dsn .= \";mysql_bind_type_guessing=1\";\n";
+    $dsn= "\$::test_dsn .= \";mariadb_bind_type_guessing=1\";\n";
 }
 my $fileName = $@ ?
   "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
@@ -234,7 +234,7 @@ my $fileName = $@ ?
 	      "\$::test_password = \$opt->{'testpassword'};\n" .
 	      "\$::test_db = \$opt->{'testdb'};\n" .
 	      "\$::test_dsn = \"DBI:MariaDB:\$::test_db\";\n" .
-	      "\$::test_dsn .= \";mysql_socket=\$::test_socket\" if \$::test_socket;\n" .
+	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
@@ -293,7 +293,7 @@ if ($opt->{'embedded'})
                        't/MariaDB.mtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.mtest',
                                              makedir => 'MariaDBEmb/t',
                                              replace =>  { 'DBI:MariaDB'=> 'DBI:MariaDBEmb',
-                                                            'test_db";' => 'test_db;mysql_embedded_options=--datadir=./t,--skip-innodb";'
+                                                            'test_db";' => 'test_db;mariadb_embedded_options=--datadir=./t,--skip-innodb";'
                                                          }
                                            },
                        't/lib.pl' => { filename => 'MariaDBEmb/t/lib.pl',
@@ -537,7 +537,7 @@ Possible options are:
   --ps-protocol          Toggle the use of driver emulated prepared statements
                          prepare, requires MySQL server >= 4.1.3 for
                          server side prepared statements, off by default
-  --bind-type-guessing   Toggle the use of driver attribute mysql_bind_type_guessing
+  --bind-type-guessing   Toggle the use of driver attribute mariadb_bind_type_guessing
                          This feature makes it so driver-emulated prepared statements
                          try to "guess" if a value being bound is numeric, in which
                          case, quotes will not be put around the value.

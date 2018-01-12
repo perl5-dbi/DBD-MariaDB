@@ -16,8 +16,8 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 
 plan tests => 39*2;
 
-for my $mysql_server_prepare (0, 1) {
-$dbh->{mysql_server_prepare} = $mysql_server_prepare;
+for my $mariadb_server_prepare (0, 1) {
+$dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
 
 ok($dbh->do(qq{DROP TABLE IF EXISTS t1}), "making slate clean");
 

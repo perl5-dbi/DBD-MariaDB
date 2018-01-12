@@ -15,16 +15,16 @@ plan skip_all => 'Server does not support SSL connections' unless $have_ssl and 
 
 plan tests => 4;
 
-$dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 0, mysql_ssl => 1, mysql_ssl_optional => 1 });
-ok(defined $dbh, 'DBD::MariaDB supports mysql_ssl=1 with mysql_ssl_optional=1 and connect to server') or diag('Error code: ' . ($DBI::err || 'none') . "\n" . 'Error message: ' . ($DBI::errstr || 'unknown'));
+$dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 0, mariadb_ssl => 1, mariadb_ssl_optional => 1 });
+ok(defined $dbh, 'DBD::MariaDB supports mariadb_ssl=1 with mariadb_ssl_optional=1 and connect to server') or diag('Error code: ' . ($DBI::err || 'none') . "\n" . 'Error message: ' . ($DBI::errstr || 'unknown'));
 
-ok(defined $dbh && defined $dbh->{mysql_ssl_cipher}, 'SSL connection was established') and diag("mysql_ssl_cipher is: ". $dbh->{mysql_ssl_cipher});
+ok(defined $dbh && defined $dbh->{mariadb_ssl_cipher}, 'SSL connection was established') and diag("mariadb_ssl_cipher is: ". $dbh->{mariadb_ssl_cipher});
 
-$dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 0, mysql_ssl => 1 });
+$dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 0, mariadb_ssl => 1 });
 if (defined $dbh) {
-  pass('DBD::MariaDB supports mysql_ssl=1 without mysql_ssl_optional=1 and connect to server');
-  ok(defined $dbh->{mysql_ssl_cipher}, 'SSL connection was established');
+  pass('DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and connect to server');
+  ok(defined $dbh->{mariadb_ssl_cipher}, 'SSL connection was established');
 } else {
-  is($DBI::errstr, 'SSL connection error: Enforcing SSL encryption is not supported', 'DBD::MariaDB supports mysql_ssl=1 without mysql_ssl_optional=1 and fail because cannot enforce SSL encryption') or diag('Error message: ' . ($DBI::errstr || 'unknown'));
+  is($DBI::errstr, 'SSL connection error: Enforcing SSL encryption is not supported', 'DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and fail because cannot enforce SSL encryption') or diag('Error message: ' . ($DBI::errstr || 'unknown'));
   is($DBI::err, 2026, 'DBD::MariaDB error code is SSL related') or diag('Error code: ' . ($DBI::err || 'unknown'));
 }

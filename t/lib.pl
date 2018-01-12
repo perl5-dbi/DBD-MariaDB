@@ -94,7 +94,7 @@ sub connection_id {
     return 0 unless $dbh;
 
     # Paul DuBois says the following is more reliable than
-    # $dbh->{'mysql_thread_id'};
+    # $dbh->{'mariadb_thread_id'};
     my @row = $dbh->selectrow_array("SELECT CONNECTION_ID()");
 
     return $row[0];

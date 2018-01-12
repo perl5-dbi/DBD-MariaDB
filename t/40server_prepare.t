@@ -9,12 +9,12 @@ use vars qw($test_dsn $test_user $test_password);
 
 $|= 1;
 
-$test_dsn.= ";mysql_server_prepare=1;mysql_server_prepare_disable_fallback=1";
+$test_dsn.= ";mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-if ($dbh->{mysql_clientversion} < 40103 or $dbh->{mysql_serverversion} < 40103) {
+if ($dbh->{mariadb_clientversion} < 40103 or $dbh->{mariadb_serverversion} < 40103) {
     plan skip_all => "You must have MySQL version 4.1.3 and greater for this test to run";
 }
 
@@ -80,16 +80,16 @@ is_deeply($dbh->selectall_arrayref('SELECT id, mydata FROM t3'), [[1, 2]]);
 
 my $dbname = $dbh->selectrow_arrayref("SELECT DATABASE()")->[0];
 
-$dbh->{mysql_server_prepare_disable_fallback} = 1;
+$dbh->{mariadb_server_prepare_disable_fallback} = 1;
 my $error_handler_called = 0;
 $dbh->{HandleError} = sub { $error_handler_called = 1; die $_[0]; };
 eval { $dbh->prepare("USE $dbname") };
 $dbh->{HandleError} = undef;
-ok($error_handler_called, 'USE is not supported with mysql_server_prepare_disable_fallback=1');
+ok($error_handler_called, 'USE is not supported with mariadb_server_prepare_disable_fallback=1');
 
-$dbh->{mysql_server_prepare_disable_fallback} = 0;
+$dbh->{mariadb_server_prepare_disable_fallback} = 0;
 my $sth4;
-ok($sth4 = $dbh->prepare("USE $dbname"), 'USE is supported with mysql_server_prepare_disable_fallback=0');
+ok($sth4 = $dbh->prepare("USE $dbname"), 'USE is supported with mariadb_server_prepare_disable_fallback=0');
 ok($sth4->execute());
 ok($sth4->finish());
 

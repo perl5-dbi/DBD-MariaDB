@@ -16,13 +16,13 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 ok(defined $dbh, "Connected to database");
 
 for my $attribute ( qw(
-  mysql_clientinfo
-  mysql_clientversion
-  mysql_serverversion
-  mysql_hostinfo
-  mysql_serverinfo
-  mysql_stat
-  mysql_protoinfo
+  mariadb_clientinfo
+  mariadb_clientversion
+  mariadb_serverversion
+  mariadb_hostinfo
+  mariadb_serverinfo
+  mariadb_stat
+  mariadb_protoinfo
 ) ) {
   ok($dbh->{$attribute}, "Value of '$attribute'");
   diag "$attribute is: ". $dbh->{$attribute};
@@ -55,9 +55,9 @@ like($driver_ver, qr/^04\./, 'SQL_DRIVER_VER starts with "04." (update for 5.x)'
 # http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine
 
 my $storage_engine = '@@default_storage_engine';
-if ($dbh->{mysql_serverversion} < 40102) {
+if ($dbh->{mariadb_serverversion} < 40102) {
     $storage_engine = '@@table_type';
-} elsif ($dbh->{mysql_serverversion} < 50503) {
+} elsif ($dbh->{mariadb_serverversion} < 50503) {
     $storage_engine = '@@storage_engine';
 }
 
@@ -65,7 +65,7 @@ my $result = $dbh->selectall_arrayref('select ' . $storage_engine);
 my $default_storage_engine = $result->[0]->[0] || 'unknown';
 diag "Default storage engine is: $default_storage_engine";
 
-my $info_hashref = $dbh->{mysql_dbd_stats};
+my $info_hashref = $dbh->{mariadb_dbd_stats};
 
 ok($dbh->disconnect(), 'Disconnected');
 

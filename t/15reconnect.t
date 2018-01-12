@@ -18,15 +18,15 @@ $dbh->disconnect();
 
 plan tests => 13 * 2;
 
-for my $mysql_server_prepare (0, 1) {
-$dbh= DBI->connect("$test_dsn;mysql_server_prepare=$mysql_server_prepare;mysql_server_prepare_disable_fallback=1", $test_user, $test_password,
+for my $mariadb_server_prepare (0, 1) {
+$dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
 ok(defined $dbh, "Connected to database");
 
 ok($dbh->{Active}, "checking for active handle");
 
-ok($dbh->{mysql_auto_reconnect} = 1, "enabling reconnect");
+ok($dbh->{mariadb_auto_reconnect} = 1, "enabling reconnect");
 
 ok($dbh->{AutoCommit} = 1, "enabling autocommit");
 

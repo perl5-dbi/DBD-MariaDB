@@ -17,7 +17,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 
 plan tests => 25;
 
-$dbh->{mysql_server_prepare}= 0;
+$dbh->{mariadb_server_prepare}= 0;
 
 $create = <<EOC;
 CREATE TEMPORARY TABLE dbd_mysql_40listfields (
