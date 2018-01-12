@@ -396,9 +396,12 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
       dynamic_config => 0,
       resources => {
         repository  => {
-          url  => 'git://github.com/perl5-dbi/DBD-mysql.git',
-          web  => 'https://github.com/perl5-dbi/DBD-mysql',
+          url  => 'git://github.com/gooddata/DBD-MariaDB.git',
+          web  => 'https://github.com/gooddata/DBD-MariaDB',
           type => 'git',
+        },
+        bugtracker => {
+          web  => 'https://github.com/gooddata/DBD-MariaDB/issues',
         },
         x_MailingList => 'mailto:dbi-dev@perl.org',
         license     => 'http://dev.perl.org/licenses/',

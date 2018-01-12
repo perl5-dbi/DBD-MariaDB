@@ -2122,7 +2122,7 @@ of Perl developers who keep sending patches to help continue improving DBD::Mari
 Anyone who desires to contribute to this project is encouraged to do so.
 Currently, the source code for this project can be found at Github:
 
-L<https://github.com/perl5-dbi/DBD-mysql/>
+L<https://github.com/gooddata/DBD-MariaDB/>
 
 Either fork this repository and produce a branch with your changeset that
 the maintainer can merge to his tree, or create a diff with git. The maintainer
@@ -2206,7 +2206,7 @@ Please report bugs, including all the information needed
 such as DBD::MariaDB version, MariaDB/MySQL version, OS type/version, etc
 to this link:
 
-L<https://rt.cpan.org/Dist/Display.html?Name=DBD-mysql>
+L<https://github.com/gooddata/DBD-MariaDB/issues>
 
 Note: until recently, MySQL/Sun/Oracle responded to bugs and assisted in
 fixing bugs which many thanks should be given for their help!
