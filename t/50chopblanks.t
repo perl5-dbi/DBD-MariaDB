@@ -15,7 +15,7 @@ if ($dbh->{mariadb_serverversion} < 40103) {
 }
 $dbh->disconnect;
 
-plan tests => (8 + ((5 + 9 + 9) * 4)) * 2;
+plan tests => (8 + ((5 + 8 + 8) * 4)) * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh = DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
@@ -26,7 +26,6 @@ ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t50chopblanks"), "drop table if exis
 my $create= <<EOT;
 CREATE TABLE dbd_mysql_t50chopblanks (
   id INT(4),
-  c_varchar VARCHAR(64),
   c_text TEXT,
   c_tinytext TINYTEXT,
   c_mediumtext MEDIUMTEXT,
@@ -40,7 +39,7 @@ EOT
 
 ok $dbh->do($create), "create table dbd_mysql_t50chopblanks";
 
-my @fields = qw(c_varchar c_text c_tinytext c_mediumtext c_longtext b_blob b_tinyblob b_mediumblob b_longblob);
+my @fields = qw(c_text c_tinytext c_mediumtext c_longtext b_blob b_tinyblob b_mediumblob b_longblob);
 my $numfields = scalar @fields;
 my $fieldlist = join(', ', @fields);
 
