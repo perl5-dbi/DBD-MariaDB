@@ -1,6 +1,11 @@
 /* Hej, Emacs, this is -*- C -*- mode!
 
-   Copyright (c) 2003      Rudolf Lippan
+   Copyright (c) 2018      GoodData Corporation
+   Copyright (c) 2015-2017 Pali Rohár
+   Copyright (c) 2004-2017 Patrick Galbraith
+   Copyright (c) 2013-2017 Michiel Beijen
+   Copyright (c) 2004-2007 Alexey Stroganov
+   Copyright (c) 2003-2005 Rudolf Lippan
    Copyright (c) 1997-2003 Jochen Wiedmann
 
    You may distribute under the terms of either the GNU General Public

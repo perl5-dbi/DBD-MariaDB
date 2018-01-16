@@ -2139,11 +2139,23 @@ This module is
 
 =item *
 
-Large Portions Copyright (c) 2004-2013 Patrick Galbraith
+Large Portions Copyright (c) 2018 GoodData Corporation
 
 =item *
 
-Large Portions Copyright (c) 2004-2006 Alexey Stroganov
+Large Portions Copyright (c) 2015-2017 Pali Rohár
+
+=item *
+
+Large Portions Copyright (c) 2004-2017 Patrick Galbraith
+
+=item *
+
+Large Portions Copyright (c) 2013-2017 Michiel Beijen
+
+=item *
+
+Large Portions Copyright (c) 2004-2007 Alexey Stroganov
 
 =item *
 
