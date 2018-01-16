@@ -45,7 +45,7 @@ ok $sth->execute("Patrick");
 $dbh->ping();
 SKIP: {
   skip 'using libmysqlclient 5.7 or up we now have an empty dbh insertid',
-    1, if $dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718;
+    1, if ($dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718) || ($dbh->{mariadb_clientversion} >= 60105 && $dbh->{mariadb_clientversion} < 69999) || $dbh->{mariadb_clientversion} == 80000;
   is $dbh->last_insert_id(undef, undef, undef, undef), 2, "insert id == last_insert_id()";
 }
 
@@ -62,7 +62,7 @@ ok defined $max_id;
 
 SKIP: {
   skip 'using libmysqlclient 5.7 below 5.7.18 we now have an empty dbh insertid',
-    1, if $dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718;
+    1, if ($dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718) || ($dbh->{mariadb_clientversion} >= 60105 && $dbh->{mariadb_clientversion} < 69999) || $dbh->{mariadb_clientversion} == 80000;
   cmp_ok $dbh->{mariadb_insertid}, '==', $max_id->[0],
     "dbh insert id $dbh->{'mariadb_insertid'} == max(id) $max_id->[0] in dbd_mysql_t31";
 }
