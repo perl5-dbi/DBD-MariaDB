@@ -6093,7 +6093,7 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
 
     IV_PUSH(t->sql_datatype); /* SQL_DATATYPE*/
     IV_PUSH(t->sql_datetime_sub); /* SQL_DATETIME_SUB*/
-    IV_PUSH(t->interval_precision); /* INTERVAL_PERCISION */
+    IV_PUSH(t->interval_precision); /* INTERVAL_PRECISION */
     IV_PUSH(t->native_type);
     IV_PUSH(t->is_num);
   }
