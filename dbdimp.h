@@ -24,6 +24,11 @@
 #include <errmsg.h> /* Comes with MySQL-devel */
 #include <stdint.h> /* For uint32_t */
 
+/* Macro is available in my_global.h which is not included or present in some versions of MariaDB */
+#ifndef NOT_FIXED_DEC
+#define NOT_FIXED_DEC 31
+#endif
+
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
 #endif
