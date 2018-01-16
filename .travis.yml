@@ -260,6 +260,6 @@ before_script:
   - export SKIP_CRASH_TESTING=1
 
 script:
-  - rm -f t/mysql.mtest
+  - make realclean
   - perl Makefile.PL
   - make disttest
