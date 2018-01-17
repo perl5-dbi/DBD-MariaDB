@@ -13,7 +13,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 
 plan tests => 7;
 
-$dbh->{mysql_server_prepare}= 0;
+$dbh->{mariadb_server_prepare}= 0;
 
 ok(defined $dbh, "Connected to database for key info tests");
 

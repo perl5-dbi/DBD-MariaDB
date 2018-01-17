@@ -1,5 +1,5 @@
 /*
- *  DBD::mysql - DBI driver for the MySQL database
+ *  DBD::MariaDB - DBI driver for the MariaDB and MySQL database
  *
  *  Copyright (c) 2005       Patrick Galbraith
  *  Copyright (c) 2003       Rudolf Lippan
@@ -23,6 +23,11 @@
 
 #include <errmsg.h> /* Comes with MySQL-devel */
 #include <stdint.h> /* For uint32_t */
+
+/* Macro is available in my_global.h which is not included or present in some versions of MariaDB */
+#ifndef NOT_FIXED_DEC
+#define NOT_FIXED_DEC 31
+#endif
 
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
@@ -60,7 +65,7 @@
 
 
 /*
- * This is the version of MySQL wherer
+ * This is the version of MariaDB or MySQL wherer
  * the server will be used to process prepare
  * statements as opposed to emulation in the driver
 */
@@ -104,6 +109,11 @@
 
 #define true 1
 #define false 0
+
+/* MYSQL_SECURE_AUTH became a no-op from MySQL 5.7.5 and is removed from MySQL 8.0.3 */
+#if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID <= 50704
+#define HAVE_SECURE_AUTH
+#endif
 
 /*
  * Check which SSL settings are supported by API at compile time
@@ -155,7 +165,7 @@ PERL_STATIC_INLINE bool ssl_verify_usable(void) {
 
 /*
  *  The following are return codes passed in $h->err in case of
- *  errors by DBD::mysql.
+ *  errors by DBD::MariaDB.
  */
 enum errMsgs {
     JW_ERR_CONNECT = 1,
@@ -304,7 +314,7 @@ typedef struct imp_sth_phb_st {
 } imp_sth_phb_t;
 
 /*
- *  The dbd_describe uses this structure for storing
+ *  The mariadb_st_describe uses this structure for storing
  *  fields meta info.
  */
 typedef struct imp_sth_fbh_st {
@@ -376,45 +386,35 @@ struct imp_sth_st {
  *  And last, not least: The prototype definitions.
  *
  * These defines avoid name clashes for multiple statically linked DBD's	*/
-#define dbd_init		mysql_dr_init
-#define dbd_db_login		mysql_db_login
-#define dbd_db_do		mysql_db_do
-#define dbd_db_commit		mysql_db_commit
-#define dbd_db_rollback		mysql_db_rollback
-#define dbd_db_disconnect	mysql_db_disconnect
-#define dbd_db_destroy		mysql_db_destroy
-#define dbd_db_STORE_attrib	mysql_db_STORE_attrib
-#define dbd_db_FETCH_attrib	mysql_db_FETCH_attrib
-#define dbd_st_prepare_sv	mysql_st_prepare_sv
-#define dbd_st_execute		mysql_st_execute
-#define dbd_st_fetch		mysql_st_fetch
-#define dbd_st_more_results     mysql_st_next_results
-#define dbd_st_finish		mysql_st_finish
-#define dbd_st_destroy		mysql_st_destroy
-#define dbd_st_blob_read	mysql_st_blob_read
-#define dbd_st_STORE_attrib	mysql_st_STORE_attrib
-#define dbd_st_FETCH_attrib	mysql_st_FETCH_attrib
-#define dbd_st_FETCH_internal	mysql_st_FETCH_internal
-#define dbd_describe		mysql_describe
-#define dbd_bind_ph		mysql_bind_ph
-#define BindParam		mysql_st_bind_param
-#define mymsql_constant         mysql_constant
-#define do_warn			mysql_dr_warn
-#define do_error		mysql_dr_error
-#define dbd_db_type_info_all    mysql_db_type_info_all
-#define dbd_db_quote            mysql_db_quote
+#define dbd_init		mariadb_dr_init
+#define dbd_db_login		mariadb_db_login
+#define dbd_db_do		mariadb_db_do
+#define dbd_db_commit		mariadb_db_commit
+#define dbd_db_rollback		mariadb_db_rollback
+#define dbd_db_disconnect	mariadb_db_disconnect
+#define dbd_db_destroy		mariadb_db_destroy
+#define dbd_db_STORE_attrib	mariadb_db_STORE_attrib
+#define dbd_db_FETCH_attrib	mariadb_db_FETCH_attrib
+#define dbd_st_prepare_sv	mariadb_st_prepare_sv
+#define dbd_st_execute		mariadb_st_execute
+#define dbd_st_fetch		mariadb_st_fetch
+#define dbd_st_finish		mariadb_st_finish
+#define dbd_st_destroy		mariadb_st_destroy
+#define dbd_st_blob_read	mariadb_st_blob_read
+#define dbd_st_STORE_attrib	mariadb_st_STORE_attrib
+#define dbd_st_FETCH_attrib	mariadb_st_FETCH_attrib
+#define dbd_bind_ph		mariadb_st_bind_ph
+#define dbd_discon_all		mariadb_dr_discon_all
 
 #ifdef DBD_MYSQL_INSERT_ID_IS_GOOD /* prototype was broken in some versions of dbi */
-#define dbd_db_last_insert_id   mysql_db_last_insert_id
+#define dbd_db_last_insert_id   mariadb_db_last_insert_id
 #endif
 
 #include <dbd_xsh.h>
-void    do_error (SV* h, int rc, const char *what, const char *sqlstate);
 
-SV	*dbd_db_fieldlist (MYSQL_RES* res);
+void    mariadb_dr_do_error (SV* h, int rc, const char *what, const char *sqlstate);
 
-void    dbd_preparse (imp_sth_t *imp_sth, SV *statement);
-my_ulonglong mysql_st_internal_execute(SV *,
+my_ulonglong mariadb_st_internal_execute(SV *,
                                        char *,
                                        STRLEN,
                                        SV *,
@@ -425,44 +425,32 @@ my_ulonglong mysql_st_internal_execute(SV *,
                                        int);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
-my_ulonglong mysql_st_internal_execute41(SV *,
+my_ulonglong mariadb_st_internal_execute41(SV *,
                                          int,
                                          MYSQL_RES **,
                                          MYSQL_STMT *,
                                          MYSQL_BIND *,
                                          int *);
-
-
-int mysql_st_clean_cursor(SV*, imp_sth_t*);
 #endif
 
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
-int mysql_st_next_results(SV*, imp_sth_t*);
+int mariadb_st_more_results(SV*, imp_sth_t*);
 #endif
 
-#if defined(DBD_MYSQL_EMBEDDED)
-int count_embedded_options(char *);
-char ** fill_out_embedded_options(PerlIO *, char *, int , int , int);
-int free_embedded_options(char **, int);
-/* We have to define dbd_discon_all method for mysqlEmb driver at least
-   to be able to stop embedded server properly */
-#define dbd_discon_all dbd_discon_all
-#endif
-
-AV* dbd_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
-SV* dbd_db_quote(SV*, SV*, SV*);
-extern MYSQL* mysql_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
+AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
+SV* mariadb_db_quote(SV*, SV*, SV*);
+MYSQL* mariadb_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
 			       char*, imp_dbh_t*);
 
-extern int mysql_db_reconnect(SV*);
-int mysql_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
-int mysql_db_async_result(SV* h, MYSQL_RES** resp);
-int mysql_db_async_ready(SV* h);
+int mariadb_db_reconnect(SV*);
 
-void get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len);
-void get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len);
+int mariadb_db_async_result(SV* h, MYSQL_RES** resp);
+int mariadb_db_async_ready(SV* h);
 
-int mysql_socket_ready(my_socket fd);
+void mariadb_dr_get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len);
+void mariadb_dr_get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len);
+
+int mariadb_dr_socket_ready(my_socket fd);
 
 #if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
 PERL_STATIC_INLINE bool charsetnr_is_utf8(unsigned int id)

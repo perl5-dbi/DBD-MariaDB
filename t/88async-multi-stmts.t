@@ -23,14 +23,14 @@ my $sth0 = $dbh->prepare('INSERT INTO async_test VALUES(0)', { async => 1 });
 my $sth1 = $dbh->prepare('INSERT INTO async_test VALUES(1)', { async => 1 });
 
 $sth0->execute;
-ok !defined($sth1->mysql_async_ready);
+ok !defined($sth1->mariadb_async_ready);
 ok $sth1->errstr;
-ok !defined($sth1->mysql_async_result);
+ok !defined($sth1->mariadb_async_result);
 ok $sth1->errstr;
 
-ok defined($sth0->mysql_async_ready);
+ok defined($sth0->mariadb_async_ready);
 ok !$sth1->errstr;
-ok defined($sth0->mysql_async_result);
+ok defined($sth0->mariadb_async_result);
 ok !$sth1->errstr;
 
 undef $sth0;

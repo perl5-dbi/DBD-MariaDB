@@ -15,7 +15,7 @@ private_attribute_info trace trace_msg visit_child_handles
 /;
 
 my @db_safe_methods   = (@common_safe_methods, qw/
-clone mysql_async_ready
+clone mariadb_async_ready
 /);
 
 my @db_unsafe_methods = qw/
@@ -95,21 +95,21 @@ foreach my $method (@db_safe_methods) {
     $dbh->do('SELECT 1', { async => 1 });
     my $args = $dbh_args{$method} || [];
     $dbh->$method(@$args);
-    ok !$dbh->errstr, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
+    ok !$dbh->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
 
-    ok defined($dbh->mysql_async_result);
+    ok defined($dbh->mariadb_async_result);
 }
 
 $dbh->do('SELECT 1', { async => 1 });
-ok defined($dbh->mysql_async_result);
+ok defined($dbh->mariadb_async_result);
 
 foreach my $method (@db_unsafe_methods) {
     $dbh->do('SELECT 1', { async => 1 });
     my $args = $dbh_args{$method} || [];
     my @values = $dbh->$method(@$args); # some methods complain unless they're called in list context
-    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
+    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
 
-    ok defined($dbh->mysql_async_result);
+    ok defined($dbh->mariadb_async_result);
 }
 
 foreach my $method (@common_safe_methods) {
@@ -117,9 +117,9 @@ foreach my $method (@common_safe_methods) {
     $sth->execute;
     my $args = $dbh_args{$method} || []; # they're common methods, so this should be ok!
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::mysql::db during asynchronous operation";
-    ok defined($sth->mysql_async_result);
-    ok defined($sth->mysql_async_result);
+    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
+    ok defined($sth->mariadb_async_result);
+    ok defined($sth->mariadb_async_result);
 }
 
 foreach my $method (@st_safe_methods) {
@@ -127,11 +127,11 @@ foreach my $method (@st_safe_methods) {
     $sth->execute;
     my $args = $sth_args{$method} || [];
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::mysql::st during asynchronous operation";
+    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
 
-    # statement safe methods cache async result and mysql_async_result can be called multiple times
-    ok defined($sth->mysql_async_result), "Testing DBD::mysql::st method '$method' for async result";
-    ok defined($sth->mysql_async_result), "Testing DBD::mysql::st method '$method' for async result";
+    # statement safe methods cache async result and mariadb_async_result can be called multiple times
+    ok defined($sth->mariadb_async_result), "Testing DBD::MariaDB::st method '$method' for async result";
+    ok defined($sth->mariadb_async_result), "Testing DBD::MariaDB::st method '$method' for async result";
 }
 
 foreach my $method (@st_safe_methods) {
@@ -142,7 +142,7 @@ foreach my $method (@st_safe_methods) {
     ok $sync_sth->errstr;
     ok !$async_sth->execute;
     ok $async_sth->errstr;
-    $dbh->mysql_async_result;
+    $dbh->mariadb_async_result;
 }
 
 foreach my $method (@db_unsafe_methods) {
@@ -150,7 +150,7 @@ foreach my $method (@db_unsafe_methods) {
     $sth->execute;
     ok !$dbh->do('SELECT 1', { async => 1 });
     ok $dbh->errstr;
-    $sth->mysql_async_result;
+    $sth->mariadb_async_result;
 }
 
 foreach my $method (@st_unsafe_methods) {
@@ -158,15 +158,15 @@ foreach my $method (@st_unsafe_methods) {
     $sth->execute(1);
     my $args = $sth_args{$method} || [];
     my @values = $sth->$method(@$args);
-    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::mysql::st during asynchronous operation";
+    like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
 
-    ok(defined $sth->mysql_async_result);
+    ok(defined $sth->mariadb_async_result);
 }
 
 my $sth = $dbh->prepare('SELECT 1', { async => 1 });
 $sth->execute;
-ok defined($sth->mysql_async_ready);
-ok $sth->mysql_async_result;
+ok defined($sth->mariadb_async_ready);
+ok $sth->mariadb_async_result;
 
 undef $sth;
 $dbh->disconnect;

@@ -34,7 +34,7 @@ if (-f "myld.stderr"  &&  !-z _) {
     print <<"MSG";
 $contents
 
-An error occurred while linking the DBD::mysql driver. The error
+An error occurred while linking the DBD::MariaDB driver. The error
 message seems to indicate that you don't have a lib$missing.a,
 or a lib$missing.so. There are a few ways to resolve this:
 
@@ -47,7 +47,7 @@ or a lib$missing.so. There are a few ways to resolve this:
 
      perl\@lists.mysql.com
 
-For further hints, see DBD::mysql::INSTALL, section Linker flags.
+For further hints, see DBD::MariaDB::INSTALL, section Linker flags.
 MSG
     exit 1;
   }

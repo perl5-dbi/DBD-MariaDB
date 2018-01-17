@@ -15,7 +15,7 @@ $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 # DROP/CREATE PROCEDURE will give syntax error
 # for versions < 5.0
 #
-if ($dbh->{mysql_serverversion} < 50000) {
+if ($dbh->{mariadb_serverversion} < 50000) {
     plan skip_all =>
         "You must have MySQL version 5.0 and greater for this test to run";
 }

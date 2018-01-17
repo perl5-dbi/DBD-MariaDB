@@ -16,7 +16,7 @@
  *          include any perl header files!
  */
 
-int mysql_socket_ready(my_socket fd)
+int mariadb_dr_socket_ready(my_socket fd)
 {
   int retval;
 

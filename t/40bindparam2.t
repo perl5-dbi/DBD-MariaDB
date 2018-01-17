@@ -13,7 +13,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 plan tests => 13;
 
 SKIP: {
-    skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mysql_serverversion} >= 50002;
+    skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
     ok $dbh->do('SET @@auto_increment_offset = 1');
     ok $dbh->do('SET @@auto_increment_increment = 1');
 }

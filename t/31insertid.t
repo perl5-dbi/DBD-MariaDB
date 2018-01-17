@@ -11,10 +11,10 @@ require "lib.pl";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 			    {RaiseError => 1});
 
-plan tests => 19;
+plan tests => 21;
 
 SKIP: {
-    skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mysql_serverversion} >= 50002;
+    skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
     ok $dbh->do('SET @@auto_increment_offset = 1');
     ok $dbh->do('SET @@auto_increment_increment = 1');
 }
@@ -36,10 +36,18 @@ ok defined $sth;
 
 ok $sth->execute("Jochen");
 
-is $sth->{mysql_insertid}, 1, "insert id == $sth->{mysql_insertid}";
-is $dbh->{mysql_insertid}, 1, "insert id == $dbh->{mysql_insertid}";
+is $sth->{mariadb_insertid}, 1, "insert id == $sth->{mariadb_insertid}";
+is $dbh->{mariadb_insertid}, 1, "insert id == $dbh->{mariadb_insertid}";
+is $dbh->last_insert_id(undef, undef, undef, undef), 1, "insert id == last_insert_id()";
 
 ok $sth->execute("Patrick");
+
+$dbh->ping();
+SKIP: {
+  skip 'using libmysqlclient 5.7 or up we now have an empty dbh insertid',
+    1, if ($dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718) || ($dbh->{mariadb_clientversion} >= 60105 && $dbh->{mariadb_clientversion} < 69999) || $dbh->{mariadb_clientversion} == 80000;
+  is $dbh->last_insert_id(undef, undef, undef, undef), 2, "insert id == last_insert_id()";
+}
 
 ok (my $sth2= $dbh->prepare("SELECT max(id) FROM dbd_mysql_t31"));
 
@@ -53,13 +61,13 @@ ok ($max_id= $sth2->fetch());
 ok defined $max_id;
 
 SKIP: {
-  skip 'using libmysqlclient 5.7 or up we now have an empty dbh insertid',
-    1, if $dbh->{mysql_clientversion} >= 50700;
-  cmp_ok $dbh->{mysql_insertid}, '==', $max_id->[0],
-    "dbh insert id $dbh->{'mysql_insertid'} == max(id) $max_id->[0] in dbd_mysql_t31";
+  skip 'using libmysqlclient 5.7 below 5.7.18 we now have an empty dbh insertid',
+    1, if ($dbh->{mariadb_clientversion} >= 50700 && $dbh->{mariadb_clientversion} < 50718) || ($dbh->{mariadb_clientversion} >= 60105 && $dbh->{mariadb_clientversion} < 69999) || $dbh->{mariadb_clientversion} == 80000;
+  cmp_ok $dbh->{mariadb_insertid}, '==', $max_id->[0],
+    "dbh insert id $dbh->{'mariadb_insertid'} == max(id) $max_id->[0] in dbd_mysql_t31";
 }
-cmp_ok $sth->{mysql_insertid}, '==', $max_id->[0],
-  "sth insert id $sth->{'mysql_insertid'} == max(id) $max_id->[0]  in dbd_mysql_t31";
+cmp_ok $sth->{mariadb_insertid}, '==', $max_id->[0],
+  "sth insert id $sth->{'mariadb_insertid'} == max(id) $max_id->[0]  in dbd_mysql_t31";
 
 ok $sth->finish();
 ok $sth2->finish();

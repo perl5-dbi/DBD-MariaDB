@@ -53,7 +53,7 @@ if (0) {
   system(qw(sudo service mysql start));
   use DBI;
   my $dbh = DBI->connect("DBI:mysql:database=test:port=3306");
-  $dbh->{mysql_auto_reconnect} = 1; # without this is works
+  $dbh->{mariadb_auto_reconnect} = 1; # without this is works
   my $select = sub { $dbh->do(q{SELECT 1}) for 1 .. 10; };
   $select->();
   system qw(sudo service mysql stop);

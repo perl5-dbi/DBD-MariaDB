@@ -1,6 +1,11 @@
 /* Hej, Emacs, this is -*- C -*- mode!
 
-   Copyright (c) 2003      Rudolf Lippan
+   Copyright (c) 2018      GoodData Corporation
+   Copyright (c) 2015-2017 Pali Rohár
+   Copyright (c) 2004-2017 Patrick Galbraith
+   Copyright (c) 2013-2017 Michiel Beijen
+   Copyright (c) 2004-2007 Alexey Stroganov
+   Copyright (c) 2003-2005 Rudolf Lippan
    Copyright (c) 1997-2003 Jochen Wiedmann
 
    You may distribute under the terms of either the GNU General Public
@@ -17,7 +22,7 @@
 
 #define ASYNC_CHECK_XS(h)\
   if(imp_dbh->async_query_in_flight) {\
-      do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
+      mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
       XSRETURN_UNDEF;\
   }
 
@@ -25,23 +30,23 @@
 DBISTATE_DECLARE;
 
 
-MODULE = DBD::mysql	PACKAGE = DBD::mysql
+MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 
-INCLUDE: mysql.xsi
+INCLUDE: MariaDB.xsi
 
-MODULE = DBD::mysql	PACKAGE = DBD::mysql
+MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 
 double
 constant(name, arg)
     char* name
     char* arg
   CODE:
-    RETVAL = mysql_constant(name, arg);
+    RETVAL = mariadb_constant(name, arg);
   OUTPUT:
     RETVAL
 
 
-MODULE = DBD::mysql	PACKAGE = DBD::mysql::dr
+MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB::dr
 
 void
 _ListDBs(drh, host=NULL, port=NULL, user=NULL, password=NULL, enable_utf8=false)
@@ -55,7 +60,7 @@ _ListDBs(drh, host=NULL, port=NULL, user=NULL, password=NULL, enable_utf8=false)
 {
     MYSQL mysql;
     mysql.net.fd = -1;
-    MYSQL* sock = mysql_dr_connect(drh, &mysql, NULL, host, port, user, password,
+    MYSQL* sock = mariadb_dr_connect(drh, &mysql, NULL, host, port, user, password,
 				   NULL, NULL);
     if (sock != NULL)
     {
@@ -69,7 +74,7 @@ _ListDBs(drh, host=NULL, port=NULL, user=NULL, password=NULL, enable_utf8=false)
       res = mysql_list_dbs(sock, NULL);
       if (!res)
       {
-        do_error(drh, mysql_errno(sock), mysql_error(sock), mysql_sqlstate(sock));
+        mariadb_dr_do_error(drh, mysql_errno(sock), mysql_error(sock), mysql_sqlstate(sock));
       }
       else
       {
@@ -122,10 +127,10 @@ _admin_internal(drh,dbh,command,dbname=NULL,host=NULL,port=NULL,user=NULL,passwo
   else
   {
     mysql.net.fd = -1;
-    sock = mysql_dr_connect(drh, &mysql, NULL, host, port, user,  password, NULL, NULL);
+    sock = mariadb_dr_connect(drh, &mysql, NULL, host, port, user,  password, NULL, NULL);
     if (sock == NULL)
     {
-      do_error(drh, mysql_errno(&mysql), mysql_error(&mysql),
+      mariadb_dr_do_error(drh, mysql_errno(&mysql), mysql_error(&mysql),
                mysql_sqlstate(&mysql));
       XSRETURN_NO;
     }
@@ -151,7 +156,7 @@ _admin_internal(drh,dbh,command,dbname=NULL,host=NULL,port=NULL,user=NULL,passwo
     char* buffer = malloc(strlen(dbname)+50);
     if (buffer == NULL)
     {
-      do_error(drh, JW_ERR_MEM, "Out of memory" ,NULL);
+      mariadb_dr_do_error(drh, JW_ERR_MEM, "Out of memory" ,NULL);
       XSRETURN_NO;
     }
     else
@@ -171,7 +176,7 @@ _admin_internal(drh,dbh,command,dbname=NULL,host=NULL,port=NULL,user=NULL,passwo
     char* buffer = malloc(strlen(dbname)+50);
     if (buffer == NULL)
     {
-      do_error(drh, JW_ERR_MEM, "Out of memory" ,NULL);
+      mariadb_dr_do_error(drh, JW_ERR_MEM, "Out of memory" ,NULL);
       XSRETURN_NO;
     }
     else
@@ -185,12 +190,12 @@ _admin_internal(drh,dbh,command,dbname=NULL,host=NULL,port=NULL,user=NULL,passwo
   }
   else
   {
-    do_error(drh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown command %s", command))), "HY000");
+    mariadb_dr_do_error(drh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown command %s", command))), "HY000");
     XSRETURN_NO;
   }
   if (retval)
   {
-    do_error(SvOK(dbh) ? dbh : drh, mysql_errno(sock),
+    mariadb_dr_do_error(SvOK(dbh) ? dbh : drh, mysql_errno(sock),
              mysql_error(sock) ,mysql_sqlstate(sock));
   }
 
@@ -205,7 +210,7 @@ _admin_internal(drh,dbh,command,dbname=NULL,host=NULL,port=NULL,user=NULL,passwo
 }
 
 
-MODULE = DBD::mysql    PACKAGE = DBD::mysql::db
+MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
 
 void
@@ -223,7 +228,7 @@ type_info_all(dbh)
   /* 	ST(0) = sv_2mortal(newRV_inc((SV*) types)); */
   D_imp_dbh(dbh);
   ASYNC_CHECK_XS(dbh);
-  ST(0) = sv_2mortal(newRV_noinc((SV*) dbd_db_type_info_all(dbh,
+  ST(0) = sv_2mortal(newRV_noinc((SV*) mariadb_db_type_info_all(dbh,
                                                             imp_dbh)));
   XSRETURN(1);
 }
@@ -245,10 +250,10 @@ _ListDBs(dbh)
 
   res = mysql_list_dbs(imp_dbh->pmysql, NULL);
   if (!res  &&
-      (!mysql_db_reconnect(dbh)  ||
+      (!mariadb_db_reconnect(dbh)  ||
        !(res = mysql_list_dbs(imp_dbh->pmysql, NULL))))
 {
-  do_error(dbh, mysql_errno(imp_dbh->pmysql),
+  mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
            mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
 }
 else
@@ -317,26 +322,26 @@ do(dbh, statement, attr=Nullsv, ...)
       mg_get(param);
   }
   (void)hv_store((HV*)SvRV(dbh), "Statement", 9, SvREFCNT_inc(statement), 0);
-  get_statement(aTHX_ statement, enable_utf8, &str_ptr, &slen);
+  mariadb_dr_get_statement(aTHX_ statement, enable_utf8, &str_ptr, &slen);
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /*
    * Globaly enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
    * to use server side prepared statement mechanism by adding
-   * 'mysql_server_prepare' attribute to do() method localy:
-   * $dbh->do($stmt, {mysql_server_prepared=>1});
+   * 'mariadb_server_prepare' attribute to do() method localy:
+   * $dbh->do($stmt, {mariadb_server_prepare=>1});
   */
   use_server_side_prepare = imp_dbh->use_server_side_prepare;
   if (attr)
   {
     SV** svp;
     DBD_ATTRIBS_CHECK("do", dbh, attr);
-    svp = DBD_ATTRIB_GET_SVP(attr, "mysql_server_prepare", 20);
+    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare", strlen("mariadb_server_prepare"));
 
     use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp = DBD_ATTRIB_GET_SVP(attr, "mysql_server_prepare_disable_fallback", 37);
+    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"));
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
@@ -359,7 +364,7 @@ do(dbh, statement, attr=Nullsv, ...)
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
     if (disable_fallback_for_server_prepare)
     {
-      do_error(dbh, ER_UNSUPPORTED_PS,
+      mariadb_dr_do_error(dbh, ER_UNSUPPORTED_PS,
                "Async option not supported with server side prepare", "HY000");
       XSRETURN_UNDEF;
     }
@@ -373,7 +378,7 @@ do(dbh, statement, attr=Nullsv, ...)
     stmt= mysql_stmt_init(imp_dbh->pmysql);
 
     if ((mysql_stmt_prepare(stmt, str_ptr, slen))  &&
-        (!mysql_db_reconnect(dbh) ||
+        (!mariadb_db_reconnect(dbh) ||
          (mysql_stmt_prepare(stmt, str_ptr, slen))))
     {
       /*
@@ -386,7 +391,7 @@ do(dbh, statement, attr=Nullsv, ...)
       }
       else
       {
-        do_error(dbh, mysql_stmt_errno(stmt), mysql_stmt_error(stmt)
+        mariadb_dr_do_error(dbh, mysql_stmt_errno(stmt), mysql_stmt_error(stmt)
                  ,mysql_stmt_sqlstate(stmt));
         retval=-2;
       }
@@ -412,7 +417,7 @@ do(dbh, statement, attr=Nullsv, ...)
           SV *param= ST(i+3);
           if (SvOK(param))
           {
-            get_param(aTHX_ param, i+1, enable_utf8, false, (char **)&bind[i].buffer, &blen);
+            mariadb_dr_get_param(aTHX_ param, i+1, enable_utf8, false, (char **)&bind[i].buffer, &blen);
             bind[i].buffer_length= blen;
             bind[i].buffer_type= MYSQL_TYPE_STRING;
           }
@@ -425,7 +430,7 @@ do(dbh, statement, attr=Nullsv, ...)
         }
         has_binded= 0;
       }
-      retval = mysql_st_internal_execute41(dbh,
+      retval = mariadb_st_internal_execute41(dbh,
                                            num_params,
                                            &result,
                                            stmt,
@@ -434,11 +439,8 @@ do(dbh, statement, attr=Nullsv, ...)
       if (bind)
         Safefree(bind);
 
-      if(mysql_stmt_close(stmt))
-      {
-        fprintf(stderr, "\n failed while closing the statement");
-        fprintf(stderr, "\n %s", mysql_stmt_error(stmt));
-      }
+      mysql_stmt_close(stmt);
+      stmt= NULL;
 
       if (retval == -2) /* -2 means error */
       {
@@ -463,14 +465,14 @@ do(dbh, statement, attr=Nullsv, ...)
       {
         SV *param= ST(i+3);
         if (SvOK(param))
-          get_param(aTHX_ param, i+1, enable_utf8, false, &params[i].value, &params[i].len);
+          mariadb_dr_get_param(aTHX_ param, i+1, enable_utf8, false, &params[i].value, &params[i].len);
         else
           params[i].value= NULL;
         params[i].type= SQL_VARCHAR;
         params[i].utf8= enable_utf8;
       }
     }
-    retval = mysql_st_internal_execute(dbh, str_ptr, slen, attr, num_params,
+    retval = mariadb_st_internal_execute(dbh, str_ptr, slen, attr, num_params,
                                        params, &result, imp_dbh->pmysql, 0);
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
   }
@@ -501,7 +503,7 @@ do(dbh, statement, attr=Nullsv, ...)
                             "\t<- do() ERROR: %s\n",
                             mysql_error(imp_dbh->pmysql));
 
-              do_error(dbh, mysql_errno(imp_dbh->pmysql),
+              mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                        mysql_error(imp_dbh->pmysql),
                        mysql_sqlstate(imp_dbh->pmysql));
               retval= -2;
@@ -525,15 +527,31 @@ ping(dbh)
   CODE:
     {
       int retval;
+/* MySQL 5.7 below 5.7.18 is affected by Bug #78778.
+ * MySQL 5.7.18 and higher (including 8.0.3) is affected by Bug #89139.
+ *
+ * Once Bug #89139 is fixed we can adjust the upper bound of this check.
+ *
+ * https://bugs.mysql.com/bug.php?id=78778
+ * https://bugs.mysql.com/bug.php?id=89139 */
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+      unsigned long long insertid;
+#endif
 
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+      insertid = mysql_insert_id(imp_dbh->pmysql);
+#endif
       retval = (mysql_ping(imp_dbh->pmysql) == 0);
       if (!retval) {
-	if (mysql_db_reconnect(dbh)) {
+	if (mariadb_db_reconnect(dbh)) {
 	  retval = (mysql_ping(imp_dbh->pmysql) == 0);
 	}
       }
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+      imp_dbh->pmysql->insert_id = insertid;
+#endif
       RETVAL = boolSV(retval);
     }
   OUTPUT:
@@ -554,12 +572,12 @@ quote(dbh, str, type=NULL)
         D_imp_dbh(dbh);
         ASYNC_CHECK_XS(dbh);
 
-        quoted = dbd_db_quote(dbh, str, type);
+        quoted = mariadb_db_quote(dbh, str, type);
 	ST(0) = quoted ? sv_2mortal(quoted) : str;
 	XSRETURN(1);
     }
 
-void mysql_fd(dbh)
+void mariadb_fd(dbh)
     SV* dbh
   PPCODE:
     {
@@ -571,13 +589,13 @@ void mysql_fd(dbh)
         }
     }
 
-void mysql_async_result(dbh)
+void mariadb_async_result(dbh)
     SV* dbh
   PPCODE:
     {
         int retval;
 
-        retval = mysql_db_async_result(dbh, NULL);
+        retval = mariadb_db_async_result(dbh, NULL);
 
         if(retval > 0) {
             XSRETURN_IV(retval);
@@ -588,13 +606,13 @@ void mysql_async_result(dbh)
         }
     }
 
-void mysql_async_ready(dbh)
+void mariadb_async_ready(dbh)
     SV* dbh
   PPCODE:
     {
         int retval;
 
-        retval = mysql_db_async_ready(dbh);
+        retval = mariadb_db_async_ready(dbh);
         if(retval > 0) {
             XSRETURN_YES;
         } else if(retval == 0) {
@@ -613,7 +631,7 @@ void _async_check(dbh)
         XSRETURN_YES;
     }
 
-MODULE = DBD::mysql    PACKAGE = DBD::mysql::st
+MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::st
 
 int
 more_results(sth)
@@ -622,7 +640,7 @@ more_results(sth)
 {
 #if (MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION)
   D_imp_sth(sth);
-  if (dbd_st_more_results(sth, imp_sth))
+  if (mariadb_st_more_results(sth, imp_sth))
   {
     RETVAL=1;
   }
@@ -660,13 +678,13 @@ dataseek(sth, pos)
       else
       {
         RETVAL = 0;
-        do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
+        mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
       }
     }
     else
     {
       RETVAL = 0;
-      do_error(sth, JW_ERR_NOT_ACTIVE, "No result set" ,NULL);
+      mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "No result set" ,NULL);
     }
   }
   else
@@ -677,7 +695,7 @@ dataseek(sth, pos)
     RETVAL = 1;
   } else {
     RETVAL = 0;
-    do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
+    mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
   }
 #if (MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION) 
   }
@@ -694,7 +712,7 @@ rows(sth)
     char buf[64];
     D_imp_dbh_from_sth;
     if(imp_dbh->async_query_in_flight) {
-        if(mysql_db_async_result(sth, &imp_sth->result) < 0) {
+        if(mariadb_db_async_result(sth, &imp_sth->result) < 0) {
             XSRETURN_UNDEF;
         }
     }
@@ -712,14 +730,14 @@ rows(sth)
 
   ST(0) = sv_2mortal(newSVpvn(buf, strlen(buf)));
 
-int mysql_async_result(sth)
+int mariadb_async_result(sth)
     SV* sth
   CODE:
     {
         D_imp_sth(sth);
         int retval;
 
-        retval= mysql_db_async_result(sth, &imp_sth->result);
+        retval= mariadb_db_async_result(sth, &imp_sth->result);
 
         if(retval > 0) {
             imp_sth->row_num = retval;
@@ -734,13 +752,13 @@ int mysql_async_result(sth)
   OUTPUT:
     RETVAL
 
-void mysql_async_ready(sth)
+void mariadb_async_ready(sth)
     SV* sth
   PPCODE:
     {
         int retval;
 
-        retval = mysql_db_async_ready(sth);
+        retval = mariadb_db_async_ready(sth);
         if(retval > 0) {
             XSRETURN_YES;
         } else if(retval == 0) {
@@ -761,7 +779,7 @@ void _async_check(sth)
     }
 
 
-MODULE = DBD::mysql    PACKAGE = DBD::mysql::GetInfo
+MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::GetInfo
 
 # This probably should be grabed out of some ODBC types header file
 #define SQL_CATALOG_NAME_SEPARATOR 41
@@ -780,13 +798,13 @@ MODULE = DBD::mysql    PACKAGE = DBD::mysql::GetInfo
 #define SQL_AM_STATEMENT  2
 
 
-#  dbd_mysql_getinfo()
+#  dbd_mariadb_get_info()
 #  Return ODBC get_info() information that must needs be accessed from C
 #  This is an undocumented function that should only
-#  be used by DBD::mysql::GetInfo.
+#  be used by DBD::MariaDB::GetInfo.
 
 void
-dbd_mysql_get_info(dbh, sql_info_type)
+dbd_mariadb_get_info(dbh, sql_info_type)
     SV* dbh
     SV* sql_info_type
   CODE:
@@ -805,7 +823,7 @@ dbd_mysql_get_info(dbh, sql_info_type)
     	type = SvIV_nomg(sql_info_type);
     else
     {
-        do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "get_info called with an invalied parameter", "HY000");
+        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "get_info called with an invalied parameter", "HY000");
         XSRETURN_UNDEF;
     }
     
@@ -857,7 +875,7 @@ dbd_mysql_get_info(dbh, sql_info_type)
             retsv = newSViv(1);
             break;
     	default:
-	    do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown SQL Info type %" IVdf, type))), "HY000");
+	    mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown SQL Info type %" IVdf, type))), "HY000");
 	    XSRETURN_UNDEF;
     }
     ST(0) = sv_2mortal(retsv);

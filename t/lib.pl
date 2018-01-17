@@ -10,7 +10,7 @@ $| = 1; # flush stdout asap to keep in sync with stderr
 #
 #   Driver names; EDIT THIS!
 #
-$mdriver = 'mysql';
+$mdriver = 'MariaDB';
 $dbdriver = $mdriver; # $dbdriver is usually just the same as $mdriver.
                       # The exception is DBD::pNET where we have to
                       # to separate between local driver (pNET) and
@@ -37,7 +37,7 @@ if (-f ($file = "t/$dbdriver.dbtest")  ||
 	print "1..0\n";
 	exit 0;
     }
-    $::test_dsn      = $::test_dsn || $ENV{'DBI_DSN'} || 'DBI:mysql:database=test';
+    $::test_dsn      = $::test_dsn || $ENV{'DBI_DSN'} || 'DBI:MariaDB:database=test';
     $::test_user     = $::test_user|| $ENV{'DBI_USER'}  ||  '';
     $::test_password = $::test_password || $ENV{'DBI_PASS'}  ||  '';
 }
@@ -65,7 +65,7 @@ sub DbiTestConnect {
             $err = "unknown error" unless $err;
             my $user = $_[1];
             my $dsn = $_[0];
-            $dsn =~ s/^DBI:mysql://;
+            $dsn =~ s/^DBI:[^:]+://;
             $err = "DBI connect('$dsn','$user',...) failed: $err";
         }
         if ( $ENV{CONNECTION_TESTING} ) {
@@ -94,7 +94,7 @@ sub connection_id {
     return 0 unless $dbh;
 
     # Paul DuBois says the following is more reliable than
-    # $dbh->{'mysql_thread_id'};
+    # $dbh->{'mariadb_thread_id'};
     my @row = $dbh->selectrow_array("SELECT CONNECTION_ID()");
 
     return $row[0];

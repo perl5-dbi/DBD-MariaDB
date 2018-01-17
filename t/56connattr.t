@@ -15,7 +15,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 0,
                         AutoCommit => 0,
-                        mysql_conn_attrs => { foo => 'bar' },
+                        mariadb_conn_attrs => { foo => 'bar' },
                         }
                         );
 
@@ -27,7 +27,7 @@ if ($pfenabled[1] ne 'ON') {
   plan skip_all => 'performance schema not enabled';
 }
 
-if ($dbh->{mysql_clientversion} < 50606) {
+if ($dbh->{mariadb_clientversion} < 50606) {
   plan skip_all => 'client version should be 5.6.6 or later';
 }
 

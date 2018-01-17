@@ -12,14 +12,14 @@ require 'lib.pl';
 # Base DBD Driver Test
 BEGIN {
     use_ok('DBI') or BAIL_OUT "Unable to load DBI";
-    use_ok('DBD::mysql') or BAIL_OUT "Unable to load DBD::mysql";
+    use_ok('DBD::MariaDB') or BAIL_OUT "Unable to load DBD::MariaDB";
 }
 
 my $switch = DBI->internal;
 cmp_ok ref $switch, 'eq', 'DBI::dr', 'Internal set';
 
 # This is a special case. install_driver should not normally be used.
-my $drh= DBI->install_driver('mysql');
+my $drh= DBI->install_driver('MariaDB');
 
 ok $drh, 'Install driver';
 

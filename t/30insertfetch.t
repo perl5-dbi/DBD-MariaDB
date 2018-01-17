@@ -24,11 +24,11 @@ ok($dbh->do("
     (2, 'Tim Bunce')
 "), "loading data");
 
-ok(my $info = $dbh->{mysql_info}, "mysql_info '" . $dbh->{mysql_info} . "'");
+ok(my $info = $dbh->{mariadb_info}, "mariadb_info '" . $dbh->{mariadb_info} . "'");
 
-like($info, qr/^Records:\s\d/,   'mysql_info: Records');
-like($info, qr/Duplicates:\s0\s/, 'mysql_info: Duplicates');
-like($info, qr/Warnings: 0$/,   'mysql_info: Warnings');
+like($info, qr/^Records:\s\d/,   'mariadb_info: Records');
+like($info, qr/Duplicates:\s0\s/, 'mariadb_info: Duplicates');
+like($info, qr/Warnings: 0$/,   'mariadb_info: Warnings');
 
 ok(
   $dbh->do("DELETE FROM dbd_mysql_t30 WHERE id IN (1,2)"),

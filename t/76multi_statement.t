@@ -11,13 +11,13 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0,
-                        mysql_multi_statements => 1 });
+                        mariadb_multi_statements => 1 });
 
-if ($dbh->{mysql_clientversion} < 40101 or $dbh->{mysql_serverversion} < 40101) {
+if ($dbh->{mariadb_clientversion} < 40101 or $dbh->{mariadb_serverversion} < 40101) {
   plan skip_all => "Server doesn't support multi statements";
 }
 
-if ($dbh->{mysql_clientversion} < 50025 or ($dbh->{mysql_serverversion} >= 50100 and $dbh->{mysql_serverversion} < 50112)) {
+if ($dbh->{mariadb_clientversion} < 50025 or ($dbh->{mariadb_serverversion} >= 50100 and $dbh->{mariadb_serverversion} < 50112)) {
   plan skip_all => "Server has deadlock bug 16581";
 }
 
@@ -25,7 +25,7 @@ plan tests => 26;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
-$dbh->{mysql_server_prepare}= 0;
+$dbh->{mariadb_server_prepare}= 0;
 
   ok($dbh->do("SET SQL_MODE=''"),"init connection SQL_MODE non strict");
 
@@ -43,11 +43,11 @@ $dbh->{mysql_server_prepare}= 0;
   ok($sth = $dbh->prepare("UPDATE dbd_mysql_t76multi SET a=5 WHERE a=1; UPDATE dbd_mysql_t76multi SET a='6-' WHERE a<4"));
   ok($sth->execute(), "Execute updates");
   is($sth->rows, 1, "First update affected 1 row");
-  is($sth->{mysql_warning_count}, 0, "First update had no warnings");
+  is($sth->{mariadb_warning_count}, 0, "First update had no warnings");
   ok($sth->{Active}, "Statement handle is Active");
   ok($sth->more_results());
   is($sth->rows, 2, "Second update affected 2 rows");
-  is($sth->{mysql_warning_count}, 2, "Second update had 2 warnings");
+  is($sth->{mariadb_warning_count}, 2, "Second update had 2 warnings");
   ok(not $sth->more_results());
   ok($sth->finish());
 

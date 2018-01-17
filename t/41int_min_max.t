@@ -12,7 +12,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
 
-if ($dbh->{mysql_serverversion} < 50002) {
+if ($dbh->{mariadb_serverversion} < 50002) {
     plan skip_all =>
         "SKIP TEST: You must have MySQL version 5.0.2 and greater for this test to run";
 }
@@ -23,7 +23,7 @@ my $table = 'dbd_mysql_t41minmax'; # name of the table we will be using
 my $mode; # 'strict' or 'nostrict' corresponds to strict SQL mode
 
 sub test_int_type ($$$$) {
-    my ($perl_type, $mysql_type, $min, $max) = @_;
+    my ($perl_type, $mariadb_type, $min, $max) = @_;
 
     # Disable the warning text clobbering our output
     local $SIG{__WARN__} = sub { 1; };
@@ -33,10 +33,10 @@ sub test_int_type ($$$$) {
     ok($dbh->do(qq{
             CREATE TABLE `$table` (
                 `id` int not null auto_increment,
-                `val` $mysql_type,
+                `val` $mariadb_type,
                 primary key (id)
             )
-    }), "creating minmax table for type $mysql_type");
+    }), "creating minmax table for type $mariadb_type");
 
     my ($store, $retrieve); # statements
     my $read_value;         # retrieved value
@@ -46,37 +46,37 @@ sub test_int_type ($$$$) {
     ########################################
     # Insert allowed min value
     ########################################
-    ok($store->bind_param( 1, $min->bstr(), $perl_type ), "binding minimal $mysql_type, mode=$mode");
-    ok($store->execute(), "inserting min data for type $mysql_type, mode=$mode");
+    ok($store->bind_param( 1, $min->bstr(), $perl_type ), "binding minimal $mariadb_type, mode=$mode");
+    ok($store->execute(), "inserting min data for type $mariadb_type, mode=$mode");
 
     ########################################
     # Read it back and compare
     ########################################
     ok{$retrieve->execute()};
     ($read_value) = $retrieve->fetchrow_array();
-    cmp_ok($read_value, 'eq', $min, "retrieved minimal value for $mysql_type, mode=$mode");
+    cmp_ok($read_value, 'eq', $min, "retrieved minimal value for $mariadb_type, mode=$mode");
 
     ########################################
     # Insert allowed max value
     ########################################
-    ok($store->bind_param( 1, $max->bstr(), $perl_type ), "binding maximal $mysql_type, mode=$mode");
-    ok($store->execute(), "inserting max data for type $mysql_type, mode=$mode");
+    ok($store->bind_param( 1, $max->bstr(), $perl_type ), "binding maximal $mariadb_type, mode=$mode");
+    ok($store->execute(), "inserting max data for type $mariadb_type, mode=$mode");
 
     ########################################
     # Read it back and compare
     ########################################
     ok{$retrieve->execute()};
     ($read_value) = $retrieve->fetchrow_array();
-    cmp_ok($read_value, 'eq', $max, "retrieved maximal value for $mysql_type, mode=$mode");
+    cmp_ok($read_value, 'eq', $max, "retrieved maximal value for $mariadb_type, mode=$mode");
 
     ########################################
     # Try to insert under the limit value
     ########################################
-    ok($store->bind_param( 1, ($min-1)->bstr(), $dbh->{mysql_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding less than minimal $mysql_type, mode=$mode");
+    ok($store->bind_param( 1, ($min-1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding less than minimal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
         $@ = '';
         eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($min-1)." into $mysql_type, mode=$mode\n".
+        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($min-1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
@@ -87,17 +87,17 @@ sub test_int_type ($$$$) {
         ########################################
         ok{$retrieve->execute()};
         ($read_value) = $retrieve->fetchrow_array();
-        cmp_ok($read_value, 'eq', $min, "retrieved minimal value for type $mysql_type, mode=$mode");
+        cmp_ok($read_value, 'eq', $min, "retrieved minimal value for type $mariadb_type, mode=$mode");
     };
 
     ########################################
     # Try to insert over the limit value
     ########################################
-    ok($store->bind_param( 1, ($max+1)->bstr(), $dbh->{mysql_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding more than maximal $mysql_type, mode=$mode");
+    ok($store->bind_param( 1, ($max+1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding more than maximal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
         $@ = '';
         eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($max+1)." into $mysql_type, mode=$mode\n".
+        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($max+1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
@@ -108,14 +108,14 @@ sub test_int_type ($$$$) {
         ########################################
         ok{$retrieve->execute()};
         ($read_value) = $retrieve->fetchrow_array();
-        cmp_ok($read_value, 'eq', $max, "retrieved maximal value for type $mysql_type, mode=$mode");
+        cmp_ok($read_value, 'eq', $max, "retrieved maximal value for type $mariadb_type, mode=$mode");
     };
 }
 
 $dbh->disconnect;
 
-for my $mysql_server_prepare (0, 1) {
-$dbh= DBI->connect($test_dsn . ';mysql_server_prepare=' . $mysql_server_prepare, $test_user, $test_password,
+for my $mariadb_server_prepare (0, 1) {
+$dbh= DBI->connect($test_dsn . ';mariadb_server_prepare=' . $mariadb_server_prepare, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
 # Set strict SQL mode

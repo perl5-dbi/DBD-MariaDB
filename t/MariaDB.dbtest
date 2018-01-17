@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-# database specific definitions for a 'mysql' database
+# database specific definitions for a 'MariaDB' database
 
 my $have_transactions;
 

@@ -17,7 +17,7 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1 });
 
-if ($dbh->{mysql_serverversion} < 50000) {
+if ($dbh->{mariadb_serverversion} < 50000) {
     plan skip_all => "You must have MySQL version 5.0 and greater for this test to run";
 }
 
@@ -29,8 +29,8 @@ utf8::upgrade($nasty_utf8);
 is($nasty_bytes, $nasty_utf8, "Perl's internal form does not matter");
 
 foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
-    my $enable_str = "mysql_enable_utf8=$enable_utf8 / mysql_server_prepare=$server_prepare";
-    my $enable_hash = { mysql_enable_utf8 => $enable_utf8, mysql_server_prepare => $server_prepare, mysql_server_prepare_disable_fallback => 1 };
+    my $enable_str = "mariadb_enable_utf8=$enable_utf8 / mariadb_server_prepare=$server_prepare";
+    my $enable_hash = { mariadb_enable_utf8 => $enable_utf8, mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
 
     $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash) or die DBI->errstr;
 
@@ -40,7 +40,7 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
 
     foreach my $charset ("latin1", "utf8") {
 
-        # This configuration cannot work because MySQL server expect Latin1 strings, but mysql_enable_utf8=1 cause automatic encoding to UTF-8
+        # This configuration cannot work because MySQL server expect Latin1 strings, but mariadb_enable_utf8=1 cause automatic encoding to UTF-8
         next if $enable_utf8 and $name eq "latin1";
 
         $dbh->do("DROP TABLE IF EXISTS utf8_test");
@@ -53,7 +53,7 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
 
 
         my $nasty_utf8_param = $nasty_utf8;
-        utf8::encode($nasty_utf8_param) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 encode when mysql_enable_utf8=0
+        utf8::encode($nasty_utf8_param) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 encode when mariadb_enable_utf8=0
         utf8::downgrade($nasty_utf8_param) if $name eq "latin1"; # Needs to convert Unicode string to Latin1 when MySQL server expect Latin1 strings
 
 
@@ -133,7 +133,7 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
             is($out, chr(0xc3).chr(0xbf), "$trials[$i] / utf8 unset / $charset / $enable_str");
 
             ($out) = $dbh->selectrow_array("SELECT payload FROM utf8_test WHERE id = $utf8s");
-            utf8::decode($out) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 decode when mysql_enable_utf8=0
+            utf8::decode($out) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 decode when mariadb_enable_utf8=0
             is($out, chr(0xc3).chr(0xbf), "$trials[$i] / utf8 set / $charset / $enable_str");
         }
 

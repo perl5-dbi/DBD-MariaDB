@@ -9,7 +9,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { mysql_enable_utf8 => 1, PrintError => 1, RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { mariadb_enable_utf8 => 1, PrintError => 1, RaiseError => 1 });
 
 eval {
   $dbh->{PrintError} = 0;
@@ -51,7 +51,7 @@ is($row->{$jpnGender}, $jpnMale);
 ok(!exists $row->{Encode::encode("UTF-8", $jpnGender)});
 
 is_deeply($sth->{NAME}, [ 'name', $jpnGender ]);
-is_deeply($sth->{mysql_table}, [ $jpnTable, $jpnTable ]);
+is_deeply($sth->{mariadb_table}, [ $jpnTable, $jpnTable ]);
 
 my $warn;
 my $dieerr;

@@ -40,7 +40,7 @@ ok $sth2= $dbh->prepare($statement);
 ok $rows= $sth2->execute('9999999999999998');
 cmp_ok $rows, '==',  1;
 
-$dbh->{mysql_bind_type_guessing}= 1;
+$dbh->{mariadb_bind_type_guessing}= 1;
 ok $rows= $sth1->execute('9999999999999997');
 cmp_ok $rows, '==',  1;
 
