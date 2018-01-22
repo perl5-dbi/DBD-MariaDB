@@ -12,7 +12,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 myld
 MariaDB.xs
-README.md
+README.pod
 socket.c
 t/00base.t
 t/05dbcreate.t
