@@ -29,187 +29,187 @@ perl:
 
 matrix:
   include:
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.0.15
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.0.96
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.1.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.1.72
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.8
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.47
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.49
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.54
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.55
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.56
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.57
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.58
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.10
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.35
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.36
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.37
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.38
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.8-rc
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.12
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.17
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.18
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.19
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.20
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.0-dmr
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.1-dmr
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.2-dmr
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.3-rc
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.40
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.44
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.47
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.52
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.54
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.55
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.56
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.57
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.58
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.14
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.20
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.23
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.29
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.31
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.32
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.33
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.8
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.20
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.22
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.24
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.1
 # Incompatible, broken mysql_config
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.2
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.3
 # Incompatible, client library crash for unknown reason
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.4
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.5
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.6
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.7
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.8
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.9
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.10
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.12
 # Incompatible, client library crash for unknown reason
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.3.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.1
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.3
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.0-beta
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.9
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.10
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.2.0-labs
 # Incompatible, broken buffer for prepared statements
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=2.2.0
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=2.2.3
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.1
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.3
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.4
 # Incompatible, client library freeze
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=3.0.0-alpha
 # Incompatible, missing header files
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=3.0.1-beta
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=3.0.2
 
 addons:
