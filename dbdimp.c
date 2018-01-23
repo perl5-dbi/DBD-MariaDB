@@ -493,16 +493,44 @@ static enum enum_field_types sql_to_mysql_type(IV sql_type)
 /*
   Returns true if MySQL type for prepared statement storage uses dynamically allocated buffer
 */
-static bool mysql_type_has_allocated_buffer(enum enum_field_types type)
+static bool mysql_type_needs_allocated_buffer(enum enum_field_types type)
 {
   switch (type) {
-  case MYSQL_TYPE_STRING:
-  case MYSQL_TYPE_BLOB:
-    return true;
+  case MYSQL_TYPE_NULL:
+  case MYSQL_TYPE_TINY:
+  case MYSQL_TYPE_SHORT:
+  case MYSQL_TYPE_LONG:
+  case MYSQL_TYPE_LONGLONG:
+  case MYSQL_TYPE_FLOAT:
+  case MYSQL_TYPE_DOUBLE:
+    return false;
 
   default:
-    return false;
+    return true;
   }
+}
+
+/*
+  Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by IV or NV
+*/
+static bool mysql_field_needs_string_type(MYSQL_FIELD *field)
+{
+  if (field->flags & ZEROFILL_FLAG)
+    return true;
+  if ((field->type == MYSQL_TYPE_FLOAT || field->type == MYSQL_TYPE_DOUBLE) && field->decimals < NOT_FIXED_DEC)
+    return true;
+  return false;
+}
+
+/*
+  Allocated buffer is needed by all non-primitive types (which have non-fixed length)
+ */
+static bool mysql_field_needs_allocated_buffer(MYSQL_FIELD *field)
+{
+  if (mysql_type_needs_allocated_buffer(field->type) || mysql_field_needs_string_type(field))
+    return true;
+  else
+    return false;
 }
 #endif
 
@@ -3916,11 +3944,12 @@ my_ulonglong mariadb_st_internal_execute41(
   {
     for (i = mysql_stmt_field_count(stmt) - 1; i >=0; --i)
     {
-      if (mysql_type_has_allocated_buffer(stmt->fields[i].type))
+      if (mysql_field_needs_allocated_buffer(&stmt->fields[i]))
       {
         /* mysql_stmt_store_result to update MYSQL_FIELD->max_length */
         my_bool on = 1;
         mysql_stmt_attr_set(stmt, STMT_ATTR_UPDATE_MAX_LENGTH, &on);
+        break;
       }
     }
     /* Get the total rows affected and return */
@@ -4205,9 +4234,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
       buffer->error= (my_bool*) &(fbh->error);
 #endif
 
-      /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by IV or NV */
-      if ((fields[i].flags & ZEROFILL_FLAG) ||
-         ((fields[i].type == MYSQL_TYPE_FLOAT || fields[i].type == MYSQL_TYPE_DOUBLE) && fields[i].decimals < NOT_FIXED_DEC))
+      if (mysql_field_needs_string_type(&fields[i]))
         buffer->buffer_type = MYSQL_TYPE_STRING;
 
       switch (buffer->buffer_type) {
@@ -4439,7 +4466,7 @@ process:
            in mariadb_st_describe() for data. Here we know real size of field
            so we should increase buffer size and refetch column value
         */
-        if (mysql_type_has_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
+        if (mysql_type_needs_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4725,8 +4752,7 @@ process:
 
         switch (mysql_to_perl_type(fields[i].type)) {
         case PERL_TYPE_NUMERIC:
-          /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by NV */
-          if (!(fields[i].flags & ZEROFILL_FLAG) && fields[i].decimals >= NOT_FIXED_DEC)
+          if (!mysql_field_needs_string_type(&fields[i]))
           {
             /* Coerce to dobule and set scalar as NV */
             sv_setnv(sv, SvNV(sv));
@@ -4734,8 +4760,7 @@ process:
           break;
 
         case PERL_TYPE_INTEGER:
-          /* Integer with leading zeros cannot be represented by IV */
-          if (!(fields[i].flags & ZEROFILL_FLAG))
+          if (!mysql_field_needs_string_type(&fields[i]))
           {
             /* Coerce to integer and set scalar as UV resp. IV */
             if (fields[i].flags & UNSIGNED_FLAG)
