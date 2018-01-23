@@ -25,6 +25,6 @@ if (defined $dbh) {
   pass('DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and connect to server');
   ok(defined $dbh->{mariadb_ssl_cipher}, 'SSL connection was established');
 } else {
-  is($DBI::errstr, 'SSL connection error: Enforcing SSL encryption is not supported', 'DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and fail because cannot enforce SSL encryption') or diag('Error message: ' . ($DBI::errstr || 'unknown'));
+  like($DBI::errstr, qr/^SSL connection error: /, 'DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and fail because cannot enforce SSL encryption') or diag('Error message: ' . ($DBI::errstr || 'unknown'));
   is($DBI::err, 2026, 'DBD::MariaDB error code is SSL related') or diag('Error code: ' . ($DBI::err || 'unknown'));
 }
