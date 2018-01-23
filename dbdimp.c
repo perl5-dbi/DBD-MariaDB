@@ -1759,6 +1759,10 @@ MYSQL *mariadb_dr_connect(
   dTHX;
   D_imp_xxh(dbh);
 
+#ifdef MARIADB_PACKAGE_VERSION
+  bool broken_timeouts;
+#endif
+
   /* per Monty, already in client.c in API */
   /* but still not exist in libmysqld.c */
 #if defined(DBD_MYSQL_EMBEDDED)
@@ -1892,6 +1896,42 @@ MYSQL *mariadb_dr_connect(
 #endif
     mysql_init(sock);
 
+#ifdef MARIADB_PACKAGE_VERSION
+    {
+      /* Version is in format: "2.3.2" */
+      const char version[] = MARIADB_PACKAGE_VERSION;
+      if (version[0] != '2')
+        broken_timeouts = false;
+      else if (sizeof(version) >= 3 && version[2] >= '0' && version[2] < '3')
+        broken_timeouts = true;
+      else if (sizeof(version) >= 5 && version[2] == '3' && version[4] >= '0' && version[4] < '3')
+        broken_timeouts = true;
+      else
+        broken_timeouts = false;
+    }
+
+    if (broken_timeouts)
+    {
+      unsigned int timeout = 60;
+
+      /*
+        MariaDB Connector/C prior to version 2.3.3 has broken zero write timeout.
+        See file libmariadb/violite.c, function vio_write(). Variable vio->write_timeout
+        is signed and on some places zero value is tested as "boolean" and on some as "> 0".
+        Therefore we need to force non-zero timeout, otherwise some operation fail.
+       */
+      mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+
+      /*
+        MariaDB Connector/C prior to version 2.3.3 has broken MYSQL_OPT_WRITE_TIMEOUT.
+        Write timeout is set by MYSQL_OPT_READ_TIMEOUT option.
+        See file libmariadb/libmariadb.c, line "vio_write_timeout(net->vio, mysql->options.read_timeout);".
+        Thereforw we need to set write timeout via read timeout option.
+      */
+      mysql_options(sock, MYSQL_OPT_READ_TIMEOUT, &timeout);
+    }
+#endif
+
     if (imp_dbh)
     {
       SV* sv = DBIc_IMP_DATA(imp_dbh);
@@ -1942,6 +1982,15 @@ MYSQL *mariadb_dr_connect(
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
                           " write timeout (%d).\n",to);
+#ifdef MARIADB_PACKAGE_VERSION
+          if (broken_timeouts)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_write_timeout is broken");
+            return NULL;
+          }
+#endif
           mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT,
                         (const char *)&to);
         }
@@ -1953,6 +2002,15 @@ MYSQL *mariadb_dr_connect(
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
                           " read timeout (%d).\n",to);
+#ifdef MARIADB_PACKAGE_VERSION
+          if (broken_timeouts)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_read_timeout is broken");
+            return NULL;
+          }
+#endif
           mysql_options(sock, MYSQL_OPT_READ_TIMEOUT,
                         (const char *)&to);
         }
