@@ -2263,6 +2263,17 @@ MYSQL *mariadb_dr_connect(
 
     if (result)
     {
+      /*
+        we turn off Mysql's auto reconnect and handle re-connecting ourselves
+        so that we can keep track of when this happens.
+      */
+#if MYSQL_VERSION_ID >= 50013
+      my_bool reconnect = FALSE;
+      mysql_options(result, MYSQL_OPT_RECONNECT, &reconnect);
+#else
+      result->reconnect = 0;
+#endif
+
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
       /* connection succeeded. */
       /* imp_dbh == NULL when mariadb_dr_connect() is called from mysql.xs
@@ -2274,12 +2285,6 @@ MYSQL *mariadb_dr_connect(
       if(imp_dbh) {
           imp_dbh->async_query_in_flight = NULL;
       }
-
-      /*
-        we turn off Mysql's auto reconnect and handle re-connecting ourselves
-        so that we can keep track of when this happens.
-      */
-      result->reconnect=0;
     }
     else {
       /* 
