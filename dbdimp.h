@@ -24,6 +24,14 @@
 #include <errmsg.h> /* Comes with MySQL-devel */
 #include <stdint.h> /* For uint32_t */
 
+#ifndef MYSQL_VERSION_ID
+#include <mysql_version.h> /* Comes with MySQL-devel */
+#endif
+
+#if !defined(MARIADB_BASE_VERSION) && defined(MARIADB_PACKAGE_VERSION)
+#define MARIADB_BASE_VERSION
+#endif
+
 /* Macro is available in my_global.h which is not included or present in some versions of MariaDB */
 #ifndef NOT_FIXED_DEC
 #define NOT_FIXED_DEC 31
