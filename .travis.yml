@@ -1,5 +1,4 @@
 sudo: false
-dist: precise
 
 cache:
   directories:
@@ -10,7 +9,9 @@ language: perl
 
 perl:
   - "5.8.1"
+  - "5.8.2"
   - "5.8"
+  - "5.8.9"
   - "5.10"
   - "5.12.0"
   - "5.12"
@@ -28,124 +29,188 @@ perl:
 
 matrix:
   include:
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.0.15
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.0.96
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.1.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.1.72
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.8
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.47
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.49
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.54
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.55
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.5.56
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.5.57
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.5.58
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.10
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.35
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.36
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.37
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.38
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.8-rc
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.12
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.17
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.7.18
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.7.19
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.7.20
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.0-dmr
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.1-dmr
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.2-dmr
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.3-rc
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.40
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.44
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.47
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.52
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.54
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.55
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.56
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.57
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.58
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.14
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.20
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.23
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.29
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.30
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.31
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.0.32
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.0.33
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.8
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.11
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.20
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.22
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.24
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.1.30
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.1
-# Incompatible with DBD::mysql due to broken mysql_config
-#    - perl: "5.20"
+# Incompatible, broken mysql_config
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.2
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.3
-# Incompatible with DBD::mysql due to broken something in libmysqlclient
-#    - perl: "5.20"
+# Incompatible, client library crash for unknown reason
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.4
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.5
-# Not supported by MySQL::Sandbox yet
-#    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.6
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.7
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.8
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.9
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.10
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.11
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.12
+# Incompatible, client library crash for unknown reason
+#    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.3.0
-    - perl: "5.20"
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.1
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.2
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.3
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.0-beta
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.2
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.0
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.9
-    - perl: "5.20"
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.1.10
-    - perl: "5.20"
+    - perl: "5.22"
+      env: CONC_DB=MySQL CONC_VERSION=6.1.11
+    - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.2.0-labs
-# Incompatible with DBD::mysql due to broken zerofill support
-#    - perl: "5.20"
+# Incompatible, broken buffer for prepared statements
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=2.2.0
-#    - perl: "5.20"
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=2.2.3
-#    - perl: "5.20"
-#      env: CONC_DB=MariaDB CONC_VERSION=2.3.0
-#    - perl: "5.20"
-#      env: CONC_DB=MariaDB CONC_VERSION=2.3.2
-#    - perl: "5.20"
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.0
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.1
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.2
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.3
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.4
+# Incompatible, client library freeze
+#    - perl: "5.22"
+#      env: CONC_DB=MariaDB CONC_VERSION=3.0.0-alpha
+# Incompatible, missing header files
+#    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=3.0.1-beta
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=3.0.2
 
 addons:
   apt:
@@ -168,7 +233,13 @@ before_install:
         5.5.?)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
         5.5.[1234]*)      SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
         5.5.5[012345]*)   SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
-        5.[567].*)        SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+        5.5.56*)          SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+        5.5.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+        5.6.[12]*)        SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+        5.6.3[0123456]*)  SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+        5.6.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+        5.7.19*|5.7.[2]*) SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+        5.7.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
         8.0.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
         *)                echo "Unsupported MySQL version '$VERSION'"; exit 1 ;;
       esac ;
@@ -214,6 +285,8 @@ install:
       cpanm --quiet --notest --skip-satisfied MySQL::Sandbox || exit 1 ;
       make_sandbox --export_binaries "$SANDBOX_FILE" -- --sandbox_port 3310 --sandbox_directory msb --no_confirm || exit 1 ;
       mysqladmin -u root shutdown || exit 1 ;
+      sed 's/-lzlib //g' -i $SANDBOX_HOME/*/bin/mysql_config ;
+      rm -f $SANDBOX_HOME/*/bin/mariadb_config ;
     fi
   - if [ -n "$CONC_DB" ]; then
       mkdir -p "$HOME/conc" ;
@@ -251,8 +324,6 @@ before_script:
       fi ;
     elif [ -n "$DB" ]; then
       export DBD_MYSQL_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
-    else
-      export DBD_MYSQL_FORCE_EMBEDDED=1 ;
     fi
   - export HARNESS_OPTIONS=j1
   - export RELEASE_TESTING=1
@@ -260,6 +331,6 @@ before_script:
   - export SKIP_CRASH_TESTING=1
 
 script:
-  - make realclean
+  - make realclean || true
   - perl Makefile.PL
   - make disttest

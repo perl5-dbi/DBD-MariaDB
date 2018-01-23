@@ -493,16 +493,44 @@ static enum enum_field_types sql_to_mysql_type(IV sql_type)
 /*
   Returns true if MySQL type for prepared statement storage uses dynamically allocated buffer
 */
-static bool mysql_type_has_allocated_buffer(enum enum_field_types type)
+static bool mysql_type_needs_allocated_buffer(enum enum_field_types type)
 {
   switch (type) {
-  case MYSQL_TYPE_STRING:
-  case MYSQL_TYPE_BLOB:
-    return true;
+  case MYSQL_TYPE_NULL:
+  case MYSQL_TYPE_TINY:
+  case MYSQL_TYPE_SHORT:
+  case MYSQL_TYPE_LONG:
+  case MYSQL_TYPE_LONGLONG:
+  case MYSQL_TYPE_FLOAT:
+  case MYSQL_TYPE_DOUBLE:
+    return false;
 
   default:
-    return false;
+    return true;
   }
+}
+
+/*
+  Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by IV or NV
+*/
+static bool mysql_field_needs_string_type(MYSQL_FIELD *field)
+{
+  if (field->flags & ZEROFILL_FLAG)
+    return true;
+  if ((field->type == MYSQL_TYPE_FLOAT || field->type == MYSQL_TYPE_DOUBLE) && field->decimals < NOT_FIXED_DEC)
+    return true;
+  return false;
+}
+
+/*
+  Allocated buffer is needed by all non-primitive types (which have non-fixed length)
+ */
+static bool mysql_field_needs_allocated_buffer(MYSQL_FIELD *field)
+{
+  if (mysql_type_needs_allocated_buffer(field->type) || mysql_field_needs_string_type(field))
+    return true;
+  else
+    return false;
 }
 #endif
 
@@ -1731,6 +1759,10 @@ MYSQL *mariadb_dr_connect(
   dTHX;
   D_imp_xxh(dbh);
 
+#ifdef MARIADB_PACKAGE_VERSION
+  bool broken_timeouts;
+#endif
+
   /* per Monty, already in client.c in API */
   /* but still not exist in libmysqld.c */
 #if defined(DBD_MYSQL_EMBEDDED)
@@ -1862,7 +1894,42 @@ MYSQL *mariadb_dr_connect(
 #else
     client_flag = CLIENT_FOUND_ROWS;
 #endif
-    mysql_init(sock);
+
+#ifdef MARIADB_PACKAGE_VERSION
+    {
+      /* Version is in format: "2.3.2" */
+      const char version[] = MARIADB_PACKAGE_VERSION;
+      if (version[0] != '2')
+        broken_timeouts = false;
+      else if (sizeof(version) >= 3 && version[2] >= '0' && version[2] < '3')
+        broken_timeouts = true;
+      else if (sizeof(version) >= 5 && version[2] == '3' && version[4] >= '0' && version[4] < '3')
+        broken_timeouts = true;
+      else
+        broken_timeouts = false;
+    }
+
+    if (broken_timeouts)
+    {
+      unsigned int timeout = 60;
+
+      /*
+        MariaDB Connector/C prior to version 2.3.3 has broken zero write timeout.
+        See file libmariadb/violite.c, function vio_write(). Variable vio->write_timeout
+        is signed and on some places zero value is tested as "boolean" and on some as "> 0".
+        Therefore we need to force non-zero timeout, otherwise some operation fail.
+       */
+      mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+
+      /*
+        MariaDB Connector/C prior to version 2.3.3 has broken MYSQL_OPT_WRITE_TIMEOUT.
+        Write timeout is set by MYSQL_OPT_READ_TIMEOUT option.
+        See file libmariadb/libmariadb.c, line "vio_write_timeout(net->vio, mysql->options.read_timeout);".
+        Thereforw we need to set write timeout via read timeout option.
+      */
+      mysql_options(sock, MYSQL_OPT_READ_TIMEOUT, &timeout);
+    }
+#endif
 
     if (imp_dbh)
     {
@@ -1914,6 +1981,15 @@ MYSQL *mariadb_dr_connect(
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
                           " write timeout (%d).\n",to);
+#ifdef MARIADB_PACKAGE_VERSION
+          if (broken_timeouts)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_write_timeout is broken");
+            return NULL;
+          }
+#endif
           mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT,
                         (const char *)&to);
         }
@@ -1925,6 +2001,15 @@ MYSQL *mariadb_dr_connect(
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
                           " read timeout (%d).\n",to);
+#ifdef MARIADB_PACKAGE_VERSION
+          if (broken_timeouts)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_read_timeout is broken");
+            return NULL;
+          }
+#endif
           mysql_options(sock, MYSQL_OPT_READ_TIMEOUT,
                         (const char *)&to);
         }
@@ -2263,6 +2348,17 @@ MYSQL *mariadb_dr_connect(
 
     if (result)
     {
+      /*
+        we turn off Mysql's auto reconnect and handle re-connecting ourselves
+        so that we can keep track of when this happens.
+      */
+#if MYSQL_VERSION_ID >= 50013
+      my_bool reconnect = FALSE;
+      mysql_options(result, MYSQL_OPT_RECONNECT, &reconnect);
+#else
+      result->reconnect = 0;
+#endif
+
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
       /* connection succeeded. */
       /* imp_dbh == NULL when mariadb_dr_connect() is called from mysql.xs
@@ -2274,12 +2370,6 @@ MYSQL *mariadb_dr_connect(
       if(imp_dbh) {
           imp_dbh->async_query_in_flight = NULL;
       }
-
-      /*
-        we turn off Mysql's auto reconnect and handle re-connecting ourselves
-        so that we can keep track of when this happens.
-      */
-      result->reconnect=0;
     }
     else {
       /* 
@@ -2378,6 +2468,7 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
   if (!imp_dbh->pmysql) {
      Newz(908, imp_dbh->pmysql, 1, MYSQL);
+     mysql_init(imp_dbh->pmysql);
      imp_dbh->pmysql->net.fd = -1;
   }
   result = mariadb_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
@@ -2435,6 +2526,7 @@ int mariadb_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
     if(imp_dbh->pmysql) {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                 mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
+        mysql_close(imp_dbh->pmysql);
         Safefree(imp_dbh->pmysql);
 
     }
@@ -2547,6 +2639,7 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 #endif
   dTHX;
   D_imp_xxh(dbh);
+  const void *methods;
 
   /* We assume that disconnect will always work       */
   /* since most errors imply already disconnected.    */
@@ -2554,8 +2647,15 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->pmysql: %p\n",
 		              imp_dbh->pmysql);
+
+  /* MySQL and MariDB clients crash when methods pointer is NULL. */
+  /* Function mysql_close() set method pointer to NULL. */
+  /* Therefore store backup and restore it after mysql_init(). */
+  methods = imp_dbh->pmysql->methods;
   mysql_close(imp_dbh->pmysql );
+  mysql_init(imp_dbh->pmysql);
   imp_dbh->pmysql->net.fd = -1;
+  imp_dbh->pmysql->methods = methods;
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
@@ -2659,6 +2759,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
     }
     mariadb_db_disconnect(dbh, imp_dbh);
   }
+  mysql_close(imp_dbh->pmysql);
   Safefree(imp_dbh->pmysql);
 
   /* Tell DBI, that dbh->destroy must no longer be called */
@@ -3911,11 +4012,12 @@ my_ulonglong mariadb_st_internal_execute41(
   {
     for (i = mysql_stmt_field_count(stmt) - 1; i >=0; --i)
     {
-      if (mysql_type_has_allocated_buffer(stmt->fields[i].type))
+      if (mysql_field_needs_allocated_buffer(&stmt->fields[i]))
       {
         /* mysql_stmt_store_result to update MYSQL_FIELD->max_length */
         my_bool on = 1;
         mysql_stmt_attr_set(stmt, STMT_ATTR_UPDATE_MAX_LENGTH, &on);
+        break;
       }
     }
     /* Get the total rows affected and return */
@@ -4200,9 +4302,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
       buffer->error= (my_bool*) &(fbh->error);
 #endif
 
-      /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by IV or NV */
-      if ((fields[i].flags & ZEROFILL_FLAG) ||
-         ((fields[i].type == MYSQL_TYPE_FLOAT || fields[i].type == MYSQL_TYPE_DOUBLE) && fields[i].decimals < NOT_FIXED_DEC))
+      if (mysql_field_needs_string_type(&fields[i]))
         buffer->buffer_type = MYSQL_TYPE_STRING;
 
       switch (buffer->buffer_type) {
@@ -4434,7 +4534,7 @@ process:
            in mariadb_st_describe() for data. Here we know real size of field
            so we should increase buffer size and refetch column value
         */
-        if (mysql_type_has_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
+        if (mysql_type_needs_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4720,8 +4820,7 @@ process:
 
         switch (mysql_to_perl_type(fields[i].type)) {
         case PERL_TYPE_NUMERIC:
-          /* Numeric types with leading zeros or with fixed length of decimals in fractional part cannot be represented by NV */
-          if (!(fields[i].flags & ZEROFILL_FLAG) && fields[i].decimals >= NOT_FIXED_DEC)
+          if (!mysql_field_needs_string_type(&fields[i]))
           {
             /* Coerce to dobule and set scalar as NV */
             sv_setnv(sv, SvNV(sv));
@@ -4729,8 +4828,7 @@ process:
           break;
 
         case PERL_TYPE_INTEGER:
-          /* Integer with leading zeros cannot be represented by IV */
-          if (!(fields[i].flags & ZEROFILL_FLAG))
+          if (!mysql_field_needs_string_type(&fields[i]))
           {
             /* Coerce to integer and set scalar as UV resp. IV */
             if (fields[i].flags & UNSIGNED_FLAG)
