@@ -2178,6 +2178,11 @@ MYSQL *mariadb_dr_connect(
 
 	if ((svp = hv_fetch(hv, "mariadb_ssl", strlen("mariadb_ssl"), FALSE)) && *svp && SvTRUE(*svp))
           {
+	    my_bool ssl_enforce = 1;
+
+	    if ((svp = hv_fetch(hv, "mariadb_ssl_optional", strlen("mariadb_ssl_optional"), FALSE)) && *svp)
+	      ssl_enforce = !SvTRUE(*svp);
+
 #if defined(DBD_MYSQL_WITH_SSL) && !defined(DBD_MYSQL_EMBEDDED) && \
     (defined(CLIENT_SSL) || (MYSQL_VERSION_ID >= 40000))
 	    char *client_key = NULL;
@@ -2189,7 +2194,6 @@ MYSQL *mariadb_dr_connect(
   #if defined(HAVE_SSL_MODE) || defined(HAVE_SSL_MODE_ONLY_REQUIRED)
 	    unsigned int ssl_mode;
   #endif
-	    my_bool ssl_enforce = 1;
 	    my_bool ssl_verify = 0;
 	    my_bool ssl_verify_set = 0;
 
@@ -2203,9 +2207,6 @@ MYSQL *mariadb_dr_connect(
 	      return NULL;
   #endif
 	    }
-
-	    if ((svp = hv_fetch(hv, "mariadb_ssl_optional", strlen("mariadb_ssl_optional"), FALSE)) && *svp)
-	      ssl_enforce = !SvTRUE(*svp);
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_client_key", strlen("mariadb_ssl_client_key"), FALSE)) && *svp)
 	      client_key = SvPV(*svp, lna);
@@ -2306,8 +2307,11 @@ MYSQL *mariadb_dr_connect(
 
 	    client_flag |= CLIENT_SSL;
 #else
-	    set_ssl_error(sock, "mariadb_ssl=1 is not supported");
-	    return NULL;
+	    if (ssl_enforce)
+	    {
+	      set_ssl_error(sock, "mariadb_ssl=1 is not supported");
+	      return NULL;
+	    }
 #endif
 	  }
 	else
