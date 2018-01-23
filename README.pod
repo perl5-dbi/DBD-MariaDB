@@ -1,0 +1,38 @@
+=head1 DBD::MariaDB - database driver for Perl
+
+This is the Perl L<DBI> driver for access to MariaDB and MySQL databases.
+
+The goal of our effort was to fix MariaDB compatibility, Perl Unicode support
+and security related bugs.
+
+This Perl DBI driver is a fork of the L<DBD::mysql> driver and was created
+because said issues in the original DBD::mysql have not been addressed for more
+than a year.
+
+=head2 Usage
+
+Usage of this Perl DBI driver is described in L<DBD::MariaDB>.
+
+=head2 Installation
+
+Installation is described in L<DBD::MariaDB::INSTALL>.
+
+=head2 Support
+
+This module comes with no warranty and is distributed as is.
+
+To participate in a general discussion about Perl DBI with other DBI users,
+subscribe to the mailing list by sending an email to
+L<C<dbi-users-subscribe@perl.org>|mailto:dbi-users-subscribe@perl.org>.
+
+Mailing list archives are available at the
+L<Perl DBI Users' Forum|https://groups.google.com/forum/#!forum/perl.dbi.users>.
+
+=head2 License
+
+This module is released under the same license as Perl itself. See
+L<Perl Licensing|https://dev.perl.org/licenses/> for details.
+
+=head2 Contributing
+
+Contributions are welcome.
