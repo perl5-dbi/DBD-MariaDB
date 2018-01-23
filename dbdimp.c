@@ -1894,7 +1894,6 @@ MYSQL *mariadb_dr_connect(
 #else
     client_flag = CLIENT_FOUND_ROWS;
 #endif
-    mysql_init(sock);
 
 #ifdef MARIADB_PACKAGE_VERSION
     {
@@ -2469,6 +2468,7 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
   if (!imp_dbh->pmysql) {
      Newz(908, imp_dbh->pmysql, 1, MYSQL);
+     mysql_init(imp_dbh->pmysql);
      imp_dbh->pmysql->net.fd = -1;
   }
   result = mariadb_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
@@ -2526,6 +2526,7 @@ int mariadb_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
     if(imp_dbh->pmysql) {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                 mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
+        mysql_close(imp_dbh->pmysql);
         Safefree(imp_dbh->pmysql);
 
     }
@@ -2638,6 +2639,7 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 #endif
   dTHX;
   D_imp_xxh(dbh);
+  const void *methods;
 
   /* We assume that disconnect will always work       */
   /* since most errors imply already disconnected.    */
@@ -2645,8 +2647,15 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->pmysql: %p\n",
 		              imp_dbh->pmysql);
+
+  /* MySQL and MariDB clients crash when methods pointer is NULL. */
+  /* Function mysql_close() set method pointer to NULL. */
+  /* Therefore store backup and restore it after mysql_init(). */
+  methods = imp_dbh->pmysql->methods;
   mysql_close(imp_dbh->pmysql );
+  mysql_init(imp_dbh->pmysql);
   imp_dbh->pmysql->net.fd = -1;
+  imp_dbh->pmysql->methods = methods;
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
@@ -2750,6 +2759,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
     }
     mariadb_db_disconnect(dbh, imp_dbh);
   }
+  mysql_close(imp_dbh->pmysql);
   Safefree(imp_dbh->pmysql);
 
   /* Tell DBI, that dbh->destroy must no longer be called */
