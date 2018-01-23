@@ -811,10 +811,6 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     D_imp_dbh(dbh);
     IV type = 0;
     SV* retsv=NULL;
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000
-/* MariaDB 10 is not MySQL source level compatible so this only applies to MySQL*/
-    IV buffer_len;
-#endif 
 
     if (SvGMAGICAL(sql_info_type))
         mg_get(sql_info_type);
@@ -846,18 +842,20 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    retsv = newSVpvn("`", 1);
 	    break;
 	case SQL_MAXIMUM_STATEMENT_LENGTH:
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000
-        /* MariaDB 10 is not MySQL source level compatible so this
-           only applies to MySQL*/
+	{
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
 	    /* mysql_get_option() was added in mysql 5.7.3 */
 	    /* MYSQL_OPT_NET_BUFFER_LENGTH was added in mysql 5.7.9 */
+	    /* MYSQL_OPT_NET_BUFFER_LENGTH was added in MariaDB 10.2.2 */
+	    unsigned long buffer_len;
 	    mysql_get_option(NULL, MYSQL_OPT_NET_BUFFER_LENGTH, &buffer_len);
 	    retsv = newSViv(buffer_len);
 #else
-	    /* before mysql 5.7.9 use net_buffer_length macro */
+	    /* before MySQL 5.7.9 and MariaDB 10.2.2 use net_buffer_length macro */
 	    retsv = newSViv(net_buffer_length);
 #endif
 	    break;
+	}
 	case SQL_MAXIMUM_TABLES_IN_SELECT:
 	    /* newSViv((sizeof(int) > 32) ? sizeof(int)-1 : 31 ); in general? */
 	    retsv= newSViv((sizeof(int) == 64 ) ? 63 : 31 );
