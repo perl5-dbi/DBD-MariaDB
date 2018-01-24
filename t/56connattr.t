@@ -15,7 +15,6 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 0,
                         AutoCommit => 0,
-                        mariadb_conn_attrs => { foo => 'bar' },
                         }
                         );
 
@@ -36,6 +35,14 @@ if ($@) {
   $dbh->disconnect();
   plan skip_all => "no permission on performance_schema tables";
 }
+
+$dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
+                      { RaiseError => 1,
+                        PrintError => 0,
+                        AutoCommit => 0,
+                        mariadb_conn_attrs => { program_name => $0, foo => 'bar' },
+                        }
+                        );
 
 plan tests => 8;
 
