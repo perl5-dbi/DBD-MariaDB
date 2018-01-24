@@ -214,6 +214,16 @@ MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
 
 void
+connected(dbh, ...)
+  SV* dbh
+PPCODE:
+  /* Called by DBI when connect method finished */
+  D_imp_dbh(dbh);
+  imp_dbh->connected = TRUE;
+  XSRETURN_EMPTY;
+
+
+void
 type_info_all(dbh)
   SV* dbh
   PPCODE:

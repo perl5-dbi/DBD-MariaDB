@@ -575,6 +575,14 @@ static bool sql_type_is_numeric(IV sql_type)
   }
 }
 
+/*
+  Check if attribute can be skipped by driver and handled by DBI itself
+*/
+static bool skip_attribute(const char *key)
+{
+  return !(strnNE(key,"private_",8) && strnNE(key,"dbd_",4) && strnNE(key,"dbi_",4) && !isUPPER(*key));
+}
+
 #if defined(DBD_MYSQL_EMBEDDED)
 /* 
   count embedded options
@@ -1682,6 +1690,12 @@ void mariadb_dr_do_warn(SV* h, int rc, char* what)
   warn("%s", what);
 }
 
+static void error_unknown_attribute(SV *h, const char *key)
+{
+  dTHX;
+  mariadb_dr_do_error(h, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+}
+
 #if defined(DBD_MYSQL_EMBEDDED)
  #define DBD_MYSQL_NAMESPACE "DBD::MariaDBEmb::QUIET";
 #else
@@ -1939,10 +1953,27 @@ MYSQL *mariadb_dr_connect(
       if (sv  &&  SvROK(sv))
       {
         HV* hv = (HV*) SvRV(sv);
+        HV* processed = newHV();
+        HE* he;
         SV** svp;
         STRLEN lna;
 
+        sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
+
+        /* These options are already handled and processed */
+        hv_store(processed, "host", strlen("host"), &PL_sv_yes, 0);
+        hv_store(processed, "port", strlen("port"), &PL_sv_yes, 0);
+        hv_store(processed, "user", strlen("user"), &PL_sv_yes, 0);
+        hv_store(processed, "password", strlen("password"), &PL_sv_yes, 0);
+        hv_store(processed, "database", strlen("database"), &PL_sv_yes, 0);
+
+#if defined(DBD_MYSQL_EMBEDDED)
+        hv_store(processed, "mariadb_embedded_groups", strlen("mariadb_embedded_groups"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_embedded_options", strlen("mariadb_embedded_options"), &PL_sv_yes, 0);
+#endif
+
         /* thanks to Peter John Edwards for mysql_init_command */ 
+        hv_store(processed, "mariadb_init_command", strlen("mariadb_init_command"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_init_command", strlen("mariadb_init_command"), FALSE)) &&
             *svp && SvTRUE(*svp))
         {
@@ -1953,6 +1984,8 @@ MYSQL *mariadb_dr_connect(
                            " init command (%s).\n", df);
           mysql_options(sock, MYSQL_INIT_COMMAND, df);
         }
+
+        hv_store(processed, "mariadb_compression", strlen("mariadb_compression"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_compression", strlen("mariadb_compression"), FALSE))  &&
             *svp && SvTRUE(*svp))
         {
@@ -1962,6 +1995,8 @@ MYSQL *mariadb_dr_connect(
                           " compression.\n");
           mysql_options(sock, MYSQL_OPT_COMPRESS, NULL);
         }
+
+        hv_store(processed, "mariadb_connect_timeout", strlen("mariadb_connect_timeout"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_connect_timeout", strlen("mariadb_connect_timeout"), FALSE))
             &&  *svp  &&  SvTRUE(*svp))
         {
@@ -1973,6 +2008,8 @@ MYSQL *mariadb_dr_connect(
           mysql_options(sock, MYSQL_OPT_CONNECT_TIMEOUT,
                         (const char *)&to);
         }
+
+        hv_store(processed, "mariadb_write_timeout", strlen("mariadb_write_timeout"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_write_timeout", strlen("mariadb_write_timeout"), FALSE))
             &&  *svp  &&  SvTRUE(*svp))
         {
@@ -1993,6 +2030,8 @@ MYSQL *mariadb_dr_connect(
           mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT,
                         (const char *)&to);
         }
+
+        hv_store(processed, "mariadb_read_timeout", strlen("mariadb_read_timeout"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_read_timeout", strlen("mariadb_read_timeout"), FALSE))
             &&  *svp  &&  SvTRUE(*svp))
         {
@@ -2013,6 +2052,8 @@ MYSQL *mariadb_dr_connect(
           mysql_options(sock, MYSQL_OPT_READ_TIMEOUT,
                         (const char *)&to);
         }
+
+        hv_store(processed, "mariadb_skip_secure_auth", strlen("mariadb_skip_secure_auth"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_skip_secure_auth", strlen("mariadb_skip_secure_auth"), FALSE)) &&
             *svp  &&  SvTRUE(*svp))
         {
@@ -2033,6 +2074,8 @@ MYSQL *mariadb_dr_connect(
             return NULL;
           }
         }
+
+        hv_store(processed, "mariadb_read_default_file", strlen("mariadb_read_default_file"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_read_default_file", strlen("mariadb_read_default_file"), FALSE)) &&
             *svp  &&  SvTRUE(*svp))
         {
@@ -2043,6 +2086,8 @@ MYSQL *mariadb_dr_connect(
                           " default file %s.\n", df);
           mysql_options(sock, MYSQL_READ_DEFAULT_FILE, df);
         }
+
+        hv_store(processed, "mariadb_read_default_group", strlen("mariadb_read_default_group"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_read_default_group", strlen("mariadb_read_default_group"),
                             FALSE))  &&
             *svp  &&  SvTRUE(*svp)) {
@@ -2054,9 +2099,11 @@ MYSQL *mariadb_dr_connect(
 
           mysql_options(sock, MYSQL_READ_DEFAULT_GROUP, gr);
         }
+
+        hv_store(processed, "mariadb_conn_attrs", strlen("mariadb_conn_attrs"), &PL_sv_yes, 0);
+        if ((svp = hv_fetch(hv, "mariadb_conn_attrs", strlen("mariadb_conn_attrs"), FALSE)) && *svp) {
         /* 60000 is identifier for MySQL Connector/C versions 6.0.x which do not support MYSQL_OPT_CONNECT_ATTR_ADD */
         #if (MYSQL_VERSION_ID >= 50606 && MYSQL_VERSION_ID != 60000)
-          if ((svp = hv_fetch(hv, "mariadb_conn_attrs", strlen("mariadb_conn_attrs"), FALSE)) && *svp) {
               HV* attrs = (HV*) SvRV(*svp);
               HE* entry = NULL;
               I32 num_entries = hv_iterinit(attrs);
@@ -2067,8 +2114,15 @@ MYSQL *mariadb_dr_connect(
                   char *attr_val  = SvPV(sv_attr_val, lna);
                   mysql_options4(sock, MYSQL_OPT_CONNECT_ATTR_ADD, attr_name, attr_val);
               }
-          }
+        #else
+              sock->net.last_errno = CR_CONNECTION_ERROR;
+              strcpy(sock->net.sqlstate, "HY000");
+              strcpy(sock->net.last_error, "Connection error: mariadb_conn_attrs is not supported");
+              return NULL;
         #endif
+        }
+
+        hv_store(processed, "mariadb_client_found_rows", strlen("mariadb_client_found_rows"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_client_found_rows", strlen("mariadb_client_found_rows"), FALSE)) && *svp)
         {
           if (SvTRUE(*svp))
@@ -2076,6 +2130,8 @@ MYSQL *mariadb_dr_connect(
           else
             client_flag &= ~CLIENT_FOUND_ROWS;
         }
+
+        hv_store(processed, "mariadb_use_result", strlen("mariadb_use_result"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_use_result", strlen("mariadb_use_result"), FALSE)) && *svp)
         {
           imp_dbh->use_mysql_use_result = SvTRUE(*svp);
@@ -2084,6 +2140,8 @@ MYSQL *mariadb_dr_connect(
                           "imp_dbh->use_mysql_use_result: %d\n",
                           imp_dbh->use_mysql_use_result);
         }
+
+        hv_store(processed, "mariadb_bind_type_guessing", strlen("mariadb_bind_type_guessing"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_bind_type_guessing", strlen("mariadb_bind_type_guessing"), TRUE)) && *svp)
         {
           imp_dbh->bind_type_guessing= SvTRUE(*svp);
@@ -2092,6 +2150,8 @@ MYSQL *mariadb_dr_connect(
                           "imp_dbh->bind_type_guessing: %d\n",
                           imp_dbh->bind_type_guessing);
         }
+
+        hv_store(processed, "mariadb_bind_comment_placeholders", strlen("mariadb_bind_comment_placeholders"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_bind_comment_placeholders", strlen("mariadb_bind_comment_placeholders"), FALSE)) && *svp)
         {
           imp_dbh->bind_comment_placeholders = SvTRUE(*svp);
@@ -2100,6 +2160,8 @@ MYSQL *mariadb_dr_connect(
                           "imp_dbh->bind_comment_placeholders: %d\n",
                           imp_dbh->bind_comment_placeholders);
         }
+
+        hv_store(processed, "mariadb_no_autocommit_cmd", strlen("mariadb_no_autocommit_cmd"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_no_autocommit_cmd", strlen("mariadb_no_autocommit_cmd"), FALSE)) && *svp)
         {
           imp_dbh->no_autocommit_cmd= SvTRUE(*svp);
@@ -2108,34 +2170,48 @@ MYSQL *mariadb_dr_connect(
                           "imp_dbh->no_autocommit_cmd: %d\n",
                           imp_dbh->no_autocommit_cmd);
         }
-#if FABRIC_SUPPORT
+
+        hv_store(processed, "mariadb_use_fabric", strlen("mariadb_use_fabric"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_use_fabric", strlen("mariadb_use_fabric"), FALSE)) &&
             *svp && SvTRUE(*svp))
         {
+#if FABRIC_SUPPORT
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->use_fabric: Enabling use of" \
                           " MySQL Fabric.\n");
           mysql_options(sock, MYSQL_OPT_USE_FABRIC, NULL);
-        }
+#else
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: mariadb_use_fabric is not supported");
+          return NULL;
 #endif
+        }
 
-#if defined(CLIENT_MULTI_STATEMENTS)
+        hv_store(processed, "mariadb_multi_statements", strlen("mariadb_multi_statements"), &PL_sv_yes, 0);
 	if ((svp = hv_fetch(hv, "mariadb_multi_statements", strlen("mariadb_multi_statements"), FALSE)) && *svp)
         {
+#if defined(CLIENT_MULTI_STATEMENTS)
 	  if (SvTRUE(*svp))
 	    client_flag |= CLIENT_MULTI_STATEMENTS;
           else
             client_flag &= ~CLIENT_MULTI_STATEMENTS;
-	}
+#else
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: mariadb_multi_statements is not supported");
+          return NULL;
 #endif
+	}
 
-#if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
+        hv_store(processed, "mariadb_server_prepare", strlen("mariadb_server_prepare"), &PL_sv_yes, 0);
 	/* took out  client_flag |= CLIENT_PROTOCOL_41; */
 	/* because libmysql.c already sets this no matter what */
 	if ((svp = hv_fetch(hv, "mariadb_server_prepare", strlen("mariadb_server_prepare"), FALSE))
             && *svp)
         {
+#if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
 	  if (SvTRUE(*svp))
           {
 	    client_flag |= CLIENT_PROTOCOL_41;
@@ -2146,20 +2222,28 @@ MYSQL *mariadb_dr_connect(
 	    client_flag &= ~CLIENT_PROTOCOL_41;
             imp_dbh->use_server_side_prepare = FALSE;
 	  }
+#else
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: mariadb_server_prepare is not supported");
+          return NULL;
+#endif
 	}
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "imp_dbh->use_server_side_prepare: %d\n",
                         imp_dbh->use_server_side_prepare);
 
+        hv_store(processed, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"), FALSE)) && *svp)
           imp_dbh->disable_fallback_for_server_prepare = SvTRUE(*svp);
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "imp_dbh->disable_fallback_for_server_prepare: %d\n",
                         imp_dbh->disable_fallback_for_server_prepare);
-#endif
 
+        hv_store(processed, "mariadb_enable_utf8mb4", strlen("mariadb_enable_utf8mb4"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_enable_utf8", strlen("mariadb_enable_utf8"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_enable_utf8mb4", strlen("mariadb_enable_utf8mb4"), FALSE)) && *svp && SvTRUE(*svp)) {
           mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8mb4");
         }
@@ -2176,6 +2260,14 @@ MYSQL *mariadb_dr_connect(
                          (SvTRUE(*svp) ? "utf8" : "latin1"));
         }
 
+        hv_store(processed, "mariadb_ssl", strlen("mariadb_ssl"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_optional", strlen("mariadb_ssl_optional"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_verify_server_cert", strlen("mariadb_ssl_verify_server_cert"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_client_key", strlen("mariadb_ssl_client_key"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_client_cert", strlen("mariadb_ssl_client_cert"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_ca_file", strlen("mariadb_ssl_ca_file"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_ca_path", strlen("mariadb_ssl_ca_path"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_ssl_cipher", strlen("mariadb_ssl_cipher"), &PL_sv_yes, 0);
 	if ((svp = hv_fetch(hv, "mariadb_ssl", strlen("mariadb_ssl"), FALSE)) && *svp && SvTRUE(*svp))
           {
 	    my_bool ssl_enforce = 1;
@@ -2321,21 +2413,46 @@ MYSQL *mariadb_dr_connect(
 	    mysql_options(sock, MYSQL_OPT_SSL_MODE, &ssl_mode);
 #endif
 	  }
-#if (MYSQL_VERSION_ID >= 32349)
+        hv_store(processed, "mariadb_local_infile", strlen("mariadb_local_infile"), &PL_sv_yes, 0);
 	/*
 	 * MySQL 3.23.49 disables LOAD DATA LOCAL by default. Use
 	 * mysql_local_infile=1 in the DSN to enable it.
 	 */
      if ((svp = hv_fetch( hv, "mariadb_local_infile", strlen("mariadb_local_infile"), FALSE))  &&  *svp)
      {
+#if (MYSQL_VERSION_ID >= 32349)
 	  unsigned int flag = SvTRUE(*svp);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
 	    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
         "imp_dbh->mariadb_dr_connect: Using" \
         " local infile %u.\n", flag);
 	  mysql_options(sock, MYSQL_OPT_LOCAL_INFILE, (const char *) &flag);
-	}
+#else
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: mariadb_local_infile is not supported");
+          return NULL;
 #endif
+	}
+
+        hv_iterinit(hv);
+        while ((he = hv_iternext(hv)) != NULL)
+        {
+          I32 len;
+          const char *key;
+          key = hv_iterkey(he, &len);
+          if (skip_attribute(key) || hv_exists(processed, key, len))
+            continue;
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: Unknown attribute ");
+          if (strlen(sock->net.last_error) + strlen(key) >= sizeof(sock->net.last_error))
+            memcpy(sock->net.last_error, key, sizeof(sock->net.last_error)-strlen(sock->net.last_error)-1);
+          else
+            strcat(sock->net.last_error, key);
+          sock->net.last_error[sizeof(sock->net.last_error)-1] = 0;
+          return NULL;
+        }
       }
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -2524,6 +2641,7 @@ int mariadb_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
 
   imp_dbh->enable_utf8 = FALSE;     /* initialize mysql_enable_utf8 */
   imp_dbh->enable_utf8mb4 = FALSE;  /* initialize mysql_enable_utf8mb4 */
+  imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
 
   if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
   {
@@ -2905,10 +3023,18 @@ mariadb_db_STORE_attrib(
     }
   #endif
     else
-      return FALSE;				/* Unknown key */
+    {
+      if (imp_dbh->connected) /* Ignore unknown attributes passed by DBI->connect, they are handled in mariadb_dr_connect() */
+        error_unknown_attribute(dbh, key);
+      return FALSE;
+    }
   }
   else
-    return FALSE;				/* Unknown key */
+  {
+    if (!skip_attribute(key)) /* Not handled by this driver */
+      error_unknown_attribute(dbh, key);
+    return FALSE;
+  }
 
   if (cacheit) /* cache value for later DBI 'quick' fetch? */
     (void)hv_store((HV*)SvRV(dbh), key, kl, cachesv, 0);
@@ -3022,7 +3148,11 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   }
 
   if (strncmp(key, "mariadb_", strlen("mariadb_")) != 0)
+  {
+    if (!skip_attribute(key)) /* Not handled by this driver */
+      error_unknown_attribute(dbh, key);
     return Nullsv;
+  }
 
   key += strlen("mariadb_");
   kl -= strlen("mariadb_");
@@ -3183,7 +3313,10 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   }
 
   if (result== NULL)
+  {
+    error_unknown_attribute(dbh, key);
     return Nullsv;
+  }
 
   return result;
 }
@@ -5084,6 +5217,12 @@ mariadb_st_STORE_attrib(
   if (strEQ(key, "mariadb_use_result"))
   {
     imp_sth->use_mysql_use_result= SvTRUE_nomg(valuesv);
+    retval = TRUE;
+  }
+  else
+  {
+    if (!skip_attribute(key)) /* Not handled by this driver */
+      error_unknown_attribute(sth, key);
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -5296,9 +5435,6 @@ SV* mariadb_st_FETCH_attrib(
   SV *retsv= Nullsv;
   D_imp_xxh(sth);
 
-  if (kl < 2)
-    return Nullsv;
-
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "    -> mariadb_st_FETCH_attrib for %p, key %s\n",
@@ -5420,6 +5556,11 @@ SV* mariadb_st_FETCH_attrib(
       break;
     }
     break;
+  }
+  if (retsv == Nullsv)
+  {
+    if (!skip_attribute(key)) /* Not handled by this driver */
+      error_unknown_attribute(sth, key);
   }
   return retsv;
 }
