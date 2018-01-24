@@ -2131,6 +2131,16 @@ MYSQL *mariadb_dr_connect(
             client_flag &= ~CLIENT_FOUND_ROWS;
         }
 
+        hv_store(processed, "mariadb_auto_reconnect", strlen("mariadb_auto_reconnect"), &PL_sv_yes, 0);
+        if ((svp = hv_fetch(hv, "mariadb_auto_reconnect", strlen("mariadb_auto_reconnect"), FALSE)) && *svp)
+        {
+          imp_dbh->auto_reconnect = SvTRUE(*svp);
+          if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+            PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                          "imp_dbh->auto_reconnect: %d\n",
+                          imp_dbh->auto_reconnect);
+        }
+
         hv_store(processed, "mariadb_use_result", strlen("mariadb_use_result"), &PL_sv_yes, 0);
         if ((svp = hv_fetch(hv, "mariadb_use_result", strlen("mariadb_use_result"), FALSE)) && *svp)
         {
