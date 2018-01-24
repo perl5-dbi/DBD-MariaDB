@@ -1593,18 +1593,18 @@ C<utf8mb4> charset (so also binary data) is not UTF-8 decoded regardless of the
 C<mariadb_enable_utf8> attribute state.  They are treated as a sequence of octets
 and it is your responsibility to decode them correctly.
 
-B<WARNING>: DBD::MariaDB prior to version 4.042 had different and buggy behaviour
+B<WARNING>: DBD::mysql has different and buggy behaviour
 when the attribute C<mariadb_enable_utf8> was enabled!  Input statement and bind
 parameters were never encoded to UTF-8 octets and retrieved columns were
 always UTF-8 decoded regardless of the column charset (except binary charsets).
 
 If you need to pass statements or input bind parameters with Unicode characters
-from code which needs to be compatible with DBD::MariaDB versions prior to 4.042
-and also new versions then you can use "hack" with calling C<utf8::upgrade()>
+from code which needs to be compatible with DBD::mysql
+and also DBD::MariaDB then you can use "hack" with calling C<utf8::upgrade()>
 function on scalars immediately before passing scalar to DBD::MariaDB.  Calling
 C<utf8::upgrade()> function has absolutely no effect on (correctly) written
-Perl code.  So it is noop for DBD::MariaDB >= 4.042 but "hack" fix for DBD::MariaDB
-prior to 4.042 which has broken Unicode support.  In same way for binary (byte)
+Perl code.  So it is noop for DBD::MariaDB but "hack" fix for DBD::mysql
+which has broken Unicode support.  In same way for binary (byte)
 data can be passed with calling C<utf8::downgrade()> function (it dies on wide
 Unicode strings with codepoints above U+FF).  See following example:
 
@@ -1618,13 +1618,13 @@ Unicode strings with codepoints above U+FF).  See following example:
   my $dbh = DBI->connect('DBI:MariaDB:database', 'username', 'pass', { mariadb_enable_utf8 => 1 });
   $dbh->do("SET NAMES utf8mb4") if $dbh->{mariadb_serverversion} >= 50503; # enable 4-byte UTF-8 characters
 
-  utf8::upgrade($statement); # UTF-8 fix for DBD::MariaDB < 4.042
+  utf8::upgrade($statement); # UTF-8 fix for DBD::mysql
   my $sth = $dbh->prepare($statement);
 
-  utf8::upgrade($wide_string_param); # UTF-8 fix for DBD::MariaDB < 4.042
+  utf8::upgrade($wide_string_param); # UTF-8 fix for DBD::mysql
   $sth->bind_param(1, $wide_string_param);
 
-  utf8::downgrade($byte_param); # byte fix for DBD::MariaDB < 4.042
+  utf8::downgrade($byte_param); # byte fix for DBD::mysql
   $sth->bind_param(2, $byte_param, DBI::SQL_BINARY); # set correct binary type
 
   $sth->execute();
@@ -2098,24 +2098,24 @@ See L<DBD::MariaDB::INSTALL>.
 Originally, there was a non-DBI driver, Mysql, which was much like
 PHP drivers such as mysql and mysqli. The B<Mysql> module was
 originally written by Andreas König <koenig@kulturbox.de> who still, to this
-day, contributes patches to DBD::MariaDB. An emulated version of Mysql was
-provided to DBD::MariaDB from Jochen Wiedmann, but eventually deprecated as it
+day, contributes patches to DBD::mysql. An emulated version of Mysql was
+provided to DBD::mysql from Jochen Wiedmann, but eventually deprecated as it
 was another bundle of code to maintain.
 
-The first incarnation of DBD::MariaDB was developed by Alligator Descartes,
+The first incarnation of DBD::mysql was developed by Alligator Descartes,
 who was also aided and abetted by Gary Shea, Andreas König and
 Tim Bunce.
 
-The current incarnation of B<DBD::MariaDB> was written by Jochen Wiedmann,
+The current incarnation of B<DBD::mysql> was written by Jochen Wiedmann,
 then numerous changes and bug-fixes were added by Rudy Lippan. Next,
 prepared statement support was added by Patrick Galbraith and
 Alexy Stroganov (who also solely added embedded server
 support).
 
-For the past nine years DBD::MariaDB has been maintained by
+For the past nine years DBD::mysql has been maintained by
 Patrick Galbraith (I<patg@patg.net>), and recently with the great help of
 Michiel Beijen (I<michiel.beijen@gmail.com>),  along with the entire community
-of Perl developers who keep sending patches to help continue improving DBD::MariaDB
+of Perl developers who keep sending patches to help continue improving DBD::mysql
 
 
 =head1 CONTRIBUTIONS
