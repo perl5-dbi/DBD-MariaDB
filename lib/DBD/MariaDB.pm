@@ -128,8 +128,6 @@ sub connect {
     $username ||= '';
     $password ||= '';
     $attrhash ||= {};
-    $attrhash->{mariadb_conn_attrs} ||= {};
-    $attrhash->{mariadb_conn_attrs}->{'program_name'} ||= $0;
 
     # create a 'blank' dbh
     my($this, $privateAttrHash) = (undef, $attrhash);
