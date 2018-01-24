@@ -2990,7 +2990,7 @@ mariadb_db_STORE_attrib(
     else if (kl == strlen("mariadb_bind_type_guessing") && strEQ(key,"mariadb_bind_type_guessing"))
       imp_dbh->bind_type_guessing = bool_value;
     else if (kl == strlen("mariadb_bind_comment_placeholders") && strEQ(key,"mariadb_bind_comment_placeholders"))
-      imp_dbh->bind_type_guessing = bool_value;
+      imp_dbh->bind_comment_placeholders = bool_value;
     else if (kl == strlen("mariadb_enable_utf8") && strEQ(key, "mariadb_enable_utf8"))
       imp_dbh->enable_utf8 = bool_value;
     else if (kl == strlen("mariadb_enable_utf8mb4") && strEQ(key, "mariadb_enable_utf8mb4"))
