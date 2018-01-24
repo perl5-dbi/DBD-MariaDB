@@ -587,7 +587,7 @@ quote(dbh, str, type=NULL)
 	XSRETURN(1);
     }
 
-void mariadb_fd(dbh)
+void mariadb_sockfd(dbh)
     SV* dbh
   PPCODE:
     {
