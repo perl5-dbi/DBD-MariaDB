@@ -3020,12 +3020,13 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       }
       break;
   }
-  if (strncmp(key, "mariadb_", strlen("mariadb_")) == 0) {
-    key = key+strlen("mariadb_");
-    kl = kl-strlen("mariadb_");
-  }
 
-  /* MONTY:  Check if kl should not be used or used everywhere */
+  if (strncmp(key, "mariadb_", strlen("mariadb_")) != 0)
+    return Nullsv;
+
+  key += strlen("mariadb_");
+  kl -= strlen("mariadb_");
+
   switch(*key) {
   case 'a':
     if (kl == strlen("auto_reconnect") && strEQ(key, "auto_reconnect"))
