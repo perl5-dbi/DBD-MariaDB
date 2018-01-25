@@ -39,7 +39,7 @@ sub driver{
 
     if (!$methods_are_installed) {
 	local $SIG{__WARN__} = sub {}; # disable warning: method name prefix 'mariadb_' is not associated with a registered driver
-	DBD::MariaDB::db->install_method('mariadb_fd');
+	DBD::MariaDB::db->install_method('mariadb_sockfd');
 	DBD::MariaDB::db->install_method('mariadb_async_result');
 	DBD::MariaDB::db->install_method('mariadb_async_ready');
 	DBD::MariaDB::st->install_method('mariadb_async_result');
@@ -128,8 +128,6 @@ sub connect {
     $username ||= '';
     $password ||= '';
     $attrhash ||= {};
-    $attrhash->{mariadb_conn_attrs} ||= {};
-    $attrhash->{mariadb_conn_attrs}->{'program_name'} ||= $0;
 
     # create a 'blank' dbh
     my($this, $privateAttrHash) = (undef, $attrhash);
@@ -2070,13 +2068,13 @@ setting the 'async' attribute to a true value in the L<DBI/do> method,
 or in the L<DBI/prepare> method.  Statements created with 'async' set to
 true in prepare always run their queries asynchronously when L<DBI/execute>
 is called.  The driver also offers three additional methods:
-C<mariadb_async_result>, C<mariadb_async_ready>, and C<mariadb_fd>.
+C<mariadb_async_result>, C<mariadb_async_ready>, and C<mariadb_sockfd>.
 C<mariadb_async_result> returns what do or execute would have; that is, the
 number of rows affected.  C<mariadb_async_ready> returns true if
 C<mariadb_async_result> will not block, and zero otherwise.  They both return
 C<undef> if that handle was not created with 'async' set to true
 or if an asynchronous query was not started yet.
-C<mariadb_fd> returns the file descriptor number for the MySQL connection; you
+C<mariadb_sockfd> returns the file descriptor number for the MySQL connection; you
 can use this in an event loop.
 
 Here's an example of how to use the asynchronous query interface:

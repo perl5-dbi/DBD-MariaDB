@@ -265,6 +265,7 @@ struct imp_dbh_st {
     dbih_dbc_t com;         /*  MUST be first element in structure   */
 
     MYSQL *pmysql;
+    bool connected;          /* Set to true after DBI->connect finished */
     bool has_transactions;   /*  boolean indicating support for
 			     *  transactions, currently always  TRUE for MySQL
 			     */
