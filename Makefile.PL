@@ -54,8 +54,11 @@ Getopt::Long::GetOptions(
     "nofoundrows!",
     "embedded=s",
     "mysql_config=s",
+    "mariadb_config=s",
     "force-embedded",
     ) || die Usage();
+
+$opt->{mysql_config} = delete $opt->{mariadb_config} if exists $opt->{mariadb_config};
 
 my $source = {};
 
@@ -86,15 +89,22 @@ MSG
   }
   else
   {
-    if (! defined `mysql_config`)
+    if (defined `mariadb_config`)
+    {
+      $opt->{'mysql_config'} = "mariadb_config";
+    }
+    elsif (defined `mysql_config`)
+    {
+      $opt->{'mysql_config'} = "mysql_config";
+    }
+    else
     {
       print <<MSG;
 
-Cannot find the file 'mysql_config'! Your execution PATH doesn't seem
-not contain the path to mysql_config. Resorting to guessed values!
+Cannot find the file 'mariadb_config' nor 'mysql_config'! Your execution PATH doesn't seem
+not contain the path to mariadb_config or mysql_config. Resorting to guessed values!
 MSG
     }
-    $opt->{'mysql_config'} = "mysql_config";
   }
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
@@ -511,15 +521,15 @@ Usage: perl $0 [options]
 Possible options are:
 
   --cflags=<flags>       Use <flags> for running the C compiler; defaults
-                         to the value of "mysql_config --cflags" or a guessed
+                         to the value of "mariadb_config --cflags" or a guessed
                          value
   --libs=<libs>          Use <libs> for running the linker; defaults
-                         to the value of "mysql_config --libs" or a gussed
+                         to the value of "mariadb_config --libs" or a gussed
                          value
-  --force-embedded       Build version of driver supporting mysqlEmb
+  --force-embedded       Build version of driver supporting MariaDBEmb
   --embedded=<libs>      Use these libs when building the embedded version of
                          DBD (with --force-embedded). Defaults to the value of
-                         "mysql_config --embedded".
+                         "mariadb_config --embedded".
   --testdb=<db>          Use the database <db> for running the test suite;
                          defaults to $TESTDB
   --testuser=<user>      Use the username <user> for running the test suite;
@@ -530,8 +540,9 @@ Possible options are:
                          test suite; defaults to localhost.
   --testport=<port>      Use <port> as the port number of the database;
                          by default the port number is chosen from the
-                         mysqlclient library
-  --mysql_config=<path>  Specify <path> for mysql_config script
+                         mariadb/mysqlclient library
+  --mariadb_config       Synonym for --mysql_config, override it
+  --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --nocatchstderr        Suppress using the "myld" script that redirects
                          STDERR while running the linker.
   --nofoundrows          Change the behavior of \$sth->rows() so that it
@@ -548,13 +559,13 @@ Possible options are:
   --help                 Print this message and exit
 
 All options may be configured on the command line. If they are
-not present on the command line, then mysql_config is called (if
+not present on the command line, then mariadb_config is called (if
 it can be found):
 
-  mysql_config --cflags
-  mysql_config --libs
-  mysql_config --embedded
-  mysql_config --testdb
+  mariadb_config --cflags
+  mariadb_config --libs
+  mariadb_config --embedded
+  mariadb_config --testdb
 
 and so on. See DBD::MariaDB::INSTALL for details.
 USAGE
