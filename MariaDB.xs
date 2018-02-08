@@ -335,7 +335,7 @@ do(dbh, statement, attr=Nullsv, ...)
   mariadb_dr_get_statement(aTHX_ statement, enable_utf8, &str_ptr, &slen);
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /*
-   * Globaly enabled using of server side prepared statement
+   * Globally enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
    * to use server side prepared statement mechanism by adding
    * 'mariadb_server_prepare' attribute to do() method localy:
