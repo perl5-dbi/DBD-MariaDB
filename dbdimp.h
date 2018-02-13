@@ -396,8 +396,7 @@ struct imp_sth_st {
  *
  * These defines avoid name clashes for multiple statically linked DBD's	*/
 #define dbd_init		mariadb_dr_init
-#define dbd_db_login		mariadb_db_login
-#define dbd_db_do		mariadb_db_do
+#define dbd_db_login6_sv	mariadb_db_login6_sv
 #define dbd_db_commit		mariadb_db_commit
 #define dbd_db_rollback		mariadb_db_rollback
 #define dbd_db_disconnect	mariadb_db_disconnect

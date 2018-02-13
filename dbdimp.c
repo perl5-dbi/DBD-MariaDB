@@ -2610,13 +2610,13 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
 /**************************************************************************
  *
- *  Name:    mariadb_db_login
+ *  Name:    mariadb_db_login6_sv
  *
  *  Purpose: Called for connecting to a database and logging in.
  *
  *  Input:   dbh - database handle being initialized
  *           imp_dbh - drivers private database handle data
- *           dbname - the database we want to log into; may be like
+ *           dsn - the database we want to log into; may be like
  *               "dbname:host" or "dbname:host:port"
  *           user - user name to connect as
  *           password - password to connect with
@@ -2626,20 +2626,25 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
  *
  **************************************************************************/
 
-int mariadb_db_login(SV* dbh, imp_dbh_t* imp_dbh, char* dbname, char* user,
-		 char* password) {
+int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *password, SV *attribs)
+{
 #ifdef dTHR
   dTHR;
 #endif
   dTHX; 
   D_imp_xxh(dbh);
+  PERL_UNUSED_ARG(attribs);
+
+  SvGETMAGIC(dsn);
+  SvGETMAGIC(user);
+  SvGETMAGIC(password);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
 		  "imp_dbh->connect: dsn = %s, uid = %s, pwd = %s\n",
-		  dbname ? dbname : "NULL",
-		  user ? user : "NULL",
-		  password ? password : "NULL");
+                  SvOK(dsn) ? neatsvpv(dsn, 0) : "NULL",
+                  SvOK(user) ? neatsvpv(user, 0) : "NULL",
+                  SvOK(password) ? neatsvpv(password, 0) : "NULL");
 
   imp_dbh->stats.auto_reconnects_ok= 0;
   imp_dbh->stats.auto_reconnects_failed= 0;
