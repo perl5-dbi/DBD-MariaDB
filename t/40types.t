@@ -3,6 +3,7 @@ use warnings;
 
 use B qw(svref_2object SVf_IOK SVf_NOK SVf_POK SVf_IVisUV);
 use Test::More;
+use Test::Deep;
 use DBI;
 use DBI::Const::GetInfoType;
 use lib '.', 't';
@@ -75,7 +76,7 @@ ok($sth->execute(), "inserting data");
 ok($sth->finish);
 
 my $ret = $dbh->selectall_arrayref("SELECT * FROM t1");
-is_deeply($ret, [ [2.1],  [-1] ]);
+cmp_deeply($ret, [ [num(2.1, 0.00001)], [num(-1, 0.00001)] ]);
 
 $sv = svref_2object(\$ret->[0]->[0]);
 ok($sv->FLAGS & SVf_NOK, "scalar is double");
