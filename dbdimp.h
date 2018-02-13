@@ -396,6 +396,7 @@ struct imp_sth_st {
  *
  * These defines avoid name clashes for multiple statically linked DBD's	*/
 #define dbd_init		mariadb_dr_init
+#define dbd_discon_all		mariadb_dr_discon_all
 #define dbd_db_login6_sv	mariadb_db_login6_sv
 #define dbd_db_commit		mariadb_db_commit
 #define dbd_db_rollback		mariadb_db_rollback
@@ -403,6 +404,7 @@ struct imp_sth_st {
 #define dbd_db_destroy		mariadb_db_destroy
 #define dbd_db_STORE_attrib	mariadb_db_STORE_attrib
 #define dbd_db_FETCH_attrib	mariadb_db_FETCH_attrib
+#define dbd_db_last_insert_id   mariadb_db_last_insert_id
 #define dbd_st_prepare_sv	mariadb_st_prepare_sv
 #define dbd_st_execute		mariadb_st_execute
 #define dbd_st_fetch		mariadb_st_fetch
@@ -412,11 +414,6 @@ struct imp_sth_st {
 #define dbd_st_STORE_attrib	mariadb_st_STORE_attrib
 #define dbd_st_FETCH_attrib	mariadb_st_FETCH_attrib
 #define dbd_bind_ph		mariadb_st_bind_ph
-#define dbd_discon_all		mariadb_dr_discon_all
-
-#ifdef DBD_MYSQL_INSERT_ID_IS_GOOD /* prototype was broken in some versions of dbi */
-#define dbd_db_last_insert_id   mariadb_db_last_insert_id
-#endif
 
 #include <dbd_xsh.h>
 
