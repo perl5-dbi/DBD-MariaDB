@@ -29,6 +29,8 @@ perl:
 
 matrix:
   include:
+    - perl: "5.8.1"
+      env: DBI_VERSION=1.608
     - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22
     - perl: "5.22"
@@ -279,6 +281,7 @@ before_install:
 
 install:
   - perlbrew install-cpanm --force --notest
+  - if [ -n "$DBI_VERSION" ]; then cpanm --quiet --notest DBI@$DBI_VERSION; fi
   - cpanm --quiet --notest --skip-satisfied DBI Devel::CheckLib
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
   - if [ -n "$DB" ]; then

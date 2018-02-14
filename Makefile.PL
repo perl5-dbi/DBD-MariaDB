@@ -259,7 +259,6 @@ if ($^O eq 'VMS') {
   $cflags = "\$(DBI_INSTARCH_DIR),$opt->{'cflags'}";
 }
 $cflags .= " -DDBD_MYSQL_WITH_SSL" if !$opt->{'nossl'};
-$cflags .= " -DDBD_MYSQL_INSERT_ID_IS_GOOD" if $DBI::VERSION > 1.42;
 $cflags .= " -DDBD_MYSQL_NO_CLIENT_FOUND_ROWS" if $opt->{'nofoundrows'};
 $cflags .= " -g ";
 my %o = ( 'NAME' => 'DBD::MariaDB',
@@ -395,7 +394,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
   $o{'AUTHOR'} = 'Patrick Galbraith <patg@patg.net>';
   $o{'ABSTRACT'} =
     'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)';
-  $o{'PREREQ_PM'} = { 'DBI' => 1.609 };
+  $o{'PREREQ_PM'} = { 'DBI' => 1.608 };
   %o=(%o,
     LICENSE => 'perl',
     MIN_PERL_VERSION => '5.008001',
@@ -494,7 +493,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
                        'Test::Deep'   => 0,
                        'Time::HiRes'  => 0,
     },
-    CONFIGURE_REQUIRES => { 'DBI' => '1.609',
+    CONFIGURE_REQUIRES => { 'DBI' => '1.608',
                             'Data::Dumper' => 0,
                             'Devel::CheckLib' => '1.09',
                             'ExtUtils::MakeMaker' => 0,
