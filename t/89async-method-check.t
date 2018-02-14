@@ -11,8 +11,11 @@ require 'lib.pl';
 
 my @common_safe_methods = qw/
 can                    err   errstr    parse_trace_flag    parse_trace_flags
-private_attribute_info trace trace_msg visit_child_handles
+private_attribute_info trace trace_msg
 /;
+
+# Not all DBI versions support method visit_child_handles
+push @common_safe_methods, 'visit_child_handles' if DBI::db->can("visit_child_handles");
 
 my @db_safe_methods   = (@common_safe_methods, qw/
 clone mariadb_async_ready
