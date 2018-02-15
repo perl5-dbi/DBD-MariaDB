@@ -2285,7 +2285,7 @@ MYSQL *mariadb_dr_connect(
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_optional", strlen("mariadb_ssl_optional"), FALSE)) && *svp)
 	      ssl_enforce = !SvTRUE(*svp);
 
-#if defined(DBD_MYSQL_WITH_SSL) && !defined(DBD_MYSQL_EMBEDDED) && \
+#if !defined(DBD_MYSQL_EMBEDDED) && \
     (defined(CLIENT_SSL) || (MYSQL_VERSION_ID >= 40000))
 	    char *client_key = NULL;
 	    char *client_cert = NULL;
