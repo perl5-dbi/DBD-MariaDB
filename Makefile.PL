@@ -63,8 +63,8 @@ my $source = {};
   if ($opt->{'mysql_config'}) {
     $source->{'mysql_config'} = "User's choice";
   }
-  if (!$opt->{'mysql_config'} && $ENV{DBD_MYSQL_CONFIG}) {
-     $opt->{'mysql_config'} = $ENV{DBD_MYSQL_CONFIG};
+  if (!$opt->{'mysql_config'} && $ENV{DBD_MARIADB_CONFIG}) {
+     $opt->{'mysql_config'} = $ENV{DBD_MARIADB_CONFIG};
      $source->{'mysql_config'} = 'environment';
   }
   if ($opt->{'mysql_config'})
@@ -616,8 +616,8 @@ sub Configure {
     # First check environment variables
     my $normparam = uc($param);
     $normparam =~ tr/-/_/;
-    if (defined($ENV{'DBD_MYSQL_'.$normparam})) {
-        $opt->{$param} = $ENV{'DBD_MYSQL_'.$normparam};
+    if (defined($ENV{'DBD_MARIADB_'.$normparam})) {
+        $opt->{$param} = $ENV{'DBD_MARIADB_'.$normparam};
         $source->{$param} = 'environment';
     }
 

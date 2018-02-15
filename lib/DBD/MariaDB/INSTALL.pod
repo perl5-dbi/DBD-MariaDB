@@ -220,16 +220,16 @@ For ease of use, you can set environment variables for
 DBD::MariaDB installation. You can set any or all of the options, and
 export them by putting them in your .bashrc or the like:
 
-    export DBD_MYSQL_CFLAGS=-I/usr/local/mysql/include/mysql
-    export DBD_MYSQL_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
-    export DBD_MYSQL_EMBEDDED=
-    export DBD_MYSQL_CONFIG=mysql_config
-    export DBD_MYSQL_NOCATCHSTDERR=0
-    export DBD_MYSQL_TESTDB=test
-    export DBD_MYSQL_TESTHOST=localhost
-    export DBD_MYSQL_TESTPASSWORD=s3kr1+
-    export DBD_MYSQL_TESTPORT=3306
-    export DBD_MYSQL_TESTUSER=me
+    export DBD_MARIADB_CFLAGS=-I/usr/local/mysql/include/mysql
+    export DBD_MARIADB_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
+    export DBD_MARIADB_EMBEDDED=
+    export DBD_MARIADB_CONFIG=mysql_config
+    export DBD_MARIADB_NOCATCHSTDERR=0
+    export DBD_MARIADB_TESTDB=test
+    export DBD_MARIADB_TESTHOST=localhost
+    export DBD_MARIADB_TESTPASSWORD=s3kr1+
+    export DBD_MARIADB_TESTPORT=3306
+    export DBD_MARIADB_TESTUSER=me
 
 The most useful may be the host, database, port, socket, user, and password.
 

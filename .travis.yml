@@ -309,24 +309,24 @@ install:
 
 before_script:
   - if [ -n "$DB" ]; then
-      export DBD_MYSQL_TESTUSER=msandbox ;
-      export DBD_MYSQL_TESTPASSWORD=msandbox ;
-      export DBD_MYSQL_TESTHOST=127.0.0.1 ;
-      export DBD_MYSQL_TESTPORT=3310 ;
+      export DBD_MARIADB_TESTUSER=msandbox ;
+      export DBD_MARIADB_TESTPASSWORD=msandbox ;
+      export DBD_MARIADB_TESTHOST=127.0.0.1 ;
+      export DBD_MARIADB_TESTPORT=3310 ;
     elif [ -n "$CONC_DB" ]; then
-      export DBD_MYSQL_TESTHOST=127.0.0.1 ;
-      export DBD_MYSQL_TESTPORT=3306 ;
+      export DBD_MARIADB_TESTHOST=127.0.0.1 ;
+      export DBD_MARIADB_TESTPORT=3306 ;
     fi
   - if [ -n "$CONC_DB" ]; then
       if [ -x $HOME/conc/bin/mysql_config ]; then
-        export DBD_MYSQL_CONFIG="$HOME/conc/bin/mysql_config" ;
+        export DBD_MARIADB_CONFIG="$HOME/conc/bin/mysql_config" ;
       else
-        export DBD_MYSQL_CFLAGS="-I`dirname $INCLUDE_PATH`" ;
-        export DBD_MYSQL_LIBS="-L`dirname $LIB_PATH` -l`echo $LIB_PATH | sed 's/.*\/lib//;s/\.so//'`" ;
-        export DBD_MYSQL_CONFIG="skip" ;
+        export DBD_MARIADB_CFLAGS="-I`dirname $INCLUDE_PATH`" ;
+        export DBD_MARIADB_LIBS="-L`dirname $LIB_PATH` -l`echo $LIB_PATH | sed 's/.*\/lib//;s/\.so//'`" ;
+        export DBD_MARIADB_CONFIG="skip" ;
       fi ;
     elif [ -n "$DB" ]; then
-      export DBD_MYSQL_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
+      export DBD_MARIADB_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
     fi
   - export HARNESS_OPTIONS=j1
   - export RELEASE_TESTING=1
