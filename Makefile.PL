@@ -217,8 +217,6 @@ assert_lib(
 
 print "Looks good.\n\n";
 
-sleep 1;
-
 my $fileName = $@ ?
   "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
