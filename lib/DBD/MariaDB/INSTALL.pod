@@ -336,12 +336,6 @@ Host name or IP number of the test database; defaults to localhost.
 
 Port number of the test database
 
-=item ps-protcol=1 or 0
-
-Whether to run the test suite using server prepared statements or driver
-emulated prepared statements. ps-protocol=1 means use server prepare,
-ps-protocol=0 means driver emulated.
-
 =item cflags
 
 This is a list of flags that you want to give to the C compiler.

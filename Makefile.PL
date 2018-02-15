@@ -46,7 +46,6 @@ Getopt::Long::GetOptions(
     "cflags=s",
     "libs=s",
     "verbose",
-    "ps-protocol",
     "bind-type-guessing",
     "nocatchstderr",
     "embedded=s",
@@ -106,7 +105,7 @@ MSG
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
                     cflags embedded libs nocatchstderr
-                    ps-protocol bind-type-guessing force-embedded/)
+                    bind-type-guessing force-embedded/)
 {
   Configure($opt, $source, $key);
 }
@@ -222,10 +221,7 @@ print "Looks good.\n\n";
 sleep 1;
 
 my $dsn= '';
-if (exists $opt->{'ps-protocol'}) {
-  $dsn = "\$::test_dsn .= \";mariadb_server_prepare=1\";\n";
-}
-elsif (exists $opt->{'bind-type-guessing'}) {
+if (exists $opt->{'bind-type-guessing'}) {
     $dsn= "\$::test_dsn .= \";mariadb_bind_type_guessing=1\";\n";
 }
 my $fileName = $@ ?
@@ -538,9 +534,6 @@ Possible options are:
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --nocatchstderr        Suppress using the "myld" script that redirects
                          STDERR while running the linker.
-  --ps-protocol          Toggle the use of driver emulated prepared statements
-                         prepare, requires MySQL server >= 4.1.3 for
-                         server side prepared statements, off by default
   --bind-type-guessing   Toggle the use of driver attribute mariadb_bind_type_guessing
                          This feature makes it so driver-emulated prepared statements
                          try to "guess" if a value being bound is numeric, in which
@@ -577,10 +570,6 @@ USAGE
 sub Configure {
     my($opt, $source, $param) = @_;
     if ($param eq 'bind-type-guessing') {
-        $source->{$param}= ($opt->{$param}) ? "User's choice" : 'default';
-        return;
-    }
-    if ($param eq 'ps-protocol') {
         $source->{$param}= ($opt->{$param}) ? "User's choice" : 'default';
         return;
     }
