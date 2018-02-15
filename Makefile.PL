@@ -46,7 +46,6 @@ Getopt::Long::GetOptions(
     "cflags=s",
     "libs=s",
     "verbose",
-    "bind-type-guessing",
     "nocatchstderr",
     "embedded=s",
     "mysql_config=s",
@@ -105,7 +104,7 @@ MSG
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
                     cflags embedded libs nocatchstderr
-                    bind-type-guessing force-embedded/)
+                    force-embedded/)
 {
   Configure($opt, $source, $key);
 }
@@ -220,10 +219,6 @@ print "Looks good.\n\n";
 
 sleep 1;
 
-my $dsn= '';
-if (exists $opt->{'bind-type-guessing'}) {
-    $dsn= "\$::test_dsn .= \";mariadb_bind_type_guessing=1\";\n";
-}
 my $fileName = $@ ?
   "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
@@ -241,7 +236,6 @@ my $fileName = $@ ?
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
-              $dsn .
 	      "} 1;\n"))  &&
   close(FILE))  ||  die "Failed to create $fileName: $!";
 
@@ -534,10 +528,6 @@ Possible options are:
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --nocatchstderr        Suppress using the "myld" script that redirects
                          STDERR while running the linker.
-  --bind-type-guessing   Toggle the use of driver attribute mariadb_bind_type_guessing
-                         This feature makes it so driver-emulated prepared statements
-                         try to "guess" if a value being bound is numeric, in which
-                         case, quotes will not be put around the value.
   --help                 Print this message and exit
 
 All options may be configured on the command line. If they are
@@ -569,10 +559,6 @@ USAGE
 
 sub Configure {
     my($opt, $source, $param) = @_;
-    if ($param eq 'bind-type-guessing') {
-        $source->{$param}= ($opt->{$param}) ? "User's choice" : 'default';
-        return;
-    }
     if (defined($opt->{$param}) and length($opt->{$param})) {
         $source->{$param} = "User's choice";
         return;
