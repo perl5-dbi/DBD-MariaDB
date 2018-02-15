@@ -1903,11 +1903,7 @@ MYSQL *mariadb_dr_connect(
     }
 #endif
 
-#ifdef DBD_MYSQL_NO_CLIENT_FOUND_ROWS
-    client_flag = 0;
-#else
     client_flag = CLIENT_FOUND_ROWS;
-#endif
 
 #ifdef MARIADB_PACKAGE_VERSION
     {

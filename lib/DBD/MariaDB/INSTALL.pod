@@ -225,7 +225,6 @@ export them by putting them in your .bashrc or the like:
     export DBD_MYSQL_EMBEDDED=
     export DBD_MYSQL_CONFIG=mysql_config
     export DBD_MYSQL_NOCATCHSTDERR=0
-    export DBD_MYSQL_NOFOUNDROWS=0
     export DBD_MYSQL_TESTDB=test
     export DBD_MYSQL_TESTHOST=localhost
     export DBD_MYSQL_TESTPASSWORD=s3kr1+

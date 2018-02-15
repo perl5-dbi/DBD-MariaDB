@@ -49,7 +49,6 @@ Getopt::Long::GetOptions(
     "ps-protocol",
     "bind-type-guessing",
     "nocatchstderr",
-    "nofoundrows!",
     "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
@@ -106,7 +105,7 @@ MSG
   }
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
-                    cflags embedded libs nocatchstderr nofoundrows
+                    cflags embedded libs nocatchstderr
                     ps-protocol bind-type-guessing force-embedded/)
 {
   Configure($opt, $source, $key);
@@ -255,7 +254,6 @@ my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
 if ($^O eq 'VMS') {
   $cflags = "\$(DBI_INSTARCH_DIR),$opt->{'cflags'}";
 }
-$cflags .= " -DDBD_MYSQL_NO_CLIENT_FOUND_ROWS" if $opt->{'nofoundrows'};
 $cflags .= " -g ";
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
@@ -540,9 +538,6 @@ Possible options are:
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --nocatchstderr        Suppress using the "myld" script that redirects
                          STDERR while running the linker.
-  --nofoundrows          Change the behavior of \$sth->rows() so that it
-  			 returns the number of rows physically modified
-			 instead of the rows matched
   --ps-protocol          Toggle the use of driver emulated prepared statements
                          prepare, requires MySQL server >= 4.1.3 for
                          server side prepared statements, off by default
@@ -675,7 +670,7 @@ perl Makefile.PL --testuser=username
       $opt->{$param} = $user;
 	  $source->{$param} = 'guessed';
     }
-    elsif ($param eq "nocatchstderr" || $param eq "nofoundrows") {
+    elsif ($param eq "nocatchstderr") {
       $source->{$param} = "default";
       $opt->{$param} = 0;
     }
