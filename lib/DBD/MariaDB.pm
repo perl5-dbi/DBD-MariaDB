@@ -386,15 +386,6 @@ sub table_info ($) {
   return $sth;
 }
 
-sub _ListTables {
-  my $dbh = shift;
-  if (!$DBD::MariaDB::QUIET) {
-    Carp::carp "_ListTables is deprecated, use \$dbh->tables()";
-  }
-  return map { $_ =~ s/.*\.//; $_ } $dbh->tables();
-}
-
-
 sub column_info {
   my ($dbh, $catalog, $schema, $table, $column) = @_;
 
