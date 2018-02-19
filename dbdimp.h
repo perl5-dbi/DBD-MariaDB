@@ -41,6 +41,10 @@
 #define PERL_STATIC_INLINE static
 #endif
 
+#ifndef SSize_t_MAX
+#define SSize_t_MAX (SSize_t)(~(Size_t)0 >> 1)
+#endif
+
 /* PERL_UNUSED_ARG does not exist prior to perl 5.9.3 */
 #ifndef PERL_UNUSED_ARG
 #  if defined(lint) && defined(S_SPLINT_S) /* www.splint.org */
@@ -405,6 +409,7 @@ struct imp_sth_st {
 #define dbd_db_STORE_attrib	mariadb_db_STORE_attrib
 #define dbd_db_FETCH_attrib	mariadb_db_FETCH_attrib
 #define dbd_db_last_insert_id   mariadb_db_last_insert_id
+#define dbd_db_data_sources	mariadb_db_data_sources
 #define dbd_st_prepare_sv	mariadb_st_prepare_sv
 #define dbd_st_execute		mariadb_st_execute
 #define dbd_st_fetch		mariadb_st_fetch
