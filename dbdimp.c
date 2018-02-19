@@ -3198,9 +3198,8 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   case 'e':
     if (strEQ(key, "errno"))
       result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
-    else if ( strEQ(key, "error") || strEQ(key, "errmsg"))
+    else if (strEQ(key, "error"))
     {
-    /* Note that errmsg is obsolete, as of 2.09! */
       const char* msg = mysql_error(imp_dbh->pmysql);
       result= sv_2mortal(newSVpvn(msg, strlen(msg)));
       if (enable_utf8)
@@ -3287,13 +3286,6 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
         sv_2mortal(newSViv((IV) imp_dbh->pmysql->net.fd)) : &PL_sv_undef;
     else if (strEQ(key, "stat"))
     {
-      const char* stats = mysql_stat(imp_dbh->pmysql);
-      result= stats ?
-        sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
-    }
-    else if (strEQ(key, "stats"))
-    {
-      /* Obsolete, as of 2.09 */
       const char* stats = mysql_stat(imp_dbh->pmysql);
       result= stats ?
         sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
