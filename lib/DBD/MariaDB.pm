@@ -1259,11 +1259,6 @@ There are many benefits to using server side prepare statements, mostly if you a
 performing many inserts because of that fact that a single statement is prepared
 to accept multiple insert values.
 
-To make sure that the 'make test' step tests whether server prepare works, you just
-need to export the env variable MYSQL_SERVER_PREPARE:
-
-  export MYSQL_SERVER_PREPARE=1
-
 Please note that MariaDB or MySQL server cannot prepare or execute some prepared statements.
 In this case DBD::MariaDB fallbacks to normal non-prepared statement and tries again.
 

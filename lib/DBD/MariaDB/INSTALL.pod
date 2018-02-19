@@ -220,18 +220,16 @@ For ease of use, you can set environment variables for
 DBD::MariaDB installation. You can set any or all of the options, and
 export them by putting them in your .bashrc or the like:
 
-    export DBD_MYSQL_CFLAGS=-I/usr/local/mysql/include/mysql
-    export DBD_MYSQL_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
-    export DBD_MYSQL_EMBEDDED=
-    export DBD_MYSQL_CONFIG=mysql_config
-    export DBD_MYSQL_NOCATCHSTDERR=0
-    export DBD_MYSQL_NOFOUNDROWS=0
-    export DBD_MYSQL_NOSSL=
-    export DBD_MYSQL_TESTDB=test
-    export DBD_MYSQL_TESTHOST=localhost
-    export DBD_MYSQL_TESTPASSWORD=s3kr1+
-    export DBD_MYSQL_TESTPORT=3306
-    export DBD_MYSQL_TESTUSER=me
+    export DBD_MARIADB_CFLAGS=-I/usr/local/mysql/include/mysql
+    export DBD_MARIADB_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
+    export DBD_MARIADB_EMBEDDED=
+    export DBD_MARIADB_CONFIG=mysql_config
+    export DBD_MARIADB_NOCATCHSTDERR=0
+    export DBD_MARIADB_TESTDB=test
+    export DBD_MARIADB_TESTHOST=localhost
+    export DBD_MARIADB_TESTPASSWORD=s3kr1+
+    export DBD_MARIADB_TESTPORT=3306
+    export DBD_MARIADB_TESTUSER=me
 
 The most useful may be the host, database, port, socket, user, and password.
 
@@ -337,12 +335,6 @@ Host name or IP number of the test database; defaults to localhost.
 =item testport
 
 Port number of the test database
-
-=item ps-protcol=1 or 0
-
-Whether to run the test suite using server prepared statements or driver
-emulated prepared statements. ps-protocol=1 means use server prepare,
-ps-protocol=0 means driver emulated.
 
 =item cflags
 
@@ -528,11 +520,6 @@ default.
 Attempting to connect to a server that requires an encrypted connection without
 first having L<DBD::MariaDB> compiled with the C<--ssl> option will result in
 an error that makes things appear as if your password is incorrect.
-
-If you want to compile L<DBD::MariaDB> without SSL support, which you might
-probably only want if you for some reason can't install libssl headers, you
-can do this by passing the C<--nossl> option to Makefile.PL or by setting the
-DBD_MYSQL_NOSSL environment variable to '1'.
 
 
 =head1 MARIADB NATIVE CLIENT INSTALLATION

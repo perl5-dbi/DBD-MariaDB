@@ -46,12 +46,7 @@ Getopt::Long::GetOptions(
     "cflags=s",
     "libs=s",
     "verbose",
-    "ps-protocol",
-    "bind-type-guessing",
     "nocatchstderr",
-    "ssl",
-    "nossl",
-    "nofoundrows!",
     "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
@@ -68,8 +63,8 @@ my $source = {};
   if ($opt->{'mysql_config'}) {
     $source->{'mysql_config'} = "User's choice";
   }
-  if (!$opt->{'mysql_config'} && $ENV{DBD_MYSQL_CONFIG}) {
-     $opt->{'mysql_config'} = $ENV{DBD_MYSQL_CONFIG};
+  if (!$opt->{'mysql_config'} && $ENV{DBD_MARIADB_CONFIG}) {
+     $opt->{'mysql_config'} = $ENV{DBD_MARIADB_CONFIG};
      $source->{'mysql_config'} = 'environment';
   }
   if ($opt->{'mysql_config'})
@@ -108,8 +103,8 @@ MSG
   }
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
-                    cflags embedded libs nocatchstderr nossl nofoundrows
-                    ps-protocol bind-type-guessing force-embedded/)
+                    cflags embedded libs nocatchstderr
+                    force-embedded/)
 {
   Configure($opt, $source, $key);
 }
@@ -190,7 +185,6 @@ I will use the following settings for compiling and testing:
 MSG
 
 delete $opt->{'help'};
-delete $opt->{'ssl'};
 my $keylen = 0;
 for my $key (keys %$opt)
 {
@@ -223,15 +217,6 @@ assert_lib(
 
 print "Looks good.\n\n";
 
-sleep 1;
-
-my $dsn= '';
-if (exists $opt->{'ps-protocol'}) {
-  $dsn = "\$::test_dsn .= \";mariadb_server_prepare=1\";\n";
-}
-elsif (exists $opt->{'bind-type-guessing'}) {
-    $dsn= "\$::test_dsn .= \";mariadb_bind_type_guessing=1\";\n";
-}
 my $fileName = $@ ?
   "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
@@ -249,7 +234,6 @@ my $fileName = $@ ?
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
-              $dsn .
 	      "} 1;\n"))  &&
   close(FILE))  ||  die "Failed to create $fileName: $!";
 
@@ -258,8 +242,6 @@ my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
 if ($^O eq 'VMS') {
   $cflags = "\$(DBI_INSTARCH_DIR),$opt->{'cflags'}";
 }
-$cflags .= " -DDBD_MYSQL_WITH_SSL" if !$opt->{'nossl'};
-$cflags .= " -DDBD_MYSQL_NO_CLIENT_FOUND_ROWS" if $opt->{'nofoundrows'};
 $cflags .= " -g ";
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
@@ -544,17 +526,6 @@ Possible options are:
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --nocatchstderr        Suppress using the "myld" script that redirects
                          STDERR while running the linker.
-  --nofoundrows          Change the behavior of \$sth->rows() so that it
-  			 returns the number of rows physically modified
-			 instead of the rows matched
-  --ps-protocol          Toggle the use of driver emulated prepared statements
-                         prepare, requires MySQL server >= 4.1.3 for
-                         server side prepared statements, off by default
-  --bind-type-guessing   Toggle the use of driver attribute mariadb_bind_type_guessing
-                         This feature makes it so driver-emulated prepared statements
-                         try to "guess" if a value being bound is numeric, in which
-                         case, quotes will not be put around the value.
-  --nossl                Disable SSL support
   --help                 Print this message and exit
 
 All options may be configured on the command line. If they are
@@ -586,14 +557,6 @@ USAGE
 
 sub Configure {
     my($opt, $source, $param) = @_;
-    if ($param eq 'bind-type-guessing') {
-        $source->{$param}= ($opt->{$param}) ? "User's choice" : 'default';
-        return;
-    }
-    if ($param eq 'ps-protocol') {
-        $source->{$param}= ($opt->{$param}) ? "User's choice" : 'default';
-        return;
-    }
     if (defined($opt->{$param}) and length($opt->{$param})) {
         $source->{$param} = "User's choice";
         return;
@@ -651,8 +614,8 @@ sub Configure {
     # First check environment variables
     my $normparam = uc($param);
     $normparam =~ tr/-/_/;
-    if (defined($ENV{'DBD_MYSQL_'.$normparam})) {
-        $opt->{$param} = $ENV{'DBD_MYSQL_'.$normparam};
+    if (defined($ENV{'DBD_MARIADB_'.$normparam})) {
+        $opt->{$param} = $ENV{'DBD_MARIADB_'.$normparam};
         $source->{$param} = 'environment';
     }
 
@@ -680,7 +643,7 @@ perl Makefile.PL --testuser=username
       $opt->{$param} = $user;
 	  $source->{$param} = 'guessed';
     }
-    elsif ($param eq "nocatchstderr" || $param eq "nofoundrows") {
+    elsif ($param eq "nocatchstderr") {
       $source->{$param} = "default";
       $opt->{$param} = 0;
     }
@@ -752,13 +715,6 @@ section "Linker flags" or type
 
   perl Makefile.PL --help
 MSG
-    }
-    elsif ($param eq "nossl") {
-      $source->{$param} = $opt->{$param} ? "User's choice" : "default";
-      $opt->{$param} = $opt->{$param} || 0;
-    }
-    elsif ($param eq "ssl") {
-        # default, for legacy reasons
     }
     else {
       die "Unknown configuration parameter: $param";
