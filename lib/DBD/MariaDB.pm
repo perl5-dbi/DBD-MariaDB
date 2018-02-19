@@ -179,22 +179,6 @@ sub data_sources {
     return $dbh->data_sources();
 }
 
-sub admin {
-    my($drh) = shift;
-    my($command) = shift;
-    my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : undef;
-    my($host, $port) = DBD::MariaDB->_OdbcParseHost(shift(@_));
-    my($user) = shift;
-    my($password) = shift;
-
-    $drh->func(undef, $command,
-	       $dbname,
-	       $host,
-	       $port,
-	       $user, $password, '_admin_internal');
-}
-
 package DBD::MariaDB::db; # ====== DATABASE ======
 use strict;
 use DBI qw(:sql_types);
@@ -255,15 +239,6 @@ sub ANSI2db {
     my $self = shift;
     my $type = shift;
     return $DBD::MariaDB::db::ANSI2db{"$type"};
-}
-
-sub admin {
-    my($dbh) = shift;
-    my($command) = shift;
-    my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : undef;
-    $dbh->{'Driver'}->func($dbh, $command, $dbname, undef, undef, undef,
-			   '_admin_internal');
 }
 
 sub table_info ($) {
