@@ -95,6 +95,7 @@ sub _OdbcParse($$$) {
 sub _OdbcParseHost ($$) {
     my($class, $dsn) = @_;
     my($hash) = {};
+    return (undef, undef) unless defined $dsn;
     $class->_OdbcParse($dsn, $hash, ['host', 'port']);
     ($hash->{'host'}, $hash->{'port'});
 }
@@ -123,12 +124,6 @@ sub connect {
     my($port);
     my($cWarn);
     my $connect_ref= { 'Name' => $dsn };
-    my $dbi_imp_data;
-
-    # Avoid warnings for undefined values
-    $username ||= '';
-    $password ||= '';
-    $attrhash ||= {};
 
     # create a 'blank' dbh
     my($this, $privateAttrHash) = (undef, $attrhash);
@@ -141,9 +136,9 @@ sub connect {
     DBD::MariaDB->_OdbcParse($dsn, $privateAttrHash,
 				    ['database', 'host', 'port']);
 
-
-      $dbi_imp_data = delete $attrhash->{dbi_imp_data};
-      $connect_ref->{'dbi_imp_data'} = $dbi_imp_data;
+    if (defined $attrhash) {
+      $connect_ref->{'dbi_imp_data'} = $attrhash->{dbi_imp_data};
+    }
 
     if (!defined($this = DBI::_new_dbh($drh,
             $connect_ref,
@@ -164,12 +159,12 @@ sub connect {
 sub data_sources {
     my($self) = shift;
     my($attributes) = shift;
-    my($host, $port, $user, $password, $utf8) = ('', '', '', '');
+    my($host, $port, $user, $password, $utf8);
     if ($attributes) {
-      $host = $attributes->{host} || '';
-      $port = $attributes->{port} || '';
-      $user = $attributes->{user} || '';
-      $password = $attributes->{password} || '';
+      $host = $attributes->{host};
+      $port = $attributes->{port};
+      $user = $attributes->{user};
+      $password = $attributes->{password};
       $utf8 = $attributes->{utf8} || $attributes->{mariadb_enable_utf8};
     }
     my(@dsn) = $self->func($host, $port, $user, $password, $utf8, '_ListDBs');
@@ -185,15 +180,15 @@ sub admin {
     my($drh) = shift;
     my($command) = shift;
     my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : '';
-    my($host, $port) = DBD::MariaDB->_OdbcParseHost(shift(@_) || '');
-    my($user) = shift || '';
-    my($password) = shift || '';
+	shift : undef;
+    my($host, $port) = DBD::MariaDB->_OdbcParseHost(shift(@_));
+    my($user) = shift;
+    my($password) = shift;
 
     $drh->func(undef, $command,
-	       $dbname || '',
-	       $host || '',
-	       $port || '',
+	       $dbname,
+	       $host,
+	       $port,
 	       $user, $password, '_admin_internal');
 }
 
@@ -263,8 +258,8 @@ sub admin {
     my($dbh) = shift;
     my($command) = shift;
     my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : '';
-    $dbh->{'Driver'}->func($dbh, $command, $dbname, '', '', '',
+	shift : undef;
+    $dbh->{'Driver'}->func($dbh, $command, $dbname, undef, undef, undef,
 			   '_admin_internal');
 }
 
