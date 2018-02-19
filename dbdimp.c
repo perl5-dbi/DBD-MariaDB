@@ -1796,7 +1796,7 @@ MYSQL *mariadb_dr_connect(
 		  " uid = %s, pwd = %s\n",
 		  host ? host : "NULL", portNr,
 		  user ? user : "NULL",
-		  password ? password : "NULL");
+		  !password ? "NULL" : !password[0] ? "" : "****");
 
   {
 
@@ -2587,7 +2587,7 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 		  "host = %s, port = %s\n",
 		  dbname ? dbname : "NULL",
 		  user ? user : "NULL",
-		  password ? password : "NULL",
+		  !password ? "NULL" : !password[0] ? "" : "****",
 		  host ? host : "NULL",
 		  port ? port : "NULL");
 
@@ -2638,7 +2638,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 		  "imp_dbh->connect: dsn = %s, uid = %s, pwd = %s\n",
                   SvOK(dsn) ? neatsvpv(dsn, 0) : "NULL",
                   SvOK(user) ? neatsvpv(user, 0) : "NULL",
-                  SvOK(password) ? neatsvpv(password, 0) : "NULL");
+                  !SvOK(password) ? "NULL" : !(SvPV_nolen(password))[0] ? "''" : "****");
 
   imp_dbh->stats.auto_reconnects_ok= 0;
   imp_dbh->stats.auto_reconnects_failed= 0;
