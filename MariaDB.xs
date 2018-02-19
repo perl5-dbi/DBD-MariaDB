@@ -461,54 +461,6 @@ more_results(sth)
     OUTPUT:
       RETVAL
 
-int
-dataseek(sth, pos)
-    SV* sth
-    int pos
-  PROTOTYPE: $$
-  CODE:
-{
-  D_imp_sth(sth);
-#if (MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION)
-  if (imp_sth->use_server_side_prepare)
-  {
-    if (imp_sth->use_mysql_use_result || 1)
-    {
-      if (imp_sth->result && imp_sth->stmt)
-      {
-        mysql_stmt_data_seek(imp_sth->stmt, pos);
-        imp_sth->fetch_done=0;
-        RETVAL = 1;
-      }
-      else
-      {
-        RETVAL = 0;
-        mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
-      }
-    }
-    else
-    {
-      RETVAL = 0;
-      mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "No result set" ,NULL);
-    }
-  }
-  else
-  {
-#endif
-  if (imp_sth->result) {
-    mysql_data_seek(imp_sth->result, pos);
-    RETVAL = 1;
-  } else {
-    RETVAL = 0;
-    mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE, "Statement not active" ,NULL);
-  }
-#if (MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION) 
-  }
-#endif
-}
-  OUTPUT:
-    RETVAL
-
 void
 rows(sth)
     SV* sth
