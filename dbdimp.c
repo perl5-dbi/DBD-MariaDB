@@ -1696,20 +1696,6 @@ static void error_unknown_attribute(SV *h, const char *key)
   mariadb_dr_do_error(h, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
 }
 
-#if defined(DBD_MYSQL_EMBEDDED)
- #define DBD_MYSQL_NAMESPACE "DBD::MariaDBEmb::QUIET";
-#else
- #define DBD_MYSQL_NAMESPACE "DBD::MariaDB::QUIET";
-#endif
-
-#define doquietwarn(s) \
-  { \
-    SV* sv = get_sv(DBD_MYSQL_NAMESPACE, FALSE);  \
-    if (!sv  ||  !SvTRUE(sv)) { \
-      warn s; \
-    } \
-  }
-
 static void set_ssl_error(MYSQL *sock, const char *error)
 {
   const char *prefix = "SSL connection error: ";
