@@ -266,10 +266,6 @@ sub admin {
 			   '_admin_internal');
 }
 
-sub _SelectDB ($$) {
-    Carp::croak "_SelectDB is removed from this module; use DBI->connect instead.";
-}
-
 sub table_info ($) {
   my ($dbh, $catalog, $schema, $table, $type, $attr) = @_;
   local $dbh->{mariadb_server_prepare} = 0;
