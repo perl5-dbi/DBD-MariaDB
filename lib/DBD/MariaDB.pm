@@ -157,39 +157,26 @@ sub connect {
 }
 
 sub data_sources {
-    my($self) = shift;
-    my($attributes) = shift;
-    my($host, $port, $user, $password, $utf8);
-    if ($attributes) {
-      $host = $attributes->{host};
-      $port = $attributes->{port};
-      $user = $attributes->{user};
-      $password = $attributes->{password};
-      $utf8 = $attributes->{utf8} || $attributes->{mariadb_enable_utf8};
-    }
-    my(@dsn) = $self->func($host, $port, $user, $password, $utf8, '_ListDBs');
-    $utf8 = $utf8 ? ";mariadb_enable_utf8=1" : "";
-    my($i);
-    for ($i = 0;  $i < @dsn;  $i++) {
-	$dsn[$i] = "DBI:MariaDB:$dsn[$i]$utf8";
-    }
-    @dsn;
-}
+    my ($self, $attributes) = @_;
 
-sub admin {
-    my($drh) = shift;
-    my($command) = shift;
-    my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : undef;
-    my($host, $port) = DBD::MariaDB->_OdbcParseHost(shift(@_));
-    my($user) = shift;
-    my($password) = shift;
+    my ($host, $port, $username, $password);
+    if (defined $attributes)
+    {
+        %{$attributes} = %{$attributes};
+        $host = delete $attributes->{host};
+        $port = delete $attributes->{port};
+        $username = delete $attributes->{user};
+        $password = delete $attributes->{password};
+    }
 
-    $drh->func(undef, $command,
-	       $dbname,
-	       $host,
-	       $port,
-	       $user, $password, '_admin_internal');
+    my $dsn = '';
+    $dsn .= ";host=$host" if defined $host;
+    $dsn .= ";port=$port" if defined $port;
+
+    my $dbh = $self->connect($dsn, $username, $password, $attributes);
+    return unless defined $dbh;
+
+    return $dbh->data_sources();
 }
 
 package DBD::MariaDB::db; # ====== DATABASE ======
@@ -252,19 +239,6 @@ sub ANSI2db {
     my $self = shift;
     my $type = shift;
     return $DBD::MariaDB::db::ANSI2db{"$type"};
-}
-
-sub admin {
-    my($dbh) = shift;
-    my($command) = shift;
-    my($dbname) = ($command eq 'createdb'  ||  $command eq 'dropdb') ?
-	shift : undef;
-    $dbh->{'Driver'}->func($dbh, $command, $dbname, undef, undef, undef,
-			   '_admin_internal');
-}
-
-sub _SelectDB ($$) {
-    Carp::croak "_SelectDB is removed from this module; use DBI->connect instead.";
 }
 
 sub table_info ($) {
@@ -386,15 +360,6 @@ sub table_info ($) {
 
   return $sth;
 }
-
-sub _ListTables {
-  my $dbh = shift;
-  if (!$DBD::MariaDB::QUIET) {
-    Carp::carp "_ListTables is deprecated, use \$dbh->tables()";
-  }
-  return map { $_ =~ s/.*\.//; $_ } $dbh->tables();
-}
-
 
 sub column_info {
   my ($dbh, $catalog, $schema, $table, $column) = @_;
@@ -804,7 +769,7 @@ sub get_info {
 }
 
 BEGIN {
-    my @needs_async_check = qw/data_sources quote_identifier begin_work/;
+    my @needs_async_check = qw/quote_identifier begin_work/;
 
     foreach my $method (@needs_async_check) {
         no strict 'refs';
@@ -1375,29 +1340,19 @@ This returns:
 
 =back
 
-=back
+=item B<data_sources>
 
+    use DBI;
+    my @dsns = DBI->data_sources("MariaDB", { host => $hostname,
+                                              port => $port,
+                                              user => $username,
+                                              password => $password,
+                                              ...
+                                            });
 
-=head2 Private MetaData Methods
-
-=over
-
-=item B<ListDBs>
-
-    my $drh = DBI->install_driver("MariaDB");
-    @dbs = $drh->func("$hostname:$port", '_ListDBs');
-    @dbs = $drh->func($hostname, $port, '_ListDBs');
-    @dbs = $dbh->func('_ListDBs');
-
-Returns a list of all databases managed by the MariaDB or MySQL server
-running on C<$hostname>, port C<$port>. This is a legacy
-method.  Instead, you should use the portable method
-
-    @dbs = DBI->data_sources("MariaDB");
-
-or with connection arguments
-
-    @dbs = DBI->data_sources("MariaDB", {"host" => $host, "port" => $port, "user" => $user, "password" => $pass, "utf8" => 1});
+Returns a list of all databases in dsn format suitable for L</connect> method,
+managed by the MariaDB or MySQL server. It accepts all attributes from
+L</connect> method.
 
 =back
 

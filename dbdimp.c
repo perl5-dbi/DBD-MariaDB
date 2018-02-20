@@ -1696,20 +1696,6 @@ static void error_unknown_attribute(SV *h, const char *key)
   mariadb_dr_do_error(h, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
 }
 
-#if defined(DBD_MYSQL_EMBEDDED)
- #define DBD_MYSQL_NAMESPACE "DBD::MariaDBEmb::QUIET";
-#else
- #define DBD_MYSQL_NAMESPACE "DBD::MariaDB::QUIET";
-#endif
-
-#define doquietwarn(s) \
-  { \
-    SV* sv = get_sv(DBD_MYSQL_NAMESPACE, FALSE);  \
-    if (!sv  ||  !SvTRUE(sv)) { \
-      warn s; \
-    } \
-  }
-
 static void set_ssl_error(MYSQL *sock, const char *error)
 {
   const char *prefix = "SSL connection error: ";
@@ -3198,9 +3184,8 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   case 'e':
     if (strEQ(key, "errno"))
       result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
-    else if ( strEQ(key, "error") || strEQ(key, "errmsg"))
+    else if (strEQ(key, "error"))
     {
-    /* Note that errmsg is obsolete, as of 2.09! */
       const char* msg = mysql_error(imp_dbh->pmysql);
       result= sv_2mortal(newSVpvn(msg, strlen(msg)));
       if (enable_utf8)
@@ -3291,13 +3276,6 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       result= stats ?
         sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
     }
-    else if (strEQ(key, "stats"))
-    {
-      /* Obsolete, as of 2.09 */
-      const char* stats = mysql_stat(imp_dbh->pmysql);
-      result= stats ?
-        sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
-    }
     else if (kl == 14 && strEQ(key,"server_prepare"))
         result= sv_2mortal(newSViv((IV) imp_dbh->use_server_side_prepare));
     else if (kl == 31 && strEQ(key, "server_prepare_disable_fallback"))
@@ -3328,6 +3306,93 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   }
 
   return result;
+}
+
+AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
+{
+  dTHX;
+  SV *sv;
+  AV *av;
+  SSize_t i;
+  MYSQL_RES *res;
+  MYSQL_ROW row;
+  MYSQL_FIELD* field;
+  my_ulonglong num_rows;
+  unsigned long *lengths;
+  const char *prefix = "dbi:MariaDB:";
+  const Size_t prefix_len = strlen(prefix);
+  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
+  PERL_UNUSED_ARG(attr);
+
+  ASYNC_CHECK_RETURN(dbh, NULL);
+
+  av = newAV();
+  sv_2mortal((SV *)av);
+
+  res = mysql_list_dbs(imp_dbh->pmysql, NULL);
+  if (!res && mariadb_db_reconnect(dbh))
+    res = mysql_list_dbs(imp_dbh->pmysql, NULL);
+  if (!res)
+  {
+    mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
+                        mysql_error(imp_dbh->pmysql),
+                        mysql_sqlstate(imp_dbh->pmysql));
+    return NULL;
+  }
+
+  field = mysql_fetch_field(res);
+  if (!field)
+  {
+    mariadb_dr_do_error(dbh, JW_ERR_NO_RESULT, "No result list of databases", NULL);
+    return NULL;
+  }
+
+  num_rows = mysql_num_rows(res);
+  if (num_rows == 0)
+    return av;
+
+  /* av_extend() extends array to size: arg+1 */
+  --num_rows;
+
+  /* Truncate list when is too big */
+  if (num_rows > SSize_t_MAX)
+    num_rows = SSize_t_MAX;
+
+  av_extend(av, num_rows);
+
+  i = 0;
+  while ((row = mysql_fetch_row(res)))
+  {
+    if (!row[0])
+      continue;
+
+    lengths = mysql_fetch_lengths(res);
+
+    /* newSV automatically adds extra byte for '\0' and does not set POK */
+    sv = newSV(prefix_len + lengths[0]);
+    av_store(av, i, sv);
+
+    memcpy(SvPVX(sv), prefix, prefix_len);
+    memcpy(SvPVX(sv)+prefix_len, row[0], lengths[0]);
+
+    SvPOK_on(sv);
+    SvCUR_set(sv, prefix_len + lengths[0]);
+
+#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
+    if (enable_utf8 && charsetnr_is_utf8(field->charsetnr))
+#else
+    if (enable_utf8 && !(field->flags & BINARY_FLAG))
+#endif
+      sv_utf8_decode(sv);
+
+    if ((my_ulonglong)i == num_rows+1)
+      break;
+
+    i++;
+  }
+
+  mysql_free_result(res);
+  return av;
 }
 
 static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
