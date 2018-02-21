@@ -507,6 +507,6 @@ PERL_STATIC_INLINE bool charsetnr_is_utf8(unsigned int id)
   /* See mysql source code for all utf8 ids: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
   /* Some utf8 ids (selected at mysql compile time) can be retrieved by: SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
   return (id == 33 || id == 45 || id == 46 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 277) || (id >= 576 && id <= 578)
-      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1283 || id == 1248 || id == 1270);
+      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
 }
 #endif
