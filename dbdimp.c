@@ -509,6 +509,26 @@ static bool skip_attribute(const char *key)
   return !(strnNE(key,"private_",8) && strnNE(key,"dbd_",4) && strnNE(key,"dbi_",4) && !isUPPER(*key));
 }
 
+#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
+PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
+{
+  /* See mysql source code for all utf8 ids: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
+  /* Some utf8 ids (selected at mysql compile time) can be retrieved by: SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
+  return (id == 33 || id == 45 || id == 46 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 277) || (id >= 576 && id <= 578)
+      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
+}
+#endif
+
+PERL_STATIC_INLINE bool mysql_field_is_utf8(MYSQL_FIELD *field)
+{
+#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
+    return mysql_charsetnr_is_utf8(field->charsetnr);
+#else
+    /* On older versions we treat all non-binary data as strings encoded in UTF-8 */
+    return !(field->flags & BINARY_FLAG);
+#endif
+}
+
 #if defined(DBD_MYSQL_EMBEDDED)
 /* 
   count embedded options
@@ -3498,11 +3518,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
     SvPOK_on(sv);
     SvCUR_set(sv, prefix_len + lengths[0]);
 
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-    if (charsetnr_is_utf8(field->charsetnr))
-#else
-    if (!(field->flags & BINARY_FLAG))
-#endif
+    if (mysql_field_is_utf8(field))
       sv_utf8_decode(sv);
 
     if ((my_ulonglong)i == num_rows+1)
@@ -4618,11 +4634,8 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
                       fields[i].length, fields[i].max_length, fields[i].type, fields[i].flags, fields[i].charsetnr);
 #endif
       }
-#if MYSQL_VERSION_ID < FIELD_CHARSETNR_VERSION 
-      fbh->flags     = fields[i].flags;
-#else
-      fbh->charsetnr = fields[i].charsetnr;
-#endif
+
+      fbh->is_utf8 = mysql_field_is_utf8(&fields[i]);
 
       buffer->buffer_type= fields[i].type;
       buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? 1 : 0;
@@ -5020,23 +5033,14 @@ process:
 	  /* ChopBlanks server-side prepared statement */
           if (ChopBlanks)
           {
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-            if (fbh->charsetnr != 63)
-#else
-            if (!(fbh->flags & BINARY_FLAG))
-#endif
+            if (fbh->is_utf8)
               while (len && fbh->data[len-1] == ' ') { --len; }
           }
 	  /* END OF ChopBlanks */
 
           SvUTF8_off(sv);
           sv_setpvn(sv, fbh->data, len);
-
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION 
-          if (charsetnr_is_utf8(fbh->charsetnr))
-#else
-          if (!(fbh->flags & BINARY_FLAG))
-#endif
+          if (fbh->is_utf8)
             sv_utf8_decode(sv);
           break;
         }
@@ -5137,11 +5141,7 @@ process:
         STRLEN len= lengths[i];
         if (ChopBlanks)
         {
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-          if (fields[i].charsetnr != 63)
-#else
-          if (!(fields[i].flags & BINARY_FLAG))
-#endif
+          if (mysql_field_is_utf8(&fields[i]))
           while (len && col[len-1] == ' ')
           {	--len; }
         }
@@ -5177,11 +5177,7 @@ process:
 
         default:
           /* TEXT columns can be returned as MYSQL_TYPE_BLOB, so always check for charset */
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-          if (charsetnr_is_utf8(fields[i].charsetnr))
-#else
-          if (!(fields[i].flags & BINARY_FLAG))
-#endif
+          if (mysql_field_is_utf8(&fields[i]))
             sv_utf8_decode(sv);
           break;
         }
@@ -5496,21 +5492,13 @@ static SV* mariadb_st_fetch_internal(
       switch(what) {
       case AV_ATTRIB_NAME:
         sv= newSVpvn(curField->name, strlen(curField->name));
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-        if (charsetnr_is_utf8(curField->charsetnr))
-#else
-        if (!(curField->flags & BINARY_FLAG))
-#endif
+        if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
       case AV_ATTRIB_TABLE:
         sv= newSVpvn(curField->table, strlen(curField->table));
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-        if (charsetnr_is_utf8(curField->charsetnr))
-#else
-        if (!(curField->flags & BINARY_FLAG))
-#endif
+        if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
