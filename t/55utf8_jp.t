@@ -97,7 +97,7 @@ like($DBI::errstr, $jpnErr);
 like($dbh->errstr, $jpnErr);
 
 SKIP : {
-  skip "Perl 5.13.1 and DBI 1.635 are required due to bug RT 102404", 2 unless $] >= 5.013001 and eval "use DBI 1.635; 1;";
+  skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", 2 unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
   like($warn, $jpnErr);
   like($dieerr, $jpnErr);
 }
