@@ -18,16 +18,13 @@ if (!MinimumVersion($dbh, '4.1')) {
     plan skip_all =>
         "SKIP TEST: You must have MySQL version 4.1 or greater for this test to run"
 }
-plan tests => 288*2;
+plan tests => 152*2;
 
 $dbh->do("CREATE TEMPORARY TABLE t(i INT)");
 
-foreach my $mariadb_enable_utf8 (0, 1) {
-    $dbh->{mariadb_enable_utf8} = $mariadb_enable_utf8;
     foreach my $mariadb_server_prepare (0, 1) {
         $dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
         foreach my $val ('1', 1, 1.0, 1.1, undef, 'XX', "\N{U+100}") {
-            next if defined $val and (my $tmp1 = $val) eq "\N{U+100}" and not $mariadb_enable_utf8;
             {
                 my $param_str = $val;
                 tie my $param, 'TieScalarCounter', $param_str;
@@ -124,7 +121,6 @@ foreach my $mariadb_enable_utf8 (0, 1) {
             }
         }
     }
-}
 
 $dbh->disconnect();
 
