@@ -213,6 +213,24 @@ matrix:
 #      env: CONC_DB=MariaDB CONC_VERSION=3.0.1-beta
     - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=3.0.2
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.0.96 CONC_DB=MariaDB CONC_VERSION=2.3.4
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.1.72 CONC_DB=MariaDB CONC_VERSION=3.0.2
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.40 CONC_DB=MySQL CONC_VERSION=6.1.11
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.3-rc CONC_DB=MariaDB CONC_VERSION=2.3.0
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.3 CONC_DB=MySQL CONC_VERSION=6.0.0-beta
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.3 CONC_DB=MySQL CONC_VERSION=6.1.11
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.3-rc CONC_DB=MariaDB CONC_VERSION=3.0.2
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.38 CONC_DB=MySQL CONC_VERSION=6.1.11
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.1.30 CONC_DB=MariaDB CONC_VERSION=3.0.2
 
 addons:
   apt:
