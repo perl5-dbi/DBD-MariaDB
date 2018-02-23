@@ -1488,110 +1488,6 @@ You can also set or unset the C<mariadb_use_result> setting on your statement
 handle, when creating the statement handle or after it has been created.
 See L</"STATEMENT HANDLES">.
 
-=item mariadb_enable_utf8
-
-This attribute affects input data from DBI (statement and bind parameters) and
-output data from the MariaDB or MySQL server.  Applies also for database, table and column
-names and also for warning and error messages from MariaDB or MySQL server.
-
-If used as a part of the call to C<connect()> then it issues the command
-C<SET NAMES utf8>.
-
-When set, any statement or bind parameter which is not of binary type is
-automatically encoded to UTF-8 octets before being sent to the MariaDB or MySQL server.
-Any retrieved MySQL data with a charset of C<utf8> or C<utf8mb4> from a textual
-column type (char, varchar, etc) is automatically UTF-8 decoded and returned as
-a perl Unicode scalar (with SvUTF8 flag on).  That enables character semantics
-on those retrieved UTF-8 strings.  The MySQL charset of a retrieved value is
-affected by the last C<SET NAMES> command and also could be affected by the
-database, table and column configuration.  For more information, see the
-I<Character Set Support> chapter in the MySQL manual:
-L<http://dev.mysql.com/doc/refman/5.7/en/charset.html>
-
-When unset and a statement or bind parameter contains a wide Unicode character then
-DBD::MariaDB gives the warning C<Wide character in ... but mariadb_enable_utf8 not set>.
-The MySQL protocol does not support wide characters and so DBD::MariaDB does not know
-how to send a statement with wide characters when C<mariadb_enable_utf8> is not set.
-
-Please note that when C<mariadb_enable_utf8> is set, the input statement and bind
-parameters are encoded to UTF-8 octets even if the current MySQL session charset
-is not C<utf8> or C<utf8mb4>!  You are responsible for calling the C<SET NAMES utf8>
-or C<SET NAMES utf8mb4> command when setting the C<mariadb_enable_utf8> attribute
-B<after> connecting.  The same applies to unsetting the C<mariadb_enable_utf8>
-attribute.  You are responsible for calling C<SET NAMES latin1> (resp. with
-correct charset) and then passing perl scalars in the correct encoding.
-Otherwise strings will be sent to MariaDB or MySQL server incorrectly!
-
-Input bind parameters of binary types (C<SQL_BIT>, C<SQL_BLOB>, C<SQL_BINARY>,
-C<SQL_VARBINARY> and C<SQL_LONGVARBINARY>) are not touched regardless of the
-C<mariadb_enable_utf8> attribute state.  They are treated as a sequence of octets
-and sent to the MariaDB or MySQL server as is.  If that bind parameter contains a wide Unicode
-character then DBD::MariaDB gives the warning C<Wide character in binary field ...>
-because binary data is a sequence of octets, not Unicode characters!
-
-Output data fetched from the MariaDB or MySQL server which does not have a C<utf8> or
-C<utf8mb4> charset (so also binary data) is not UTF-8 decoded regardless of the
-C<mariadb_enable_utf8> attribute state.  They are treated as a sequence of octets
-and it is your responsibility to decode them correctly.
-
-B<WARNING>: DBD::mysql has different and buggy behaviour
-when the attribute C<mariadb_enable_utf8> was enabled!  Input statement and bind
-parameters were never encoded to UTF-8 octets and retrieved columns were
-always UTF-8 decoded regardless of the column charset (except binary charsets).
-
-If you need to pass statements or input bind parameters with Unicode characters
-from code which needs to be compatible with DBD::mysql
-and also DBD::MariaDB then you can use "hack" with calling C<utf8::upgrade()>
-function on scalars immediately before passing scalar to DBD::MariaDB.  Calling
-C<utf8::upgrade()> function has absolutely no effect on (correctly) written
-Perl code.  So it is noop for DBD::MariaDB but "hack" fix for DBD::mysql
-which has broken Unicode support.  In same way for binary (byte)
-data can be passed with calling C<utf8::downgrade()> function (it dies on wide
-Unicode strings with codepoints above U+FF).  See following example:
-
-  # check that last name contains LATIN CAPITAL LETTER O WITH STROKE (U+D8)
-  my $statement = "SELECT * FROM users WHERE last_name LIKE '%\x{D8}%' AND first_name = ? AND data = ?";
-
-  my $wide_string_param = "Andr\x{E9}"; # Andre with LATIN SMALL LETTER E WITH ACUTE (U+E9)
-
-  my $byte_param = "\x{D8}\x{A0}\x{39}\x{F8}"; # some bytes (binary data)
-
-  my $dbh = DBI->connect('DBI:MariaDB:database', 'username', 'pass', { mariadb_enable_utf8 => 1 });
-  $dbh->do("SET NAMES utf8mb4") if $dbh->{mariadb_serverversion} >= 50503; # enable 4-byte UTF-8 characters
-
-  utf8::upgrade($statement); # UTF-8 fix for DBD::mysql
-  my $sth = $dbh->prepare($statement);
-
-  utf8::upgrade($wide_string_param); # UTF-8 fix for DBD::mysql
-  $sth->bind_param(1, $wide_string_param);
-
-  utf8::downgrade($byte_param); # byte fix for DBD::mysql
-  $sth->bind_param(2, $byte_param, DBI::SQL_BINARY); # set correct binary type
-
-  $sth->execute();
-
-  my $output = $sth->fetchall_arrayref();
-  # returned data in $output reference should be already UTF-8 decoded
-
-=item mariadb_enable_utf8mb4
-
-Exactly the same as the attribute C<mariadb_enable_utf8>.
-
-Additionally if used as a part of the call to C<connect()> then it issues
-the command C<SET NAMES utf8mb4> instead of C<utf8>.
-
-MySQL's C<utf8mb4> charset is capable of handling 4-byte UTF-8 characters.
-MySQL's C<utf8> charset is capable of handling only up to 3-byte UTF-8
-characters!  See MySQL manual for more information:
-L<http://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html>
-
-You should use MySQL's C<utf8mb4> charset instead of C<utf8> to prevent problems
-with data exchange.  When the C<utf8> charset is used then you are responsible
-for 3-byte UTF-8 sequence checks on input perl scalar strings.  Otherwise MariaDB or MySQL
-server can reject or modify the input statement!
-
-MySQL's C<utf8mb4> charset was introduced in MySQL server version 5.5.3.
-
 =item mariadb_bind_type_guessing
 
 This attribute causes the driver (emulated prepare statements)
@@ -1839,6 +1735,141 @@ The number of warnings generated during execution of the SQL statement.
 This attribute is available on both statement handles and database handles.
 
 =back
+
+=head1 UNICODE SUPPORT
+
+All string orientated variable types (char, varchar, text and similar types) are
+represented by the DBD::MariaDB as Unicode strings according to the standard
+Perl Unicode model. It means that Perl scalars contain Unicode code points and
+not UTF-8 bytes. Internally the DBD::MariaDB uses the MySQL's C<utf8mb4> charset
+for the network communication with MariaDB and MySQL servers. It automatically
+transforms the network MySQL's C<utf8mb4> charset to the Unicode Perl scalars
+and vice-versa.
+
+MySQL's C<utf8mb4> charset for the network communication is configured by
+C<MYSQL_SET_CHARSET_NAME> libmariadb/libmysqlclient C library API which is a
+requirement to have working L<quote|DBI/quote> method and an emulated client
+side placeholders replacement.
+
+Do not try to change network charset (e.g. via SQL command C<SET NAMES>
+manually) to anything different then UTF-8 as it would confuse underlying C
+library and DBD::MariaDB would misbehave (e.g. would lead to broken/insecure
+L<quote|DBI/quote> method or an emulated client side placeholders replacement).
+
+Using a non-UTF-8 charset for a column, table or database is fine because
+MariaDB or MySQL server automatically transforms the storage charset to the
+charset used by the network protocol (C<utf8mb4>). Note that when DBD::MariaDB
+is connecting to the MariaDB or MySQL server it calls SQL command
+C<SET character_set_server = 'utf8mb4'> to ensure that the default charset for
+new databases would be UTF-8. Beware that a default charset for new tables is
+set from a database charset.
+
+In the case MySQL server does not support MySQL's C<utf8mb4> charset for a
+network protocol then DBD::MariaDB would try to use MySQL's C<utf8> charset
+which is a subset of UTF-8 encoding restricted to the 3 byte UTF-8 sequences.
+Support for MySQL's C<utf8mb4> charset was introduced in MySQL server version
+5.5.3.
+
+=head2 Working with binary data
+
+Perl scalars do not distinguish between binary I<byte> orientated buffers and
+I<Unicode> orientated strings. In Perl it is always up to the caller and the
+callee to define in its API if functions and methods expect I<byte> buffers or
+I<Unicode> strings. It is not possible (or rather Perl application should not
+try) to distinguish if Perl scalar contains a I<byte> buffer or I<Unicode>
+string.
+
+When fetching data from MariaDB and MySQL servers, DBD::MariaDB treats all
+fields marked with MySQL's charset C<utf8mb4> (and also C<utf8>) as I<Unicode>
+strings. Everything else is treated as binary I<byte> oriented buffers.
+Therefore, the only difference is that UTF-8 fields are automatically decoded to
+Unicode. Binary blob fields remain untouched and corresponding Perl scalars
+would contain just ordinals C<0..255> (classic sequence of bytes). Unicode
+string scalars would contain sequence of Unicode code points.
+
+There is a small problem with input data, more preciously with SQL statements
+and their bind parameters. By definition a SQL statement is a string and
+therefore it is expected and handled by DBD::MariaDB as a I<Unicode> string (not
+I<byte> oriented buffer). There is no way to treat a SQL statement as a binary,
+but this is not a problem. All SQL commands are encoded in ASCII and all ASCII
+characters are invariants in UTF-8 (have the same representation as a sequence
+of Unicode code points and also when UTF-8 encoded in a byte buffer). For the
+remaining part of a SQL statement, placeholders with bind parameters can and
+should be used.
+
+=head2 Binary parameters
+
+Unfortunately, neither MariaDB nor MySQL server provide any type information for
+prepared SQL statements; therefore, DBD::MariaDB has absolutely no way to know
+if a particular bind parameter for a placeholder should be treated as I<Unicode>
+string or as I<byte> oriented buffer. So Perl applications which use
+DBD::MariaDB must provide information about the correct type.
+
+Moreover, DBI API for L<do|DBI/do>, L<execute|DBI/execute> and all
+L<select*|DBI/selectrow_array> methods binds all parameters as C<SQL_VARCHAR>
+type. Currently it is an API limitation which does not allow to specify the bind
+type. Varchar is a string and so DBD::MariaDB treats all of them as I<Unicode>
+strings.
+
+The only way how to specify a type in DBI is via the L<bind_param|DBI/bind_param>
+method. Its third argument takes C<SQL_*> constant which defines a type for the
+passed bind parameter.
+
+Following type constants are treated as binary by DBD::MariaDB: C<SQL_BIT>,
+C<SQL_BLOB>, C<SQL_BINARY>, C<SQL_VARBINARY>, C<SQL_LONGVARBINARY>.
+
+This approach of handling binary data was implemented in DBD::MariaDB because it
+does not violate how Perl's Unicode model is working, follows exactly DBI API
+documentation, and, more importantly, is how other DBI drivers (including
+L<DBD::Pg> and L<DBD::SQLite>) in their recent versions work. This ensures good
+compatibility for Perl applications which use multiple database backends and
+several DBI drivers.
+
+Please note that the old L<DBD::mysql> driver in version 4.041 works differently
+and has completely broken Unicode support.
+
+To illustrate the usage, see the following example:
+
+  my $sth = $dbh->prepare('INSERT INTO users (id, name, picture) VALUES (?, ?, ?)');
+  $sth->bind_param(1, 10); # Number, 7-bit ASCII values are always in Unicode and binary context
+  $sth->bind_param(2, "Andr\x{E9}"); # Name, may contains Unicode character, in this case U+E9
+  $sth->bind_param(3, "\x{D8}\x{A0}\x{39}\x{F8}", DBI::SQL_BINARY); # Picture, it is a sequence of binary bytes, not Unicode code points
+  $sth->execute();
+
+Explanation: In this case number C<10> and name C<"Andr\x{E9}"> would be
+automatically encoded from Perl Unicode string scalars to MySQL's C<utf8mb4>
+network charset and C<picture> would not be touched as it was bound with the
+C<DBI::SQL_BINARY> type. Note that 7-bit ASCII values are invariants in UTF-8,
+they have the same representations in UTF-8, so both the encoding and decoding
+operations are just identity functions.
+
+This is the preferred and safe way how to work with binary data. It is also
+supported by other DBI drivers, including L<DBD::Pg> and L<DBD::SQLite> (see
+above).
+
+In DBD::MariaDB, there's another specific way how to create a SQL statement with
+binary data: to call the L<quote|DBI/quote> method while specifying a binary
+type. This method takes a bind parameter and properly quotes + escapes it. For
+binary types it converts argument to MySQL's HEX syntax (C<X'...'>) which is a
+pure 7-bit ASCII and therefore invariant for UTF-8. See the following example:
+
+  my $param1 = 10;
+  my $param2 = "Andr\x{E9}";
+  my $param3 = "\x{D8}\x{A0}\x{39}\x{F8}";
+  my $query = 'INSERT INTO users (id, name, picture) VALUES (' .
+                $dbh->quote($param1) . ' ,' .
+                $dbh->quote($param2) . ' ,' .
+                $dbh->quote($param3, DBI::SQL_BINARY) .
+              ')';
+  $dbh->do($query);
+
+The first two parameters are quoted and escaped for a later UTF-8 encoding (to
+MySQL's C<utf8mb4> charset) and the third parameter is quoted and escaped as a
+binary buffer to MySQL's HEX syntax for binary blobs.
+
+This method is not recommended, because quoting, escaping and similar methods
+can easily get written incorrectly and lead to SQL injections and other security
+problems.
 
 =head1 TRANSACTION SUPPORT
 

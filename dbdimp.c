@@ -29,80 +29,6 @@
       return (value);\
   }
 
-PERL_STATIC_INLINE bool str_is_nonascii(const char *str, STRLEN len)
-{
-  STRLEN i;
-  for (i = 0; i < len; ++i)
-    if (!UTF8_IS_INVARIANT(str[i]))
-      return true;
-  return false;
-}
-
-void mariadb_dr_get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len)
-{
-  char *buf;
-  STRLEN len;
-  int is_utf8;
-
-  buf = SvPV_nomg(param, len);
-  is_utf8 = SvUTF8(param);
-  if (enable_utf8 && !is_binary && !is_utf8 && str_is_nonascii(buf, len))
-  {
-    param = sv_2mortal(newSVpvn(buf, len));
-    buf = SvPVutf8(param, len);
-  }
-  else if ((!enable_utf8 || is_binary) && is_utf8)
-  {
-    param = sv_2mortal(newSVpvn(buf, len));
-    SvUTF8_on(param);
-    buf = SvPVutf8(param, len);
-    if (!utf8_to_bytes((U8 *)buf, &len))
-    {
-      /* restore previous value of len because utf8_to_bytes set it to -1 */
-      len = SvCUR(param);
-      if (is_binary)
-        warn("Wide character in binary field %d", field);
-      else
-        warn("Wide character in field %d but mariadb_enable_utf8 not set", field);
-      /* and use utf8 representation like print without :utf8 layer */
-    }
-  }
-
-  *out_buf = buf;
-  *out_len = len;
-}
-
-void mariadb_dr_get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len)
-{
-  char *buf;
-  STRLEN len;
-  int is_utf8;
-
-  buf = SvPV_nomg(statement, len);
-  is_utf8 = SvUTF8(statement);
-  if (enable_utf8 && !is_utf8 && str_is_nonascii(buf, len))
-  {
-    statement = sv_2mortal(newSVpvn(buf, len));
-    buf = SvPVutf8(statement, len);
-  }
-  else if (!enable_utf8 && is_utf8)
-  {
-    statement = sv_2mortal(newSVpvn(buf, len));
-    SvUTF8_on(statement);
-    buf = SvPVutf8(statement, len);
-    if (!utf8_to_bytes((U8 *)buf, &len))
-    {
-      /* restore previous value of len because utf8_to_bytes set it to -1 */
-      len = SvCUR(statement);
-      warn("Wide character in statement but mariadb_enable_utf8 not set");
-      /* and use utf8 representation like print without :utf8 layer */
-    }
-  }
-
-  *out_buf = buf;
-  *out_len = len;
-}
-
 static int parse_number(char *string, STRLEN len, char **end);
 
 DBISTATE_DECLARE;
@@ -583,6 +509,27 @@ static bool skip_attribute(const char *key)
   return !(strnNE(key,"private_",8) && strnNE(key,"dbd_",4) && strnNE(key,"dbi_",4) && !isUPPER(*key));
 }
 
+#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
+PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
+{
+  /* See mysql source code for all utf8 ids: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
+  /* And MariaDB Connector/C source code: sed -n '/mariadb_compiled_charsets\[\]/,/^};$/{/utf8/I{s%,.*%%;s%\s*{\s*%%p}}' libmariadb/ma_charset.c | sort -n */
+  /* Some utf8 ids (selected at mysql compile time) can be retrieved by: SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
+  return (id == 33 || id == 45 || id == 46 || id == 56 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 277) || (id >= 576 && id <= 578)
+      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
+}
+#endif
+
+PERL_STATIC_INLINE bool mysql_field_is_utf8(MYSQL_FIELD *field)
+{
+#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
+    return mysql_charsetnr_is_utf8(field->charsetnr);
+#else
+    /* On older versions we treat all non-binary data as strings encoded in UTF-8 */
+    return !(field->flags & BINARY_FLAG);
+#endif
+}
+
 #if defined(DBD_MYSQL_EMBEDDED)
 /* 
   count embedded options
@@ -650,7 +597,7 @@ int print_embedded_options(PerlIO *stream, char ** options_list, int options_cou
 char **fill_out_embedded_options(PerlIO *stream,
                                  char *options,
                                  int options_type,
-                                 int slen, int cnt)
+                                 STRLEN slen, int cnt)
 {
   int  ind, len;
   char c;
@@ -961,29 +908,28 @@ static char *parse_params(
   return(salloc);
 }
 
-static void bind_param(imp_sth_ph_t *ph, SV *value, IV sql_type, int field, bool enable_utf8)
+static void bind_param(imp_sth_ph_t *ph, SV *value, IV sql_type)
 {
   dTHX;
   char *buf;
-  bool is_binary;
 
   if (ph->value)
+  {
     Safefree(ph->value);
-
-  if (SvOK(value))
-  {
-    is_binary = sql_type_is_binary(sql_type);
-    mariadb_dr_get_param(aTHX_ value, field, enable_utf8, is_binary, &buf, &ph->len);
-    ph->value = savepvn(buf, ph->len);
-    ph->utf8 = (enable_utf8 && !is_binary);
-  }
-  else
-  {
     ph->value = NULL;
   }
 
   if (sql_type)
     ph->type = sql_type;
+
+  if (SvOK(value))
+  {
+    if (sql_type_is_binary(ph->type))
+      buf = SvPVbyte_nomg(value, ph->len); /* Ensure that buf is always byte orientated */
+    else
+      buf = SvPVutf8_nomg(value, ph->len); /* Ensure that buf is always UTF-8 encoded */
+    ph->value = savepvn(buf, ph->len);
+  }
 }
 
 static const sql_type_info_t SQL_GET_TYPE_INFO_values[]= {
@@ -1618,21 +1564,8 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
 {
   dTHX;
   D_imp_xxh(h);
-  imp_dbh_t* dbh;
   SV *errstr;
   SV *errstate;
-  bool enable_utf8;
-
-  if (DBIc_TYPE(imp_xxh) == DBIt_DB) {
-      D_imp_dbh(h);
-      dbh = imp_dbh;
-  } else {
-      D_imp_sth(h);
-      D_imp_dbh_from_sth;
-      dbh = imp_dbh;
-  }
-
-  enable_utf8 = (dbh->enable_utf8 || dbh->enable_utf8mb4);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
@@ -1640,8 +1573,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
-  if (enable_utf8)
-    sv_utf8_decode(errstr);
+  sv_utf8_decode(errstr);
 
 #if MYSQL_VERSION_ID >= SQL_STATE_VERSION
   if (sqlstate)
@@ -1653,8 +1585,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
 
   /* NO EFFECT DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr); */
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n",
-    what, rc, SvPV_nolen(errstr));
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %d recorded: %" SVf "\n", rc, SVfARG(errstr));
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- mariadb_dr_do_error\n");
 }
@@ -1663,31 +1594,16 @@ void mariadb_dr_do_warn(SV* h, int rc, char* what)
 {
   dTHX;
   D_imp_xxh(h);
-  imp_dbh_t* dbh;
-  bool enable_utf8;
-
-  if (DBIc_TYPE(imp_xxh) == DBIt_DB) {
-      D_imp_dbh(h);
-      dbh = imp_dbh;
-  } else {
-      D_imp_sth(h);
-      D_imp_dbh_from_sth;
-      dbh = imp_dbh;
-  }
-
-  enable_utf8 = (dbh->enable_utf8 || dbh->enable_utf8mb4);
 
   SV *errstr = DBIc_ERRSTR(imp_xxh);
   sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
-  if (enable_utf8)
-    sv_utf8_decode(errstr);
+  sv_utf8_decode(errstr);
   /* NO EFFECT DBIh_EVENT2(h, WARN_event, DBIc_ERR(imp_xxh), errstr);*/
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s warning %d recorded: %s\n",
-    what, rc, SvPV_nolen(errstr));
-  warn("%s", what);
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "warning %d recorded: %" SVf "\n", rc, SVfARG(errstr));
+  warn("%" SVf, SVfARG(errstr));
 }
 
 static void error_unknown_attribute(SV *h, const char *key)
@@ -1719,6 +1635,11 @@ static void set_ssl_error(MYSQL *sock, const char *error)
 
   sock->net.last_error[prefix_len + error_len] = 0;
 }
+
+#if !defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID < 50700 || MYSQL_VERSION_ID == 60000)
+/* Available only in MySQL client prior to 5.7, declared in header file my_sys.h which cannot be included */
+unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
+#endif
 
 /***************************************************************************
  *
@@ -1755,6 +1676,8 @@ MYSQL *mariadb_dr_connect(
 {
   int portNr;
   unsigned int client_flag;
+  bool reconnect_with_utf8;
+  bool client_supports_utf8mb4;
   MYSQL* result;
   dTHX;
   D_imp_xxh(dbh);
@@ -1795,7 +1718,7 @@ MYSQL *mariadb_dr_connect(
       if (sv  &&  SvROK(sv))
       {
         SV** svp;
-        STRLEN lna;
+        STRLEN options_len;
         char * options;
         int server_args_cnt= 0;
         int server_groups_cnt= 0;
@@ -1815,14 +1738,20 @@ MYSQL *mariadb_dr_connect(
           if ((svp = hv_fetch(hv, "mariadb_embedded_groups", strlen("mariadb_embedded_groups"), FALSE))  &&
               *svp  &&  SvTRUE(*svp))
           {
-            options = SvPV_nomg(*svp, lna);
+            options = SvPVutf8_nomg(*svp, options_len);
+            if (strlen(options) != options_len)
+            {
+              mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED, "mariadb_embedded_groups contains nul character");
+              return NULL;
+            }
+
             imp_drh->embedded.groups=newSVsv(*svp);
 
             if ((server_groups_cnt=count_embedded_options(options)))
             {
               /* number of server_groups always server_groups+1 */
               server_groups=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 0, 
-                                                      (int)lna, ++server_groups_cnt);
+                                                      options_len, ++server_groups_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -1835,13 +1764,19 @@ MYSQL *mariadb_dr_connect(
           if ((svp = hv_fetch(hv, "mariadb_embedded_options", strlen("mariadb_embedded_options"), FALSE))  &&
               *svp  &&  SvTRUE(*svp))
           {
-            options = SvPV_nomg(*svp, lna);
+            options = SvPVutf8_nomg(*svp, options_len);
+            if (strlen(options) != options_len)
+            {
+              mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED, "mariadb_embedded_options contains nul character");
+              return NULL;
+            }
+
             imp_drh->embedded.args=newSVsv(*svp);
 
             if ((server_args_cnt=count_embedded_options(options)))
             {
               /* number of server_options always server_options+1 */
-              server_args=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 1, (int)lna, ++server_args_cnt);
+              server_args=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 1, options_len, ++server_args_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Server options passed to embedded server:\n");
@@ -1938,7 +1873,6 @@ MYSQL *mariadb_dr_connect(
         HV* processed = newHV();
         HE* he;
         SV** svp;
-        STRLEN lna;
 
         sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
 
@@ -1959,7 +1893,15 @@ MYSQL *mariadb_dr_connect(
         if ((svp = hv_fetch(hv, "mariadb_init_command", strlen("mariadb_init_command"), FALSE)) &&
             *svp && SvTRUE(*svp))
         {
-          char* df = SvPV_nomg(*svp, lna);
+          STRLEN len;
+          char* df = SvPVutf8_nomg(*svp, len);
+          if (strlen(df) != len)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_init_command contains nul character");
+            return NULL;
+          }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                            "imp_dbh->mariadb_dr_connect: Setting" \
@@ -2061,7 +2003,15 @@ MYSQL *mariadb_dr_connect(
         if ((svp = hv_fetch(hv, "mariadb_read_default_file", strlen("mariadb_read_default_file"), FALSE)) &&
             *svp  &&  SvTRUE(*svp))
         {
-          char* df = SvPV_nomg(*svp, lna);
+          STRLEN len;
+          char* df = SvPVutf8_nomg(*svp, len);
+          if (strlen(df) != len)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_read_default_file contains nul character");
+            return NULL;
+          }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Reading" \
@@ -2073,7 +2023,15 @@ MYSQL *mariadb_dr_connect(
         if ((svp = hv_fetch(hv, "mariadb_read_default_group", strlen("mariadb_read_default_group"),
                             FALSE))  &&
             *svp  &&  SvTRUE(*svp)) {
-          char* gr = SvPV_nomg(*svp, lna);
+          STRLEN len;
+          char* gr = SvPVutf8_nomg(*svp, len);
+          if (strlen(gr) != len)
+          {
+            sock->net.last_errno = CR_CONNECTION_ERROR;
+            strcpy(sock->net.sqlstate, "HY000");
+            strcpy(sock->net.last_error, "Connection error: mariadb_read_default_group contains nul character");
+            return NULL;
+          }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                     "imp_dbh->mariadb_dr_connect: Using" \
@@ -2090,10 +2048,18 @@ MYSQL *mariadb_dr_connect(
               HE* entry = NULL;
               I32 num_entries = hv_iterinit(attrs);
               while (num_entries && (entry = hv_iternext(attrs))) {
-                  I32 retlen = 0;
-                  char *attr_name = hv_iterkey(entry, &retlen);
+                  I32 attr_name_len = 0;
+                  char *attr_name = hv_iterkey(entry, &attr_name_len);
                   SV *sv_attr_val = hv_iterval(attrs, entry);
-                  char *attr_val  = SvPV(sv_attr_val, lna);
+                  STRLEN attr_val_len;
+                  char *attr_val  = SvPVutf8(sv_attr_val, attr_val_len);
+                  if (strlen(attr_name) != attr_name_len || strlen(attr_val) != attr_val_len)
+                  {
+                    sock->net.last_errno = CR_CONNECTION_ERROR;
+                    strcpy(sock->net.sqlstate, "HY000");
+                    strcpy(sock->net.last_error, "Connection error: mariadb_conn_attrs contains nul character");
+                    return NULL;
+                  }
                   mysql_options4(sock, MYSQL_OPT_CONNECT_ATTR_ADD, attr_name, attr_val);
               }
         #else
@@ -2234,24 +2200,6 @@ MYSQL *mariadb_dr_connect(
                         "imp_dbh->disable_fallback_for_server_prepare: %d\n",
                         imp_dbh->disable_fallback_for_server_prepare);
 
-        hv_store(processed, "mariadb_enable_utf8mb4", strlen("mariadb_enable_utf8mb4"), &PL_sv_yes, 0);
-        hv_store(processed, "mariadb_enable_utf8", strlen("mariadb_enable_utf8"), &PL_sv_yes, 0);
-        if ((svp = hv_fetch(hv, "mariadb_enable_utf8mb4", strlen("mariadb_enable_utf8mb4"), FALSE)) && *svp && SvTRUE(*svp)) {
-          mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8mb4");
-        }
-        else if ((svp = hv_fetch(hv, "mariadb_enable_utf8", strlen("mariadb_enable_utf8"), FALSE)) && *svp) {
-          /* Do not touch imp_dbh->enable_utf8 as we are called earlier
-           * than it is set and mysql_options() must be before:
-           * mysql_real_connect()
-          */
-         mysql_options(sock, MYSQL_SET_CHARSET_NAME,
-                       (SvTRUE(*svp) ? "utf8" : "latin1"));
-         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                         "mysql_options: MYSQL_SET_CHARSET_NAME=%s\n",
-                         (SvTRUE(*svp) ? "utf8" : "latin1"));
-        }
-
         hv_store(processed, "mariadb_ssl", strlen("mariadb_ssl"), &PL_sv_yes, 0);
         hv_store(processed, "mariadb_ssl_optional", strlen("mariadb_ssl_optional"), &PL_sv_yes, 0);
         hv_store(processed, "mariadb_ssl_verify_server_cert", strlen("mariadb_ssl_verify_server_cert"), &PL_sv_yes, 0);
@@ -2274,7 +2222,7 @@ MYSQL *mariadb_dr_connect(
 	    char *ca_file = NULL;
 	    char *ca_path = NULL;
 	    char *cipher = NULL;
-	    STRLEN lna;
+	    STRLEN len = 0;
   #if defined(HAVE_SSL_MODE) || defined(HAVE_SSL_MODE_ONLY_REQUIRED)
 	    unsigned int ssl_mode;
   #endif
@@ -2293,23 +2241,58 @@ MYSQL *mariadb_dr_connect(
 	    }
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_client_key", strlen("mariadb_ssl_client_key"), FALSE)) && *svp)
-	      client_key = SvPV(*svp, lna);
+	    {
+	      client_key = SvPVutf8(*svp, len);
+	      if (strlen(client_key) != len)
+	      {
+	        set_ssl_error(sock, "mariadb_ssl_client_key contains nul character");
+	        return NULL;
+	      }
+	    }
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_client_cert", strlen("mariadb_ssl_client_cert"), FALSE)) &&
                 *svp)
-	      client_cert = SvPV(*svp, lna);
+	    {
+	      client_cert = SvPVutf8(*svp, len);
+	      if (strlen(client_cert) != len)
+	      {
+	        set_ssl_error(sock, "mariadb_ssl_client_cert contains nul character");
+	        return NULL;
+	      }
+	    }
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_ca_file", strlen("mariadb_ssl_ca_file"), FALSE)) &&
 		 *svp)
-	      ca_file = SvPV(*svp, lna);
+	    {
+	      ca_file = SvPVutf8(*svp, len);
+	      if (strlen(ca_file) != len)
+	      {
+	        set_ssl_error(sock, "mariadb_ssl_ca_file contains nul character");
+	        return NULL;
+	      }
+	    }
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_ca_path", strlen("mariadb_ssl_ca_path"), FALSE)) &&
                 *svp)
-	      ca_path = SvPV(*svp, lna);
+	    {
+	      ca_path = SvPVutf8(*svp, len);
+	      if (strlen(ca_path) != len)
+	      {
+	        set_ssl_error(sock, "mariadb_ssl_ca_path contains nul character");
+	        return NULL;
+	      }
+	    }
 
 	    if ((svp = hv_fetch(hv, "mariadb_ssl_cipher", strlen("mariadb_ssl_cipher"), FALSE)) &&
 		*svp)
-	      cipher = SvPV(*svp, lna);
+	    {
+	      cipher = SvPVutf8(*svp, len);
+	      if (strlen(cipher) != len)
+	      {
+	        set_ssl_error(sock, "mariadb_ssl_cipher contains nul character");
+	        return NULL;
+	      }
+	    }
 
 	    mysql_ssl_set(sock, client_key, client_cert, ca_file,
 			  ca_path, cipher);
@@ -2454,8 +2437,88 @@ MYSQL *mariadb_dr_connect(
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
     client_flag|= CLIENT_MULTI_RESULTS;
 #endif
-    result = mysql_real_connect(sock, host, user, password, dbname,
-				portNr, mysql_socket, client_flag);
+
+    /*
+      MySQL's "utf8mb4" charset is capable of handling 4-byte UTF-8 characters.
+      MySQL's "utf8" charset is capable of handling only up to 3-byte UTF-8 characters.
+      MySQL's "utf8mb4" charset was introduced in MySQL server version 5.5.3.
+      If MySQL's "utf8mb4" is not supported by server, fallback to MySQL's "utf8".
+      If MySQL's "utf8mb4" is not supported by client, connect with "utf8" and issue SET NAMES 'utf8mb4'.
+      Some clients do not correct detect in mysql_real_connect() if server supports utf8mb4.
+      To enable UTF-8 storage on server it is needed to configure it via session variable character_set_server.
+      MySQL client prior to 5.7 provides function get_charset_number() to check if charset is supported.
+      If MySQL client does not support specified charset it used to print error message to stdout or stderr.
+      DBD::MariaDB expects that whole communication with server is encoded in UTF-8.
+    */
+#if !defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID < 50700 || MYSQL_VERSION_ID == 60000)
+    client_supports_utf8mb4 = get_charset_number("utf8mb4", MY_CS_PRIMARY) ? TRUE : FALSE;
+#else
+    client_supports_utf8mb4 = TRUE;
+#endif
+    reconnect_with_utf8 = FALSE;
+    if (client_supports_utf8mb4)
+    {
+      mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8mb4");
+      result = mysql_real_connect(sock, host, user, password, dbname,
+                                  portNr, mysql_socket,
+                                  client_flag | CLIENT_REMEMBER_OPTIONS);
+      if (result)
+      {
+        if (mysql_query(result, "SET character_set_server = 'utf8mb4'") != 0)
+        {
+          if (mysql_errno(result) == ER_UNKNOWN_CHARACTER_SET)
+          {
+            if (mysql_query(result, "SET NAMES 'utf8'") != 0 ||
+                mysql_query(result, "SET character_set_server = 'utf8'") != 0)
+            {
+              mariadb_db_disconnect(dbh, imp_dbh);
+              return NULL;
+            }
+          }
+          else
+          {
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return NULL;
+          }
+        }
+      }
+      else
+      {
+        if (mysql_errno(sock) == CR_CANT_READ_CHARSET)
+          reconnect_with_utf8 = TRUE;
+      }
+    }
+    if (!client_supports_utf8mb4 || reconnect_with_utf8)
+    {
+      mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8");
+      result = mysql_real_connect(sock, host, user, password, dbname,
+                                  portNr, mysql_socket, client_flag);
+      if (result)
+      {
+        if (reconnect_with_utf8)
+        {
+          if (mysql_query(result, "SET character_set_server = 'utf8'") != 0)
+          {
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return NULL;
+          }
+        }
+      }
+    }
+    if (result && !client_supports_utf8mb4)
+    {
+      if (mysql_query(result, "SET NAMES 'utf8mb4'") != 0 ||
+          mysql_query(result, "SET character_set_server = 'utf8mb4'") != 0)
+      {
+        if (mysql_errno(result) != ER_UNKNOWN_CHARACTER_SET ||
+            mysql_query(result, "SET character_set_server = 'utf8'") != 0)
+        {
+          mariadb_db_disconnect(dbh, imp_dbh);
+          return NULL;
+        }
+      }
+    }
+
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
 
@@ -2503,9 +2566,13 @@ MYSQL *mariadb_dr_connect(
 /*
   safe_hv_fetch
 */
-static char *safe_hv_fetch(pTHX_ HV *hv, const char *name, int name_length)
+static char *safe_hv_fetch(pTHX_ SV *dbh, imp_dbh_t *imp_dbh, HV *hv, const char *name, int name_length)
 {
-  SV** svp = hv_fetch(hv, name, name_length, FALSE);
+  SV **svp;
+  char *str;
+  STRLEN len;
+
+  svp = hv_fetch(hv, name, name_length, FALSE);
   if (!svp || !*svp)
     return NULL;
 
@@ -2513,7 +2580,48 @@ static char *safe_hv_fetch(pTHX_ HV *hv, const char *name, int name_length)
   if (!SvOK(*svp))
     return NULL;
 
-  return SvPV_nolen(*svp);
+  str = SvPVutf8_nomg(*svp, len);
+  if (strlen(str) != len)
+  {
+    char buffer[sizeof(imp_dbh->pmysql->net.last_error)];
+    const char *prefix = "Connection error: ";
+    const char *suffix = " contains nul character";
+    STRLEN prefix_len, name_len, suffix_len, buffer_size;
+
+    buffer_size = sizeof(buffer);
+
+    prefix_len = strlen(prefix);
+    if (prefix_len > buffer_size - 1)
+      prefix_len = buffer_size - 1;
+
+    suffix_len = strlen(suffix);
+    if (prefix_len + suffix_len > buffer_size - 1)
+      suffix_len = buffer_size - prefix_len - 1;
+
+    name_len = strlen(name);
+    if (prefix_len + name_len + suffix_len > buffer_size - 1)
+      name_len = buffer_size - prefix_len - suffix_len - 1;
+
+    memcpy(buffer, prefix, prefix_len);
+    memcpy(buffer + prefix_len, name, name_len);
+    memcpy(buffer + prefix_len + name_len, suffix, suffix_len);
+    buffer[prefix_len + name_len + suffix_len] = 0;
+
+    if (imp_dbh->pmysql)
+    {
+      imp_dbh->pmysql->net.last_errno = CR_CONNECTION_ERROR;
+      memcpy(imp_dbh->pmysql->net.last_error, buffer, buffer_size);
+      strcpy(imp_dbh->pmysql->net.sqlstate, "HY000");
+    }
+    else
+    {
+      mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, buffer, "HY000");
+    }
+
+    return (void *)-1;
+  }
+
+  return str;
 }
 
 /*
@@ -2560,12 +2668,29 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   if (SvTYPE(hv) != SVt_PVHV)
     return FALSE;
 
-  host=		safe_hv_fetch(aTHX_ hv, "host", 4);
-  port=		safe_hv_fetch(aTHX_ hv, "port", 4);
-  user=		safe_hv_fetch(aTHX_ hv, "user", 4);
-  password=	safe_hv_fetch(aTHX_ hv, "password", 8);
-  dbname=	safe_hv_fetch(aTHX_ hv, "database", 8);
-  mysql_socket=	safe_hv_fetch(aTHX_ hv, "mariadb_socket", strlen("mariadb_socket"));
+  host = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "host", 4);
+  if (host == (void *)-1)
+    return FALSE;
+
+  port = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "port", 4);
+  if (port == (void *)-1)
+    return FALSE;
+
+  user = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "user", 4);
+  if (user == (void *)-1)
+    return FALSE;
+
+  password = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "password", 8);
+  if (password == (void *)-1)
+    return FALSE;
+
+  dbname = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "database", 8);
+  if (dbname == (void *)-1)
+    return FALSE;
+
+  mysql_socket = safe_hv_fetch(aTHX_ dbh, imp_dbh, hv, "mariadb_socket", strlen("mariadb_socket"));
+  if (mysql_socket == (void *)-1)
+    return FALSE;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -2624,7 +2749,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 		  "imp_dbh->connect: dsn = %s, uid = %s, pwd = %s\n",
                   SvOK(dsn) ? neatsvpv(dsn, 0) : "NULL",
                   SvOK(user) ? neatsvpv(user, 0) : "NULL",
-                  !SvOK(password) ? "NULL" : !(SvPV_nolen(password))[0] ? "''" : "****");
+                  !SvOK(password) ? "NULL" : !(SvPV_nomg_nolen(password))[0] ? "''" : "****");
 
   imp_dbh->stats.auto_reconnects_ok= 0;
   imp_dbh->stats.auto_reconnects_failed= 0;
@@ -2633,9 +2758,6 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->has_transactions= TRUE;
  /* Safer we flip this to TRUE perl side if we detect a mod_perl env. */
   imp_dbh->auto_reconnect = FALSE;
-
-  imp_dbh->enable_utf8 = FALSE;     /* initialize mysql_enable_utf8 */
-  imp_dbh->enable_utf8mb4 = FALSE;  /* initialize mysql_enable_utf8mb4 */
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
 
   if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
@@ -2757,6 +2879,9 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
   dTHX;
   D_imp_xxh(dbh);
   const void *methods;
+  char last_error[sizeof(imp_dbh->pmysql->net.last_error)];
+  char sqlstate[sizeof(imp_dbh->pmysql->net.sqlstate)];
+  unsigned int last_errno;
 
   /* We assume that disconnect will always work       */
   /* since most errors imply already disconnected.    */
@@ -2769,10 +2894,22 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
   /* Function mysql_close() set method pointer to NULL. */
   /* Therefore store backup and restore it after mysql_init(). */
   methods = imp_dbh->pmysql->methods;
+
+  /* Backup last error */
+  last_errno = imp_dbh->pmysql->net.last_errno;
+  memcpy(last_error, imp_dbh->pmysql->net.last_error, sizeof(last_error));
+  memcpy(sqlstate, imp_dbh->pmysql->net.sqlstate, sizeof(sqlstate));
+
   mysql_close(imp_dbh->pmysql );
   mysql_init(imp_dbh->pmysql);
+
   imp_dbh->pmysql->net.fd = -1;
   imp_dbh->pmysql->methods = methods;
+
+  /* Restore last error */
+  memcpy(imp_dbh->pmysql->net.last_error, last_error, sizeof(last_error));
+  memcpy(imp_dbh->pmysql->net.sqlstate, sqlstate, sizeof(sqlstate));
+  imp_dbh->pmysql->net.last_errno = last_errno;
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
@@ -2976,13 +3113,18 @@ mariadb_db_STORE_attrib(
       imp_dbh->bind_type_guessing = bool_value;
     else if (kl == strlen("mariadb_bind_comment_placeholders") && strEQ(key,"mariadb_bind_comment_placeholders"))
       imp_dbh->bind_comment_placeholders = bool_value;
-    else if (kl == strlen("mariadb_enable_utf8") && strEQ(key, "mariadb_enable_utf8"))
-      imp_dbh->enable_utf8 = bool_value;
-    else if (kl == strlen("mariadb_enable_utf8mb4") && strEQ(key, "mariadb_enable_utf8mb4"))
-      imp_dbh->enable_utf8mb4 = bool_value;
   #if FABRIC_SUPPORT
     else if (kl == strlen("mariadb_fabric_opt_group") && strEQ(key, "mariadb_fabric_opt_group"))
-      mysql_options(imp_dbh->pmysql, FABRIC_OPT_GROUP, (void *)SvPV_nomg_nolen(valuesv));
+    {
+      STRLEN len;
+      char *str = SvPVutf8_nomg(valuesv, len);
+      if (strlen(str) != len)
+      {
+        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "mariadb_fabric_opt_group contains nul character", "HY000");
+        return FALSE;
+      }
+      mysql_options(imp_dbh->pmysql, FABRIC_OPT_GROUP, str);
+    }
     else if (kl == strlen("mariadb_fabric_opt_default_mode") && strEQ(key, "mariadb_fabric_opt_default_mode"))
     {
       if (SvOK(valuesv)) {
@@ -3127,7 +3269,6 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   STRLEN kl;
   char *key = SvPV(keysv, kl); /* needs to process get magic */
   SV* result = NULL;
-  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
   PERL_UNUSED_ARG(dbh);
 
   switch (*key) {
@@ -3175,6 +3316,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       const char* clientinfo = mysql_get_client_info();
       result= clientinfo ?
         sv_2mortal(newSVpvn(clientinfo, strlen(clientinfo))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     }
     else if (kl == 13 && strEQ(key, "clientversion"))
     {
@@ -3188,13 +3330,8 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     {
       const char* msg = mysql_error(imp_dbh->pmysql);
       result= sv_2mortal(newSVpvn(msg, strlen(msg)));
-      if (enable_utf8)
-        sv_utf8_decode(result);
+      sv_utf8_decode(result);
     }
-    else if (kl == strlen("enable_utf8mb4") && strEQ(key, "enable_utf8mb4"))
-        result = sv_2mortal(newSViv(imp_dbh->enable_utf8mb4));
-    else if (kl == strlen("enable_utf8") && strEQ(key, "enable_utf8"))
-        result = sv_2mortal(newSViv(imp_dbh->enable_utf8));
     break;
 
   case 'd':
@@ -3225,6 +3362,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       const char* hostinfo = mysql_get_host_info(imp_dbh->pmysql);
       result= hostinfo ?
         sv_2mortal(newSVpvn(hostinfo, strlen(hostinfo))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     }
     break;
 
@@ -3233,6 +3371,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     {
       const char* info = mysql_info(imp_dbh->pmysql);
       result= info ? sv_2mortal(newSVpvn(info, strlen(info))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     }
     else if (kl == 8  &&  strEQ(key, "insertid"))
       /* We cannot return an IV, because the insertid is a long. */
@@ -3254,6 +3393,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       const char* serverinfo = mysql_get_server_info(imp_dbh->pmysql);
       result= serverinfo ?
         sv_2mortal(newSVpvn(serverinfo, strlen(serverinfo))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     } 
 #if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
     else if (kl == 10 && strEQ(key, "ssl_cipher"))
@@ -3261,6 +3401,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       const char* ssl_cipher = mysql_get_ssl_cipher(imp_dbh->pmysql);
       result= ssl_cipher ?
         sv_2mortal(newSVpvn(ssl_cipher, strlen(ssl_cipher))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     }
 #endif
     else if (kl == 13 && strEQ(key, "serverversion"))
@@ -3275,6 +3416,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       const char* stats = mysql_stat(imp_dbh->pmysql);
       result= stats ?
         sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
+      sv_utf8_decode(result);
     }
     else if (kl == 14 && strEQ(key,"server_prepare"))
         result= sv_2mortal(newSViv((IV) imp_dbh->use_server_side_prepare));
@@ -3321,7 +3463,6 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   unsigned long *lengths;
   const char *prefix = "dbi:MariaDB:";
   const Size_t prefix_len = strlen(prefix);
-  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
   PERL_UNUSED_ARG(attr);
 
   ASYNC_CHECK_RETURN(dbh, NULL);
@@ -3378,11 +3519,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
     SvPOK_on(sv);
     SvCUR_set(sv, prefix_len + lengths[0]);
 
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-    if (enable_utf8 && charsetnr_is_utf8(field->charsetnr))
-#else
-    if (enable_utf8 && !(field->flags & BINARY_FLAG))
-#endif
+    if (mysql_field_is_utf8(field))
       sv_utf8_decode(sv);
 
     if ((my_ulonglong)i == num_rows+1)
@@ -3439,9 +3576,8 @@ mariadb_st_prepare_sv(
 #endif
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
-  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
-  mariadb_dr_get_statement(aTHX_ statement_sv, enable_utf8, &statement, &statement_len);
+  statement = SvPVutf8_nomg(statement_sv, statement_len);
   imp_sth->statement = savepvn(statement, statement_len);
   imp_sth->statement_len = statement_len;
 
@@ -4491,20 +4627,16 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
                       i, fbh->length);
 #if MYSQL_VERSION_ID < FIELD_CHARSETNR_VERSION
         PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                      "\t\tfields[i].length %lu fields[i].max_length %lu fields[i].type %d fields[i].charsetnr %d\n",
-                      fields[i].length, fields[i].max_length, fields[i].type);
+                      "\t\tfields[i].length %lu fields[i].max_length %lu fields[i].type %d fields[i].flags %d\n",
+                      fields[i].length, fields[i].max_length, fields[i].type, fields[i].flags);
 #else
         PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                      "\t\tfields[i].length %lu fields[i].max_length %lu fields[i].type %d fields[i].charsetnr %d\n",
-                      fields[i].length, fields[i].max_length, fields[i].type,
-                      fields[i].charsetnr);
+                      "\t\tfields[i].length %lu fields[i].max_length %lu fields[i].type %d fields[i].flags %d fields[i].charsetnr %d\n",
+                      fields[i].length, fields[i].max_length, fields[i].type, fields[i].flags, fields[i].charsetnr);
 #endif
       }
-#if MYSQL_VERSION_ID < FIELD_CHARSETNR_VERSION 
-      fbh->flags     = fields[i].flags;
-#else
-      fbh->charsetnr = fields[i].charsetnr;
-#endif
+
+      fbh->is_utf8 = mysql_field_is_utf8(&fields[i]);
 
       buffer->buffer_type= fields[i].type;
       buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? 1 : 0;
@@ -4622,7 +4754,6 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
   const char *int_type;
 #endif
   MYSQL_FIELD *fields;
-  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> mariadb_st_fetch\n");
@@ -4862,6 +4993,7 @@ process:
             else
               ptr = signed_my_ulonglong2str(fbh->numeric_val.llval, buf, &len);
 
+            SvUTF8_off(sv);
             sv_setpvn(sv, ptr, len);
 
             if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -4902,22 +5034,14 @@ process:
 	  /* ChopBlanks server-side prepared statement */
           if (ChopBlanks)
           {
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-            if (fbh->charsetnr != 63)
-#else
-            if (!(fbh->flags & BINARY_FLAG))
-#endif
+            if (fbh->is_utf8)
               while (len && fbh->data[len-1] == ' ') { --len; }
           }
 	  /* END OF ChopBlanks */
 
+          SvUTF8_off(sv);
           sv_setpvn(sv, fbh->data, len);
-
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION 
-          if (enable_utf8 && charsetnr_is_utf8(fbh->charsetnr))
-#else
-          if (enable_utf8 && !(fbh->flags & BINARY_FLAG))
-#endif
+          if (fbh->is_utf8)
             sv_utf8_decode(sv);
           break;
         }
@@ -5018,16 +5142,13 @@ process:
         STRLEN len= lengths[i];
         if (ChopBlanks)
         {
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-          if (fields[i].charsetnr != 63)
-#else
-          if (!(fields[i].flags & BINARY_FLAG))
-#endif
+          if (mysql_field_is_utf8(&fields[i]))
           while (len && col[len-1] == ' ')
           {	--len; }
         }
 
         /* Set string value returned from mysql server */
+        SvUTF8_off(sv);
         sv_setpvn(sv, col, len);
 
         switch (mysql_to_perl_type(fields[i].type)) {
@@ -5057,11 +5178,7 @@ process:
 
         default:
           /* TEXT columns can be returned as MYSQL_TYPE_BLOB, so always check for charset */
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-          if (enable_utf8 && charsetnr_is_utf8(fields[i].charsetnr))
-#else
-          if (enable_utf8 && !(fields[i].flags & BINARY_FLAG))
-#endif
+          if (mysql_field_is_utf8(&fields[i]))
             sv_utf8_decode(sv);
           break;
         }
@@ -5349,10 +5466,8 @@ static SV* mariadb_st_fetch_internal(
 {
   dTHX;
   D_imp_sth(sth);
-  D_imp_dbh_from_sth;
   AV *av= Nullav;
   MYSQL_FIELD *curField;
-  bool enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
   /* Are we asking for a legal value? */
   if (what < 0 ||  what >= AV_ATTRIB_LAST)
@@ -5378,21 +5493,13 @@ static SV* mariadb_st_fetch_internal(
       switch(what) {
       case AV_ATTRIB_NAME:
         sv= newSVpvn(curField->name, strlen(curField->name));
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-        if (enable_utf8 && charsetnr_is_utf8(curField->charsetnr))
-#else
-        if (enable_utf8 && !(curField->flags & BINARY_FLAG))
-#endif
+        if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
       case AV_ATTRIB_TABLE:
         sv= newSVpvn(curField->table, strlen(curField->table));
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-        if (enable_utf8 && charsetnr_is_utf8(curField->charsetnr))
-#else
-        if (enable_utf8 && !(curField->flags & BINARY_FLAG))
-#endif
+        if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
@@ -5537,7 +5644,8 @@ SV* mariadb_st_FETCH_attrib(
             {
                 keylen= sprintf(key, "%d", n);
                 sv= newSVpvn(imp_sth->params[n].value, imp_sth->params[n].len);
-                if (imp_sth->params[n].utf8) SvUTF8_on(sv);
+                if (!sql_type_is_binary(imp_sth->params[n].type))
+                  sv_utf8_decode(sv);
                 (void)hv_store(pvhv, key, keylen, sv, 0);
             }
         }
@@ -5709,7 +5817,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   int param_num= SvIV(param); /* needs to process get magic */
   int idx= param_num - 1;
   char *err_msg;
-  bool enable_utf8;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
@@ -5724,8 +5831,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 #endif
 
   ASYNC_CHECK_RETURN(sth, FALSE);
-
-  enable_utf8 = (imp_dbh->enable_utf8 || imp_dbh->enable_utf8mb4);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -5763,7 +5868,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     return FALSE;
   }
 
-  bind_param(&imp_sth->params[idx], value, sql_type, idx+1, enable_utf8);
+  bind_param(&imp_sth->params[idx], value, sql_type);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (imp_sth->use_server_side_prepare)
@@ -6164,6 +6269,26 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
   return av;
 }
 
+#if MYSQL_VERSION_ID < 40107
+/* MySQL client prior to version 4.1.7 does not implement mysql_hex_string() */
+static unsigned long mysql_hex_string(char *to, const char *from, unsigned long len)
+{
+  char *start = to;
+  const char hexdigits[] = "0123456789ABCDEF";
+
+  while (len--)
+  {
+    *to++ = hexdigits[((unsigned char)*from) >> 4];
+    *to++ = hexdigits[((unsigned char)*from) & 0x0F];
+    from++;
+  }
+  *to = 0;
+  return (unsigned long)(to - start);
+}
+#elif MYSQL_VERSION_ID < 40108
+/* MySQL client prior to version 4.1.8 does not declare mysql_hex_string() in header files */
+unsigned long mysql_hex_string(char *to, const char *from, unsigned long len);
+#endif
 
 /*
   mariadb_db_quote
@@ -6184,6 +6309,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
   {
     char *ptr, *sptr;
     STRLEN len;
+    bool is_binary = FALSE;
 
     D_imp_dbh(dbh);
 
@@ -6194,6 +6320,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
     {
       int i;
       int tp= SvIV_nomg(type);
+      is_binary = sql_type_is_binary(tp);
       for (i= 0;  i < (int)SQL_GET_TYPE_INFO_num;  i++)
       {
         const sql_type_info_t *t= &SQL_GET_TYPE_INFO_values[i];
@@ -6206,19 +6333,35 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
       }
     }
 
-    ptr= SvPV_nomg(str, len);
-    result= newSV(len*2+3);
-    if (SvUTF8(str)) SvUTF8_on(result);
-    sptr= SvPVX(result);
+    if (is_binary)
+    {
+      ptr = SvPVbyte_nomg(str, len);
+      result = newSV(len*2+4);
+      sptr = SvPVX(result);
 
-    *sptr++ = '\'';
-    sptr+= mysql_real_escape_string(imp_dbh->pmysql, sptr,
-                                     ptr, len);
-    *sptr++= '\'';
+      *sptr++ = 'X';
+      *sptr++ = '\'';
+      sptr += mysql_hex_string(sptr, ptr, len);
+      *sptr++ = '\'';
+    }
+    else
+    {
+      ptr = SvPVutf8_nomg(str, len);
+      result = newSV(len*2+3);
+      sptr = SvPVX(result);
+
+      *sptr++ = '\'';
+      sptr += mysql_real_escape_string(imp_dbh->pmysql, sptr, ptr, len);
+      *sptr++ = '\'';
+    }
+
     SvPOK_on(result);
     SvCUR_set(result, sptr - SvPVX(result));
     /* Never hurts NUL terminating a Per string */
     *sptr++= '\0';
+
+    if (!is_binary)
+      sv_utf8_decode(result);
   }
   return result;
 }

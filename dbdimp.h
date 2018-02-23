@@ -37,8 +37,17 @@
 #define NOT_FIXED_DEC 31
 #endif
 
+/* Macro is available in m_ctype.h which is not included in some versions of MySQL */
+#ifndef MY_CS_PRIMARY
+#define MY_CS_PRIMARY 32
+#endif
+
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
+#endif
+
+#ifndef SVfARG
+#define SVfARG(p) ((void*)(p))
 #endif
 
 #ifndef SSize_t_MAX
@@ -55,8 +64,44 @@
 #  endif
 #endif
 
+/* assert_not_ROK is broken prior to perl 5.8.2 */
+#if PERL_VERSION < 8 || (PERL_VERSION == 8 && PERL_SUBVERSION < 2)
+#undef assert_not_ROK
+#define assert_not_ROK(sv)
+#endif
+
 #ifndef SvPV_nomg_nolen
 #define SvPV_nomg_nolen(sv) ((SvFLAGS(sv) & (SVf_POK)) == SVf_POK ? SvPVX(sv) : sv_2pv_flags(sv, &PL_na, 0))
+#endif
+
+#ifndef SvPVutf8_nomg
+PERL_STATIC_INLINE char * SvPVutf8_nomg(pTHX_ SV *sv, STRLEN *len)
+{
+  char *buf = SvPV_nomg(sv, *len);
+  if (SvUTF8(sv))
+    return buf;
+  if (SvGMAGICAL(sv))
+    sv = sv_2mortal(newSVpvn(buf, *len));
+  /* There is sv_utf8_upgrade_nomg(), but it is broken prior to Perl version 5.13.10 */
+  return SvPVutf8(sv, *len);
+}
+#define SvPVutf8_nomg(sv, len) SvPVutf8_nomg(aTHX_ (sv), &(len))
+#endif
+
+#ifndef SvPVbyte_nomg
+PERL_STATIC_INLINE char * SvPVbyte_nomg(pTHX_ SV *sv, STRLEN *len)
+{
+  char *buf = SvPV_nomg(sv, *len);
+  if (!SvUTF8(sv))
+    return buf;
+  if (SvGMAGICAL(sv))
+  {
+    sv = sv_2mortal(newSVpvn(buf, *len));
+    SvUTF8_on(sv);
+  }
+  return SvPVbyte(sv, *len);
+}
+#define SvPVbyte_nomg(sv, len) SvPVbyte_nomg(aTHX_ (sv), &(len))
 #endif
 
 #ifndef SvTRUE_nomg
@@ -284,8 +329,6 @@ struct imp_dbh_st {
     bool use_server_side_prepare;
     bool disable_fallback_for_server_prepare;
     void* async_query_in_flight;
-    bool enable_utf8;
-    bool enable_utf8mb4;
     struct {
 	    unsigned int auto_reconnects_ok;
 	    unsigned int auto_reconnects_failed;
@@ -301,7 +344,6 @@ typedef struct imp_sth_ph_st {
     char* value;
     STRLEN len;
     int type;
-    bool utf8;
 } imp_sth_ph_t;
 
 /*
@@ -335,11 +377,8 @@ typedef struct imp_sth_fbh_st {
     my_bool        is_null;
     bool           error;
     char           *data;
-    int            charsetnr;
     numeric_val_t  numeric_val;
-#if MYSQL_VERSION_ID < FIELD_CHARSETNR_VERSION
-    unsigned int   flags;
-#endif
+    bool           is_utf8;
 } imp_sth_fbh_t;
 
 
@@ -457,17 +496,4 @@ int mariadb_db_reconnect(SV*);
 int mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);
 
-void mariadb_dr_get_param(pTHX_ SV *param, int field, bool enable_utf8, bool is_binary, char **out_buf, STRLEN *out_len);
-void mariadb_dr_get_statement(pTHX_ SV *statement, bool enable_utf8, char **out_buf, STRLEN *out_len);
-
 int mariadb_dr_socket_ready(my_socket fd);
-
-#if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
-PERL_STATIC_INLINE bool charsetnr_is_utf8(unsigned int id)
-{
-  /* See mysql source code for all utf8 ids: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
-  /* Some utf8 ids (selected at mysql compile time) can be retrieved by: SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
-  return (id == 33 || id == 45 || id == 46 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 277) || (id >= 576 && id <= 578)
-      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1283 || id == 1248 || id == 1270);
-}
-#endif

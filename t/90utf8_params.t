@@ -21,71 +21,74 @@ if ($dbh->{mariadb_serverversion} < 50000) {
     plan skip_all => "You must have MySQL version 5.0 and greater for this test to run";
 }
 
-my $nasty_bytes = chr(0xc3).chr(0xbf); # looks like character 0xff, if you accidentally utf8 decode
-utf8::downgrade($nasty_bytes);
-my $nasty_utf8 = $nasty_bytes;
-utf8::upgrade($nasty_utf8);
+my $nasty_unicode1 = "\N{U+C3}\N{U+BF}"; # looks like character 0xff, if you accidentally utf8 decode
+utf8::downgrade($nasty_unicode1);
+my $nasty_unicode2 = $nasty_unicode1;
+utf8::upgrade($nasty_unicode2);
 
-is($nasty_bytes, $nasty_utf8, "Perl's internal form does not matter");
+is($nasty_unicode1, $nasty_unicode2, "Perl's internal form does not matter");
 
-foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
-    my $enable_str = "mariadb_enable_utf8=$enable_utf8 / mariadb_server_prepare=$server_prepare";
-    my $enable_hash = { mariadb_enable_utf8 => $enable_utf8, mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
+my $nasty_bytes1 = chr(0xc3).chr(0xbf); # looks like character 0xff, if you accidentally utf8 decode
+utf8::downgrade($nasty_bytes1);
+my $nasty_bytes2 = $nasty_bytes1;
+utf8::upgrade($nasty_bytes2);
+
+is($nasty_bytes1, $nasty_bytes2, "Perl's internal form does not matter");
+
+is($nasty_unicode1, $nasty_bytes1, "Perl does not distinguish between bytes and Unicode string");
+is($nasty_unicode2, $nasty_bytes2, "Perl does not distinguish between bytes and Unicode string");
+
+foreach my $server_prepare (0, 1) {
+
+    my $enable_str = "mariadb_server_prepare=$server_prepare";
+    my $enable_hash = { mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
 
     $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash) or die DBI->errstr;
 
-    foreach my $name ("latin1", "utf8") {
-
-        $dbh->do("SET NAMES $name") or die $dbh->errstr;
-
     foreach my $charset ("latin1", "utf8") {
 
-        # This configuration cannot work because MySQL server expect Latin1 strings, but mariadb_enable_utf8=1 cause automatic encoding to UTF-8
-        next if $enable_utf8 and $name eq "latin1";
-
-        $dbh->do("DROP TABLE IF EXISTS utf8_test");
+        $dbh->do("DROP TABLE IF EXISTS unicode_test");
         $dbh->do(qq{
-            CREATE TABLE utf8_test (
+            CREATE TEMPORARY TABLE unicode_test (
                 payload VARCHAR(20),
                 id int(10)
             ) CHARACTER SET $charset
         }) or die $dbh->errstr;
 
 
-        my $nasty_utf8_param = $nasty_utf8;
-        utf8::encode($nasty_utf8_param) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 encode when mariadb_enable_utf8=0
-        utf8::downgrade($nasty_utf8_param) if $name eq "latin1"; # Needs to convert Unicode string to Latin1 when MySQL server expect Latin1 strings
+        my $nasty_unicode1_param = $nasty_unicode1;
+        my $nasty_unicode2_param = $nasty_unicode2;
 
 
-        $dbh->do("INSERT INTO utf8_test (id, payload) VALUES (1, ?), (2, ?)", {}, $nasty_bytes, $nasty_utf8_param);
+        $dbh->do("INSERT INTO unicode_test (id, payload) VALUES (1, ?), (2, ?)", {}, $nasty_unicode1_param, $nasty_unicode2_param);
 
 
-        $dbh->do("INSERT INTO utf8_test (id, payload) VALUES (3, '$nasty_bytes')");
-        $dbh->do("INSERT INTO utf8_test (id, payload) VALUES (4, '$nasty_utf8_param')");
+        $dbh->do("INSERT INTO unicode_test (id, payload) VALUES (3, '$nasty_unicode1_param')");
+        $dbh->do("INSERT INTO unicode_test (id, payload) VALUES (4, '$nasty_unicode2_param')");
 
-        my $sth = $dbh->prepare("INSERT INTO utf8_test (id, payload) VALUES (?, ?)");
-        $sth->execute(5, $nasty_bytes);
-        $sth->execute(6, $nasty_utf8_param);
+        my $sth = $dbh->prepare("INSERT INTO unicode_test (id, payload) VALUES (?, ?)");
+        $sth->execute(5, $nasty_unicode1_param);
+        $sth->execute(6, $nasty_unicode2_param);
 
-        $sth = $dbh->prepare("INSERT INTO utf8_test (id, payload) VALUES (?, ?)");
+        $sth = $dbh->prepare("INSERT INTO unicode_test (id, payload) VALUES (?, ?)");
         $sth->bind_param(1, 7);
-        $sth->bind_param(2, $nasty_bytes);
+        $sth->bind_param(2, $nasty_unicode1_param);
         $sth->execute;
 
-        $sth = $dbh->prepare("INSERT INTO utf8_test (id, payload) VALUES (?, ?)");
+        $sth = $dbh->prepare("INSERT INTO unicode_test (id, payload) VALUES (?, ?)");
         $sth->bind_param(1, 8);
-        $sth->bind_param(2, $nasty_utf8_param);
+        $sth->bind_param(2, $nasty_unicode2_param);
         $sth->execute;
 
         {
-            my $sql = "INSERT INTO utf8_test (id, payload) VALUES (?, ?)";
+            my $sql = "INSERT INTO unicode_test (id, payload) VALUES (?, ?)";
             $sth = $dbh->prepare($sql);
         }
-        $sth->execute(9, $nasty_bytes);
-        $sth->execute(10, $nasty_utf8_param);
+        $sth->execute(9, $nasty_unicode1_param);
+        $sth->execute(10, $nasty_unicode2_param);
 
         {
-            my $sql = "INSERT INTO utf8_test (id, payload) VALUES (?, ?)";
+            my $sql = "INSERT INTO unicode_test (id, payload) VALUES (?, ?)";
             $sth = $dbh->prepare($sql);
         }
         {
@@ -95,13 +98,13 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
         }
         {
             my $param = 2;
-            my $val = $nasty_bytes;
+            my $val = $nasty_unicode1_param;
             $sth->bind_param($param, $val);
         }
         $sth->execute;
 
         {
-            my $sql = "INSERT INTO utf8_test (id, payload) VALUES (?, ?)";
+            my $sql = "INSERT INTO unicode_test (id, payload) VALUES (?, ?)";
             $sth = $dbh->prepare($sql);
         }
         {
@@ -111,7 +114,7 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
         }
         {
             my $param = 2;
-            my $val = $nasty_utf8_param;
+            my $val = $nasty_unicode2_param;
             $sth->bind_param($param, $val);
         }
         $sth->execute;
@@ -126,20 +129,92 @@ foreach my $enable_utf8 (0, 1) { foreach my $server_prepare (0, 1) {
         );
 
         for (my $i = 0; $i<@trials; $i++) {
-            my $bytes = $i*2+1;
-            my $utf8s = $i*2+2;
+            my $id1 = $i*2+1;
+            my $id2 = $i*2+2;
 
-            (my $out) = $dbh->selectrow_array("SELECT payload FROM utf8_test WHERE id = $bytes");
-            is($out, chr(0xc3).chr(0xbf), "$trials[$i] / utf8 unset / $charset / $enable_str");
+            (my $out) = $dbh->selectrow_array("SELECT payload FROM unicode_test WHERE id = $id1");
+            is($out, "\N{U+C3}\N{U+BF}", "unicode / $trials[$i] / utf8::downgrade / $charset / $enable_str");
 
-            ($out) = $dbh->selectrow_array("SELECT payload FROM utf8_test WHERE id = $utf8s");
-            utf8::decode($out) if $name eq "utf8" and not $enable_utf8; # Needs to manually UTF-8 decode when mariadb_enable_utf8=0
-            is($out, chr(0xc3).chr(0xbf), "$trials[$i] / utf8 set / $charset / $enable_str");
+            ($out) = $dbh->selectrow_array("SELECT payload FROM unicode_test WHERE id = $id2");
+            is($out, "\N{U+C3}\N{U+BF}", "unicode / $trials[$i] / utf8::upgrade / $charset / $enable_str");
         }
 
-        $dbh->do("DROP TABLE IF EXISTS utf8_test");
+
+
+
+        $dbh->do("DROP TABLE IF EXISTS blob_test");
+        $dbh->do(qq{
+            CREATE TEMPORARY TABLE blob_test (
+                payload BLOB,
+                id int(10)
+            ) CHARACTER SET $charset
+        }) or die $dbh->errstr;
+
+        my $nasty_bytes1_param = $nasty_bytes1;
+        my $nasty_bytes2_param = $nasty_bytes2;
+
+        $sth = $dbh->prepare("INSERT INTO blob_test (id, payload) VALUES (?, ?)");
+        $sth->bind_param(1, 1);
+        $sth->bind_param(2, $nasty_bytes1_param, DBI::SQL_BLOB);
+        $sth->execute;
+
+        $sth = $dbh->prepare("INSERT INTO blob_test (id, payload) VALUES (?, ?)");
+        $sth->bind_param(1, 2);
+        $sth->bind_param(2, $nasty_bytes2_param, DBI::SQL_BLOB);
+        $sth->execute;
+
+        {
+            my $sql = "INSERT INTO blob_test (id, payload) VALUES (?, ?)";
+            $sth = $dbh->prepare($sql);
+        }
+        {
+            my $param = 1;
+            my $val = 3;
+            $sth->bind_param($param, $val);
+        }
+        {
+            my $param = 2;
+            my $val = $nasty_bytes1_param;
+            my $type = DBI::SQL_BLOB;
+            $sth->bind_param($param, $val, $type);
+        }
+        $sth->execute;
+
+        {
+            my $sql = "INSERT INTO blob_test (id, payload) VALUES (?, ?)";
+            $sth = $dbh->prepare($sql);
+        }
+        {
+            my $param = 1;
+            my $val = 4;
+            $sth->bind_param($param, $val);
+        }
+        {
+            my $param = 2;
+            my $val = $nasty_bytes2_param;
+            my $type = DBI::SQL_BLOB;
+            $sth->bind_param($param, $val, $type);
+        }
+        $sth->execute;
+
+        @trials = (
+            'prepare, bind, execute',
+            'prepare (free param), bind (free param), execute',
+        );
+
+        for (my $i = 0; $i<@trials; $i++) {
+            my $id1 = $i*2+1;
+            my $id2 = $i*2+2;
+
+            (my $out) = $dbh->selectrow_array("SELECT payload FROM blob_test WHERE id = $id1");
+            is($out, chr(0xc3).chr(0xbf), "blob / $trials[$i] / utf8::downgrade / $charset / $enable_str");
+
+            ($out) = $dbh->selectrow_array("SELECT payload FROM blob_test WHERE id = $id2");
+            is($out, chr(0xc3).chr(0xbf), "blob / $trials[$i] / utf8::upgrade / $charset / $enable_str");
+        }
+
     }
-    }
-} }
+
+}
 
 done_testing();

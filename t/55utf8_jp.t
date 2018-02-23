@@ -9,7 +9,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { mariadb_enable_utf8 => 1, PrintError => 1, RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1 });
 
 eval {
   $dbh->{PrintError} = 0;
@@ -97,7 +97,7 @@ like($DBI::errstr, $jpnErr);
 like($dbh->errstr, $jpnErr);
 
 SKIP : {
-  skip "Perl 5.13.1 and DBI 1.635 are required due to bug RT 102404", 2 unless $] >= 5.013001 and eval "use DBI 1.635; 1;";
+  skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", 2 unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
   like($warn, $jpnErr);
   like($dieerr, $jpnErr);
 }

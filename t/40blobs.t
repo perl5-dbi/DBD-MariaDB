@@ -21,16 +21,10 @@ sub ShowBlob($) {
     }
 }
 
-my $charset= 'DEFAULT CHARSET=utf8';
-
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, AutoCommit => 1});
 
 plan tests => 14;
-
-if (!MinimumVersion($dbh, '4.1')) {
-    $charset= '';
-}
 
 my $size= 128;
 
@@ -39,7 +33,7 @@ ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t40blobs"), "Drop table if exists db
 my $create = <<EOT;
 CREATE TABLE dbd_mysql_t40blobs (
     id INT(3) NOT NULL DEFAULT 0,
-    name BLOB ) $charset
+    name BLOB )
 EOT
 
 ok ($dbh->do($create));
@@ -52,7 +46,7 @@ for (my $j = 0;  $j < 256;  $j++) {
 for (1 .. $size) {
     $blob .= $b;
 }
-ok ($qblob = $dbh->quote($blob));
+ok ($qblob = $dbh->quote($blob, DBI::SQL_BLOB));
 
 #   Insert a row into the test table.......
 my ($query);
