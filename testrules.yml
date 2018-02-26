@@ -2,4 +2,9 @@ seq:
   - seq: t/00base.t
   - seq: t/05dbcreate.t
   - seq: t/10connect.t
-  - par: **
+  - par:
+    - seq: t/60leaks.t
+    - seq: t/87async.t
+    - seq: t/rt75353-innodb-lock-timeout.t
+    - seq: t/rt85919-fetch-lost-connection.t
+    - par: **
