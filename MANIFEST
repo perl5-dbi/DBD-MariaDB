@@ -14,6 +14,7 @@ myld
 MariaDB.xs
 README.pod
 socket.c
+testrules.yml
 t/00base.t
 t/05dbcreate.t
 t/10connect.t

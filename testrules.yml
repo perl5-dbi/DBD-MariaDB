@@ -1,0 +1,5 @@
+seq:
+  - seq: t/00base.t
+  - seq: t/05dbcreate.t
+  - seq: t/10connect.t
+  - par: **
