@@ -461,6 +461,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
       prereqs => {
         test => {
           recommends => {
+            'TAP::Harness' => '3.31',
             'Proc::ProcessTable' => 0,
           },
           suggests => {
