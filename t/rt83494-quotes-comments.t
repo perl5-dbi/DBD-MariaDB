@@ -20,13 +20,19 @@ my %tests = (
   quote        => " -- 'Tis the quote that confuses DBI::MySQL\nSELECT ?"
 );
 
+for my $mariadb_server_prepare (0, 1) {
+
+$dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
+
 for my $test ( sort keys %tests ) {
 
   my $sth = $dbh->prepare($tests{$test});
   ok($sth, 'created statement hande');
-  ok($sth->execute(), 'executing');
+  ok($sth->execute(42), 'executing');
   ok($sth->{ParamValues}, 'values');
   ok($sth->finish(), 'finish');
+
+}
 
 }
 
