@@ -8,13 +8,17 @@ require 'lib.pl';
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 if (!MinimumVersion($dbh, '4.1') ) {
     plan skip_all =>
         "SKIP TEST: You must have MySQL version 4.1 and greater for this test to run";
 }
 
-plan tests => 17;
+plan tests => 28*2+1;
+
+for my $mariadb_server_prepare (0, 1) {
+
+$dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
 
 ok ($dbh->do("DROP TABLE IF EXISTS dbd_mysql_t43count_params"));
 
@@ -55,8 +59,34 @@ ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUE
 
 ok ($sth->execute(3, "Charles de Batz de Castelmore, comte d\\'Artagnan"));
 
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok !defined eval { $sth->execute(4) };
+
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok !defined eval { $sth->execute(5, "Charles de Batz de Castelmore, comte d\\'Artagnan", 10) };
+
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok !defined eval { $sth->execute() };
+
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok $sth->bind_param(1, 5);
+
+ok !defined eval { $sth->execute() };
+
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok $sth->bind_param(1, 6);
+
+ok $sth->bind_param(2, "Charles de Batz de Castelmore, comte d\\'Artagnan");
+
+ok !defined eval { $sth->bind_param(3, 10) };
+
 ok ($dbh->do("DROP TABLE dbd_mysql_t43count_params"));
 
-ok $sth->finish;
+}
 
 ok $dbh->disconnect;
