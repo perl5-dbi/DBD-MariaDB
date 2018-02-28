@@ -69,10 +69,10 @@ ok $sth->finish;
 
 ok $dbh->do("DROP PROCEDURE dbd_mysql_t80testproc");
 
-ok $dbh->do("drop procedure if exists test_multi_sets");
+ok $dbh->do("drop procedure if exists test_multi_sets_t80");
 
 $proc_create = <<EOT;
-        create procedure test_multi_sets ()
+        create procedure test_multi_sets_t80 ()
         deterministic
         begin
         select user() as first_col;
@@ -83,7 +83,7 @@ EOT
 
 ok $dbh->do($proc_create);
 
-ok ($sth = $dbh->prepare("call test_multi_sets()"));
+ok ($sth = $dbh->prepare("call test_multi_sets_t80()"));
 
 ok $sth->execute();
 

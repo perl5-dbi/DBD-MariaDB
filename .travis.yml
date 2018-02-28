@@ -368,7 +368,7 @@ before_script:
     elif [ -n "$DB" ]; then
       export DBD_MARIADB_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
     fi
-  - export HARNESS_OPTIONS=j1
+  - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
   - export CONNECTION_TESTING=1
   - export SKIP_CRASH_TESTING=1

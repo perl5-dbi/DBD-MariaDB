@@ -34,13 +34,13 @@ ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password,
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t81procs");
 
-my $drop_proc= "DROP PROCEDURE IF EXISTS testproc";
+my $drop_proc= "DROP PROCEDURE IF EXISTS dbd_mysql_t81testproc";
 
 ok $dbh->do($drop_proc);
 
 
 my $proc_create = <<EOPROC;
-create procedure testproc() deterministic
+create procedure dbd_mysql_t81testproc() deterministic
   begin
     declare a,b,c,d int;
     set a=1;
@@ -56,7 +56,7 @@ EOPROC
 
 ok $dbh->do($proc_create);
 
-my $proc_call = 'CALL testproc()';
+my $proc_call = 'CALL dbd_mysql_t81testproc()';
 
 ok $dbh->do($proc_call);
 
@@ -67,12 +67,12 @@ ok $sth->execute();
 
 ok $sth->finish;
 
-ok $dbh->do("DROP PROCEDURE testproc");
+ok $dbh->do("DROP PROCEDURE dbd_mysql_t81testproc");
 
-ok $dbh->do("drop procedure if exists test_multi_sets");
+ok $dbh->do("drop procedure if exists test_multi_sets_t81");
 
 $proc_create = <<EOT;
-        create procedure test_multi_sets ()
+        create procedure test_multi_sets_t81 ()
         deterministic
         begin
         select user() as first_col;
@@ -83,7 +83,7 @@ EOT
 
 ok $dbh->do($proc_create);
 
-ok ($sth = $dbh->prepare("call test_multi_sets()"));
+ok ($sth = $dbh->prepare("call test_multi_sets_t81()"));
 
 ok $sth->execute();
 

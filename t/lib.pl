@@ -58,7 +58,7 @@ sub DbiTestConnect {
         my $err;
         if ( $@ ) {
             $err = $@;
-            $err =~ s/ at \S+ line \d+\s*$//;
+            $err =~ s/ at \S+ line \d+\.?\s*$//;
         }
         if ( not $err ) {
             $err = $DBI::errstr;
@@ -68,6 +68,8 @@ sub DbiTestConnect {
             $dsn =~ s/^DBI:[^:]+://;
             $err = "DBI connect('$dsn','$user',...) failed: $err";
         }
+        my ($func, $file, $line) = caller;
+        $err .= " at $file line $line.";
         if ( $ENV{CONNECTION_TESTING} ) {
             BAIL_OUT "no database connection: $err";
         } else {
