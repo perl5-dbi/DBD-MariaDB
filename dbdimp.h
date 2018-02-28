@@ -344,6 +344,7 @@ typedef struct imp_sth_ph_st {
     char* value;
     STRLEN len;
     int type;
+    bool bound;
 } imp_sth_ph_t;
 
 /*
