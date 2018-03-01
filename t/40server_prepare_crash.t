@@ -39,7 +39,7 @@ ok $sth->execute();
 ok $sth->finish();
 
 ok $sth = $dbh->prepare("SELECT * FROM t WHERE i=? AND n=?");
-ok $sth->execute();
+ok $sth->execute(1, 1);
 ok $sth->finish();
 
 ok $sth = $dbh->prepare("SELECT 1 FROM t WHERE i = ?" . (" OR i = ?" x 10000));

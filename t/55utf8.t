@@ -18,7 +18,7 @@ if ($dbh->{mariadb_serverversion} < 50000) {
     plan skip_all =>
         "SKIP TEST: You must have MySQL version 5.0 and greater for this test to run";
 }
-plan tests => 44 * 2;
+plan tests => 42 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
@@ -123,8 +123,6 @@ cmp_ok $ref->[7], 'eq', $latin1_str2, 'latin1 data are returned as latin1 when N
 ok $sth = $dbh->prepare("SELECT 1 FROM dbd_mysql_t55utf8 WHERE bincol = ?");
 ok !defined eval { $sth->bind_param(1, $unicode_str, DBI::SQL_BINARY) };
 like $@, qr/^Wide character in /, '';
-ok $sth->execute();
-ok $sth->finish();
 
 ok $dbh->do("DROP TABLE dbd_mysql_t55utf8");
 

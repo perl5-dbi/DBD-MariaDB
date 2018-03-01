@@ -919,6 +919,8 @@ static void bind_param(imp_sth_ph_t *ph, SV *value, IV sql_type)
     ph->value = NULL;
   }
 
+  ph->bound = TRUE;
+
   if (sql_type)
     ph->type = sql_type;
 
@@ -4442,6 +4444,15 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
 
   if (!SvROK(sth)  ||  SvTYPE(SvRV(sth)) != SVt_PVHV)
     croak("Expected hash array");
+
+  for (i = 0; i < DBIc_NUM_PARAMS(imp_sth); ++i)
+  {
+    if (!imp_sth->params[i].bound)
+    {
+      mariadb_dr_do_error(sth, ER_WRONG_ARGUMENTS, "Wrong number of bind parameters", "HY000");
+      return -2;
+    }
+  }
 
   /* Free cached array attributes */
   for (i= 0;  i < AV_ATTRIB_LAST;  i++)
