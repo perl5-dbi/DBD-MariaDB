@@ -11,13 +11,6 @@ require 'lib.pl';
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-#
-# DROP/CREATE PROCEDURE will give syntax error for these versions
-#
-if ($dbh->{mariadb_serverversion} < 50000) {
-    plan skip_all =>
-        "SKIP TEST: You must have MySQL version 5.0 and greater for this test to run";
-}
 plan tests => 42 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
@@ -56,7 +49,6 @@ cmp_ok $dbh->quote($unicode_str), 'eq', $quoted_unicode_str, 'testing quoting of
 
 cmp_ok $dbh->quote($blob), 'eq', $quoted_blob, 'testing quoting of blob';
 
-ok $dbh->do("SET NAMES utf8"), 'SET NAMES utf8';
 ok $dbh->do("SET SQL_MODE=''"), 'SET SQL_MODE=\'\'';
 
 # GeomFromText() is deprecated as of MySQL 5.7.6, use ST_GeomFromText() instead
@@ -109,20 +101,23 @@ cmp_ok $ref->[1], 'eq', $blob, "compare $ref->[1] eq $blob";
 
 ok $sth->finish;
 
-ok $dbh->do("SET NAMES latin1"), 'SET NAMES latin1';
+my $prev_charset = $dbh->selectrow_array('SELECT @@character_set_results');
+ok $dbh->do("SET character_set_results='latin1'"), "SET character_set_results='latin1'";
 $ref = $dbh->selectrow_arrayref($query);
 ok defined $ref, 'got data';
-cmp_ok $ref->[0], 'eq', $ascii_str, 'utf8 data are returned as latin1 when NAMES is latin1';
-cmp_ok $ref->[1], 'eq', $blob, 'blob is unchanged when NAMES is latin1';
-cmp_ok $ref->[3], 'eq', $ascii_str, 'utf8 data are returned as latin1 when NAMES is latin1';
-cmp_ok $ref->[4], 'eq', $ascii_str, 'utf8 data are returned as latin1 when NAMES is latin1';
-cmp_ok $ref->[5], 'eq', $latin1_str2, 'utf8 data are returned as latin1 when NAMES is latin1';
-cmp_ok $ref->[6], 'eq', $ascii_str, 'latin1 data are returned as latin1 when NAMES is latin1';
-cmp_ok $ref->[7], 'eq', $latin1_str2, 'latin1 data are returned as latin1 when NAMES is latin1';
+cmp_ok $ref->[0], 'eq', $ascii_str, 'utf8 data are returned as latin1 when @@character_set_results is latin1';
+cmp_ok $ref->[1], 'eq', $blob, 'blob is unchanged when @@character_set_results is latin1';
+cmp_ok $ref->[3], 'eq', $ascii_str, 'utf8 data are returned as latin1 when @@character_set_results is latin1';
+cmp_ok $ref->[4], 'eq', $ascii_str, 'utf8 data are returned as latin1 when @@character_set_results is latin1';
+cmp_ok $ref->[5], 'eq', $latin1_str2, 'utf8 data are returned as latin1 when @@character_set_results is latin1';
+cmp_ok $ref->[6], 'eq', $ascii_str, 'latin1 data are returned as latin1 when @@character_set_results is latin1';
+cmp_ok $ref->[7], 'eq', $latin1_str2, 'latin1 data are returned as latin1 when @@character_set_results is latin1';
 
 ok $sth = $dbh->prepare("SELECT 1 FROM dbd_mysql_t55utf8 WHERE bincol = ?");
 ok !defined eval { $sth->bind_param(1, $unicode_str, DBI::SQL_BINARY) };
 like $@, qr/^Wide character in /, '';
+
+ok $dbh->do("SET character_set_results='$prev_charset'"), "SET character_set_results='$prev_charset'";
 
 ok $dbh->do("DROP TABLE dbd_mysql_t55utf8");
 
