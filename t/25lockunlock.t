@@ -43,6 +43,7 @@ my ($row, $errstr);
 $errstr= '';
 $row = $sth->fetchrow_arrayref;
 $errstr= $sth->errstr;
+$sth->finish;
 ok !defined($row), "Fetch should have failed";
 ok !defined($errstr), "Fetch should have failed";
 

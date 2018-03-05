@@ -13,7 +13,7 @@ use vars qw($test_dsn $test_user $test_password);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
     { RaiseError => 1, AutoCommit => 1});
 
-plan tests => 49;
+plan tests => 50;
 
 ok(defined $dbh, "Connected to database");
 
@@ -94,6 +94,7 @@ ok($sth= $dbh->prepare("SELECT 1"), "Prepare - Testing bug #20153");
 ok($sth->execute(), "Execute - Testing bug #20153");
 ok($sth->fetchrow_arrayref(), "Fetch - Testing bug #20153");
 ok(!($sth->fetchrow_arrayref()),"Not Fetch - Testing bug #20153");
+ok($sth->finish);
 
 # Install a handler so that a warning about unfreed resources gets caught
 $SIG{__WARN__} = sub { die @_ };
