@@ -4756,7 +4756,6 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
   int av_length, av_readonly;
   MYSQL_ROW cols;
   D_imp_dbh_from_sth;
-  MYSQL* svsock= imp_dbh->pmysql;
   imp_sth_fbh_t *fbh;
   D_imp_xxh(sth);
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
@@ -4848,8 +4847,6 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
                  mysql_stmt_error(imp_sth->stmt),
                  mysql_stmt_sqlstate(imp_sth->stmt));
       }
-
-      mariadb_st_finish(sth, imp_sth);
 
       return Nullav;
     }
@@ -5094,12 +5091,6 @@ process:
         mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql),
                  mysql_sqlstate(imp_dbh->pmysql));
-
-
-#if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
-      if (!mysql_more_results(svsock))
-#endif
-        mariadb_st_finish(sth, imp_sth);
       return Nullav;
     }
 

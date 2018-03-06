@@ -36,6 +36,7 @@ if ($@) {
   plan skip_all => "no permission on performance_schema tables";
 }
 
+$dbh->disconnect();
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 0,
