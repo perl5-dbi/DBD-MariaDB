@@ -22,7 +22,7 @@ our $opt = { "help" => \&Usage, };
 
 {
 local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config);
-eval { require "./t/MariaDB.mtest"; 1; } || eval { require "../t/MariaDB.mtest"; 1; } and do {
+eval { require "./t/MariaDB.mtest" } || eval { require "../t/MariaDB.mtest" } and do {
 $opt->{'testhost'} = $::test_host;
 $opt->{'testport'} = $::test_port;
 $opt->{'testuser'} = $::test_user;
@@ -217,8 +217,7 @@ assert_lib(
 
 print "Looks good.\n\n";
 
-my $fileName = $@ ?
-  "t/MariaDB.mtest" : File::Spec->catfile("t", "MariaDB.mtest");
+my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
  (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
 	      " local " . Data::Dumper->Dump([$source], ["source"]) .
@@ -369,10 +368,8 @@ if ($opt->{'embedded'})
 
 }
 
-if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
-  $o{'CAPI'} = 'TRUE'
-    if (eval $ExtUtils::MakeMaker::VERSION >= 5.43
-	&&  $Config::Config{'archname'} =~ /-object\b/i);
+if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
+  $o{'CAPI'} = 'TRUE' if $Config::Config{'archname'} =~ /-object\b/i;
   $o{'AUTHOR'} = 'Patrick Galbraith <patg@patg.net>';
   $o{'ABSTRACT'} =
     'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)';
@@ -570,12 +567,7 @@ sub Configure {
     if ( grep {$_ eq $param} @mysql_config_options ) {
         if ($opt->{'mysql_config'} and $opt->{'mysql_config'} ne 'skip') {
         my $command = $opt->{'mysql_config'} . " --$param";
-        eval
-        {
-            open(PIPE, "$command |") or die "Can't find mysql_config.";
-        };
-
-        if (!$@) {
+        if (open(PIPE, "$command |")) {
             my $str = "";
             while (defined(my $line = <PIPE>)) { $str .= $line; }
 
