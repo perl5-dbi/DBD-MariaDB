@@ -472,7 +472,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
       },
     },
     TEST_REQUIRES => { 'bigint'       => 0,
-                       'Test::Simple' => '0.90',
+                       'Test::More'   => '0.90',
                        'Test::Deep'   => 0,
                        'Time::HiRes'  => 0,
     },
