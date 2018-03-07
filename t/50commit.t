@@ -130,7 +130,6 @@ EOT
   ok $dbh->do("INSERT INTO dbd_mysql_t50commit VALUES (2, 'Tim')");
 
   my $result;
-  $@ = '';
 
   $SIG{__WARN__} = \&catch_warning;
 
@@ -147,7 +146,6 @@ EOT
 #   requirement of just issuing a warning seems scary.
   ok $dbh->do("INSERT INTO dbd_mysql_t50commit VALUES (3, 'Alligator')");
 
-  $@ = '';
   $SIG{__WARN__} = \&catch_warning;
   $got_warning = 0;
   eval { $result = $dbh->rollback; };

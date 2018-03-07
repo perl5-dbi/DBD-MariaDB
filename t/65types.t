@@ -23,9 +23,7 @@ EOT
 ok $dbh->do($create);
 
 my $sth;
-eval {$sth= $dbh->prepare("insert into dbd_mysql_65types values (?)")};
-
-ok ! $@, "prepare: $@";
+ok $sth = $dbh->prepare("insert into dbd_mysql_65types values (?)");
 
 ok $sth->bind_param(1,10000,DBI::SQL_INTEGER);
 
@@ -39,9 +37,7 @@ ok $dbh->do("DROP TABLE dbd_mysql_65types");
 
 ok $dbh->do("create table dbd_mysql_65types (a int, b double, primary key (a))");
 
-eval { $sth= $dbh->prepare("insert into dbd_mysql_65types values (?, ?)")};
-
-ok ! $@, "prepare: $@";
+ok $sth = $dbh->prepare("insert into dbd_mysql_65types values (?, ?)");
 
 ok $sth->bind_param(1,"10000 ",DBI::SQL_INTEGER);
 

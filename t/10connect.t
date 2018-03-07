@@ -81,14 +81,14 @@ ok($dbh->disconnect(), 'Disconnected');
 # and $password parameters.
 # see https://rt.cpan.org/Ticket/Display.html?id=89835
 
-eval {$dbh= DBI->connect($test_dsn, $test_user, $test_password,
+my $failed = not eval {$dbh= DBI->connect($test_dsn, $test_user, $test_password,
    { RaiseError => 1, PrintError => 1, AutoCommit => 0,
      Username => '4yZ73s9qeECdWi', Password => '64heUGwAsVoNqo' });};
-ok($@, 'Username and Password attributes override');
+ok($failed, 'Username and Password attributes override');
 
-eval {$dbh= DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
+my $success = eval {$dbh= DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
    { RaiseError => 1, PrintError => 1, AutoCommit => 0,
      Username => $test_user, Password => $test_password });};
-ok(!$@, 'Username and Password attributes override');
+ok($success, 'Username and Password attributes override');
 
 done_testing;

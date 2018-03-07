@@ -17,10 +17,6 @@ $dsn .= ';mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1' if
 $dbh = DbiTestConnect($dsn, $test_user, $test_password,
   { RaiseError => 1, AutoCommit => 1});
 
-if ($@) {
-  plan skip_all => "no database connection";
-}
-
 if ($dbh->{mariadb_serverversion} < 50008) {
   plan skip_all => "Servers < 5.0.8 do not support b'' syntax";
 }

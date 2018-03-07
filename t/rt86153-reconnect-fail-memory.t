@@ -11,17 +11,15 @@ my $COUNT_CONNECT = 4000;   # Number of connect/disconnect iterations
 
 my $have_storable;
 
-if (!$ENV{EXTENDED_TESTING}) {
-    plan skip_all => "\$ENV{EXTENDED_TESTING} is not set\n";
+BEGIN {
+    if (!$ENV{EXTENDED_TESTING}) {
+        plan skip_all => "\$ENV{EXTENDED_TESTING} is not set\n";
+    }
+    if (not eval { require Proc::ProcessTable }) {
+        plan skip_all => "module Proc::ProcessTable not installed \n";
+    }
+    $have_storable = eval { require Storable } ? 1 : 0;
 }
-
-eval { require Proc::ProcessTable; };
-if ($@) {
-    plan skip_all => "module Proc::ProcessTable not installed \n";
-}
-
-eval { require Storable };
-$have_storable = $@ ? 0 : 1;
 
 my $have_pt_size = grep { $_ eq 'size' } Proc::ProcessTable->new('cache_ttys' => $have_storable)->fields;
 if (!$have_pt_size) {

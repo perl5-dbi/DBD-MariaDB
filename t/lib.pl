@@ -31,8 +31,8 @@ if (-f ($file = "t/$dbdriver.dbtest")  ||
     -f ($file = "$dbdriver.dbtest")    ||
     -f ($file = "../tests/$dbdriver.dbtest")  ||
     -f ($file = "tests/$dbdriver.dbtest")) {
-    eval { require $file; };
-    if ($@) {
+    if (not eval { require $file }) {
+	$@ = "unknown error" unless $@;
 	print STDERR "Cannot execute $file: $@.\n";
 	print "1..0\n";
 	exit 0;
@@ -45,8 +45,8 @@ if (-f ($file = "t/$mdriver.mtest")  ||
     -f ($file = "$mdriver.mtest")    ||
     -f ($file = "../tests/$mdriver.mtest")  ||
     -f ($file = "tests/$mdriver.mtest")) {
-    eval { require $file; };
-    if ($@) {
+    if (not eval { require $file }) {
+	$@ = "unknown error" unless $@;
 	print STDERR "Cannot execute $file: $@.\n";
 	print "1..0\n";
 	exit 0;
@@ -127,8 +127,9 @@ sub CheckRoutinePerms {
 
     # check for necessary privs
     local $dbh->{PrintError} = 0;
-    eval { $dbh->do('DROP PROCEDURE IF EXISTS testproc') };
-    return if $@ =~ qr/alter routine command denied to user/;
+    if (not eval { $dbh->do('DROP PROCEDURE IF EXISTS testproc') }) {
+        return if $@ =~ qr/alter routine command denied to user/;
+    }
 
     return 1;
 };

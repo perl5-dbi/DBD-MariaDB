@@ -17,7 +17,7 @@ if ($dbh->{mariadb_serverversion} < 50002) {
         "SKIP TEST: You must have MySQL version 5.0.2 and greater for this test to run";
 }
 # nostrict tests + strict tests + init/tear down commands
-plan tests => (19*8 + 17*8 + 4) * 2;
+plan tests => (19*8 + 19*8 + 4) * 2;
 
 my $table = 'dbd_mysql_t41minmax'; # name of the table we will be using
 my $mode; # 'strict' or 'nostrict' corresponds to strict SQL mode
@@ -74,9 +74,10 @@ sub test_int_type ($$$$) {
     ########################################
     ok($store->bind_param( 1, ($min-1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding less than minimal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
-        $@ = '';
-        eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($min-1)." into $mariadb_type, mode=$mode\n".
+        local $store->{PrintError} = 0;
+        ok !defined eval{$store->execute()};
+        like($@, qr/Out of range value (?:adjusted )?for column 'val'/)
+        or note("Error, you stored ".($min-1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
@@ -95,9 +96,10 @@ sub test_int_type ($$$$) {
     ########################################
     ok($store->bind_param( 1, ($max+1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding more than maximal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
-        $@ = '';
-        eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/, "Error, you stored ".($max+1)." into $mariadb_type, mode=$mode\n".
+        local $store->{PrintError} = 0;
+        ok !defined eval{$store->execute()};
+        like($@, qr/Out of range value (?:adjusted )?for column 'val'/)
+        or note("Error, you stored ".($max+1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
