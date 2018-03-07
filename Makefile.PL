@@ -465,7 +465,7 @@ if (eval $ExtUtils::MakeMaker::VERSION >= 5.43) {
             'Proc::ProcessTable' => 0,
           },
           suggests => {
-            'Test::Pod' => '1.00',
+            'Test::Pod' => '1.41',
             'Test::DistManifest' => 0,
           },
         },
