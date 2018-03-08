@@ -89,13 +89,13 @@ ok (! defined $sth->{'NUM_OF_FIELDS'});
 
 $quoted = eval { $dbh->quote(0, DBI::SQL_INTEGER()) };
 
-ok (!$@);
+ok defined $quoted;
 
 cmp_ok $quoted, 'eq', '0', "equals '0'";
 
 $quoted = eval { $dbh->quote('abc', DBI::SQL_VARCHAR()) };
 
-ok (!$@);
+ok defined $quoted;
 
 cmp_ok $quoted, 'eq', "\'abc\'", "equals 'abc'";
 

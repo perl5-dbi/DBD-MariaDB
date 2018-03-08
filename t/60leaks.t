@@ -13,17 +13,15 @@ my $COUNT_BIND    = 10000;    # Number of bind_param iterations
 
 my $have_storable;
 
-if (!$ENV{EXTENDED_TESTING}) {
+BEGIN {
+    if (!$ENV{EXTENDED_TESTING}) {
         plan skip_all => "Skip \$ENV{EXTENDED_TESTING} is not set\n";
-}
-
-eval { require Proc::ProcessTable; };
-if ($@) {
+    }
+    if (not eval { require Proc::ProcessTable }) {
         plan skip_all => "module Proc::ProcessTable not installed \n";
+    }
+    $have_storable = eval { require Storable } ? 1 : 0;
 }
-
-eval { require Storable };
-$have_storable = $@ ? 0 : 1;
 
 my $have_pt_size = grep { $_ eq 'size' } Proc::ProcessTable->new('cache_ttys' => $have_storable)->fields;
 if (!$have_pt_size) {

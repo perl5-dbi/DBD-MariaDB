@@ -11,7 +11,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-plan tests => 13;
+plan tests => 12;
 
 my $create= <<EOT;
 CREATE TABLE dbd_mysql_t25lockunlock (
@@ -30,10 +30,7 @@ ok $dbh->do("INSERT INTO dbd_mysql_t25lockunlock VALUES(1, 'Alligator Descartes'
 
 ok $dbh->do("DELETE FROM dbd_mysql_t25lockunlock WHERE id = 1"), "Delete";
 
-my $sth;
-eval {$sth= $dbh->prepare("SELECT * FROM dbd_mysql_t25lockunlock WHERE id = 1")};
-
-ok !$@, "Prepare of select";
+my $sth = eval { $dbh->prepare("SELECT * FROM dbd_mysql_t25lockunlock WHERE id = 1") };
 
 ok defined($sth), "Prepare of select";
 
