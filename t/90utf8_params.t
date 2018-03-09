@@ -17,10 +17,6 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1 });
 
-if ($dbh->{mariadb_serverversion} < 50000) {
-    plan skip_all => "You must have MySQL version 5.0 and greater for this test to run";
-}
-
 my $nasty_unicode1 = "\N{U+C3}\N{U+BF}"; # looks like character 0xff, if you accidentally utf8 decode
 utf8::downgrade($nasty_unicode1);
 my $nasty_unicode2 = $nasty_unicode1;
