@@ -25,9 +25,6 @@ my $mode; # 'strict' or 'nostrict' corresponds to strict SQL mode
 sub test_int_type ($$$$) {
     my ($perl_type, $mariadb_type, $min, $max) = @_;
 
-    # Disable the warning text clobbering our output
-    local $SIG{__WARN__} = sub { 1; };
-
     # Create the table
     ok($dbh->do(qq{DROP TABLE IF EXISTS $table}), "removing $table");
     ok($dbh->do(qq{
@@ -52,7 +49,7 @@ sub test_int_type ($$$$) {
     ########################################
     # Read it back and compare
     ########################################
-    ok{$retrieve->execute()};
+    ok($retrieve->execute());
     ($read_value) = $retrieve->fetchrow_array();
     cmp_ok($read_value, 'eq', $min, "retrieved minimal value for $mariadb_type, mode=$mode");
 
@@ -65,7 +62,7 @@ sub test_int_type ($$$$) {
     ########################################
     # Read it back and compare
     ########################################
-    ok{$retrieve->execute()};
+    ok($retrieve->execute());
     ($read_value) = $retrieve->fetchrow_array();
     cmp_ok($read_value, 'eq', $max, "retrieved maximal value for $mariadb_type, mode=$mode");
 
@@ -82,11 +79,11 @@ sub test_int_type ($$$$) {
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
     } else {
-        ok{$store->execute()};
+        ok($store->execute());
         ########################################
         # Check that it was rounded correctly
         ########################################
-        ok{$retrieve->execute()};
+        ok($retrieve->execute());
         ($read_value) = $retrieve->fetchrow_array();
         cmp_ok($read_value, 'eq', $min, "retrieved minimal value for type $mariadb_type, mode=$mode");
     };
@@ -104,11 +101,11 @@ sub test_int_type ($$$$) {
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
         );
     } else {
-        ok{$store->execute()};
+        ok($store->execute());
         ########################################
         # Check that it was rounded correctly
         ########################################
-        ok{$retrieve->execute()};
+        ok($retrieve->execute());
         ($read_value) = $retrieve->fetchrow_array();
         cmp_ok($read_value, 'eq', $max, "retrieved maximal value for type $mariadb_type, mode=$mode");
     };
