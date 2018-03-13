@@ -74,6 +74,21 @@
 #define SvPV_nomg_nolen(sv) ((SvFLAGS(sv) & (SVf_POK)) == SVf_POK ? SvPVX(sv) : sv_2pv_flags(sv, &PL_na, 0))
 #endif
 
+/* looks_like_number() process get magic prior to perl 5.15.4, so reimplement it */
+#if PERL_VERSION < 15 || (PERL_VERSION == 15 && PERL_SUBVERSION < 4)
+#undef looks_like_number
+PERL_STATIC_INLINE I32 looks_like_number(pTHX_ SV *sv)
+{
+  char *sbegin;
+  STRLEN len;
+  if (!SvPOK(sv) && !SvPOKp(sv))
+    return SvFLAGS(sv) & (SVf_NOK|SVp_NOK|SVf_IOK|SVp_IOK);
+  sbegin = SvPV_nomg(sv, len);
+  return grok_number(sbegin, len, NULL);
+}
+#define looks_like_number(sv) looks_like_number(aTHX_ (sv))
+#endif
+
 #ifndef SvPVutf8_nomg
 PERL_STATIC_INLINE char * SvPVutf8_nomg(pTHX_ SV *sv, STRLEN *len)
 {

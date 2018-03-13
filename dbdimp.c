@@ -5853,7 +5853,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
    */
   if (SvOK(value) && sql_type_is_numeric(sql_type))
   {
-    /* FIXME: looks_like_number() process get magic prior to perl 5.15.4 */
     if (! looks_like_number(value))
     {
       err_msg = SvPVX(sv_2mortal(newSVpvf(
