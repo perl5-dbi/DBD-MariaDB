@@ -108,12 +108,104 @@ PERL_STATIC_INLINE char * SvPVbyte_nomg(pTHX_ SV *sv, STRLEN *len)
 #define SvTRUE_nomg SvTRUE /* SvTRUE does not process get magic for scalars with already cached values, so we are safe */
 #endif
 
-#ifndef SvIV_nomg
-#define SvIV_nomg SvIV /* Sorry, there is no way to handle integer magic scalars properly prior to perl 5.9.1 */
+/* Sorry, there is no way to handle integer magic scalars properly prior to perl 5.9.1 */
+
+/* Remove wrong SvIV_nomg macro defined by ppport.h */
+#if defined(SvIV_nomg) && (PERL_VERSION < 9 | (PERL_VERSION == 9 && PERL_SUBVERSION < 1))
+#undef SvIV_nomg
 #endif
 
+#ifndef SvIV_nomg
+PERL_STATIC_INLINE IV SvIV_nomg(pTHX_ SV *sv)
+{
+  UV uv;
+  char *str;
+  STRLEN len;
+  int num_type;
+  if (SvIOK(sv) || SvIOKp(sv))
+  {
+    if (!SvIsUV(sv))
+      return SvIVX(sv);
+    uv = SvUVX(sv);
+    if (uv > (UV)IV_MAX)
+      return IV_MAX;
+    return (IV)uv;
+  }
+  if (SvNOK(sv) || SvNOKp(sv))
+    return (IV)SvNVX(sv);
+  str = SvPV_nomg(sv, len);
+  num_type = grok_number(str, len, &uv);
+  if (!(num_type & (IS_NUMBER_IN_UV)) || (num_type & IS_NUMBER_NOT_INT))
+  {
+    warner(packWARN(WARN_NUMERIC), "Argument \"%s\" isn't numeric", str);
+    return 0;
+  }
+  if (num_type & IS_NUMBER_NEG)
+  {
+    if (uv > (UV)IV_MAX+1)
+      return IV_MIN;
+    return -(IV)uv;
+  }
+  else
+  {
+    if (uv > (UV)IV_MAX)
+      return IV_MAX;
+    return (IV)uv;
+  }
+}
+#define SvIV_nomg(sv) SvIV_nomg(aTHX_ sv)
+#endif
+
+/* Remove wrong SvUV_nomg macro defined by ppport.h */
+#if defined(SvUV_nomg) && (PERL_VERSION < 9 | (PERL_VERSION == 9 && PERL_SUBVERSION < 1))
+#undef SvUV_nomg
+#endif
+
+#ifndef SvUV_nomg
+PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
+{
+  IV iv;
+  UV uv;
+  char *str;
+  STRLEN len;
+  int num_type;
+  if (SvIOK(sv) || SvIOKp(sv))
+  {
+    if (SvIsUV(sv))
+      return SvUVX(sv);
+    iv = SvIVX(sv);
+    if (iv < 0)
+      return 0;
+    return (UV)iv;
+  }
+  if (SvNOK(sv) || SvNOKp(sv))
+    return (UV)SvNVX(sv);
+  str = SvPV_nomg(sv, len);
+  num_type = grok_number(str, len, &uv);
+  if (!(num_type & (IS_NUMBER_IN_UV)) || (num_type & IS_NUMBER_NOT_INT))
+  {
+    warner(packWARN(WARN_NUMERIC), "Argument \"%s\" isn't numeric", str);
+    return 0;
+  }
+  if (num_type & IS_NUMBER_NEG)
+    return 0;
+  return uv;
+}
+#define SvUV_nomg(sv) SvUV_nomg(aTHX_ sv)
+#endif
+
+/* Sorry, there is no way to handle numeric magic scalars properly prior to perl 5.13.2 */
 #ifndef SvNV_nomg
-#define SvNV_nomg SvNV /* Sorry, there is no way to handle numeric magic scalars properly prior to perl 5.13.2 */
+#define SvNV_nomg(sv)                       \
+  ((SvNOK(sv) || SvNOKp(sv))                \
+    ? SvNVX(sv)                             \
+    : (SvIOK(sv) || SvIOKp(sv))             \
+      ? (SvIsUV(sv)                         \
+        ? ((NV)SvUVX(sv))                   \
+        : ((NV)SvIVX(sv)))                  \
+      : (SvPOK(sv) || SvPOKp(sv))           \
+        ? ((NV)Atof(SvPVX(sv)))             \
+        : ((NV)Atof(SvPV_nomg_nolen(sv))))
 #endif
 
 #ifndef sv_cmp_flags
