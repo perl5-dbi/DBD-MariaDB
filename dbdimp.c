@@ -5887,8 +5887,12 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         if (!SvIOK(value) && DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tTRY TO BIND AN INT NUMBER\n");
         int_val= SvIV_nomg(value);
-        if (SvIsUV(value))
+        /* SvIV and SvUV may modify SvIsUV flag, on overflow maximal value is returned */
+        if (SvIsUV(value) || int_val == IV_MAX)
+        {
+          int_val = SvUV_nomg(value);
           buffer_is_unsigned= 1;
+        }
 
         switch (buffer_type) {
         case MYSQL_TYPE_TINY:
