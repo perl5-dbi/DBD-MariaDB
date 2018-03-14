@@ -5167,9 +5167,9 @@ process:
           {
             /* Coerce to integer and set scalar as UV resp. IV */
             if (fields[i].flags & UNSIGNED_FLAG)
-              sv_setuv(sv, SvUV(sv));
+              sv_setuv(sv, SvUV_nomg(sv));
             else
-              sv_setiv(sv, SvIV(sv));
+              sv_setiv(sv, SvIV_nomg(sv));
           }
           break;
 
