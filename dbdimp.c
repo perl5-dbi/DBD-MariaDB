@@ -5167,9 +5167,9 @@ process:
           {
             /* Coerce to integer and set scalar as UV resp. IV */
             if (fields[i].flags & UNSIGNED_FLAG)
-              sv_setuv(sv, SvUV(sv));
+              sv_setuv(sv, SvUV_nomg(sv));
             else
-              sv_setiv(sv, SvIV(sv));
+              sv_setiv(sv, SvIV_nomg(sv));
           }
           break;
 
@@ -5853,7 +5853,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
    */
   if (SvOK(value) && sql_type_is_numeric(sql_type))
   {
-    /* FIXME: looks_like_number() process get magic prior to perl 5.15.4 */
     if (! looks_like_number(value))
     {
       err_msg = SvPVX(sv_2mortal(newSVpvf(
@@ -5888,8 +5887,12 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         if (!SvIOK(value) && DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tTRY TO BIND AN INT NUMBER\n");
         int_val= SvIV_nomg(value);
-        if (SvIsUV(value))
+        /* SvIV and SvUV may modify SvIsUV flag, on overflow maximal value is returned */
+        if (SvIsUV(value) || int_val == IV_MAX)
+        {
+          int_val = SvUV_nomg(value);
           buffer_is_unsigned= 1;
+        }
 
         switch (buffer_type) {
         case MYSQL_TYPE_TINY:
