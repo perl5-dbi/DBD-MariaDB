@@ -117,7 +117,7 @@ Check if the current user of the DBH has permissions to create/drop procedures
 
     if (!CheckRoutinePerms($dbh)) {
         plan skip_all =>
-            "Your test user does not have ALTER_ROUTINE privileges.";
+            $dbh->errstr();
     }
 
 =cut
@@ -128,7 +128,8 @@ sub CheckRoutinePerms {
     # check for necessary privs
     local $dbh->{PrintError} = 0;
     if (not eval { $dbh->do('DROP PROCEDURE IF EXISTS testproc') }) {
-        return if $@ =~ qr/alter routine command denied to user/;
+        return 0 if $dbh->errstr() =~ /alter routine command denied to user/;
+        return 0 if $dbh->errstr() =~ /Table 'mysql\.proc' doesn't exist/;
     }
 
     return 1;
