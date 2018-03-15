@@ -73,7 +73,7 @@ sub test_int_type ($$$$) {
     if ($mode eq 'strict') {
         local $store->{PrintError} = 0;
         ok !defined eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/)
+        like($store->errstr(), qr/Out of range value (?:adjusted )?for column 'val'/)
         or note("Error, you stored ".($min-1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])
@@ -95,7 +95,7 @@ sub test_int_type ($$$$) {
     if ($mode eq 'strict') {
         local $store->{PrintError} = 0;
         ok !defined eval{$store->execute()};
-        like($@, qr/Out of range value (?:adjusted )?for column 'val'/)
+        like($store->errstr(), qr/Out of range value (?:adjusted )?for column 'val'/)
         or note("Error, you stored ".($max+1)." into $mariadb_type, mode=$mode\n".
             Data::Dumper->Dump([$dbh->selectall_arrayref("SELECT * FROM $table")]).
             Data::Dumper->Dump([$dbh->selectall_arrayref("describe $table")])

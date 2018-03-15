@@ -15,5 +15,5 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 
 plan tests => 3;
 my $sth = $dbh->prepare("select * from unknown_table where id=?");
 ok !defined eval { $sth->bind_param(1, $INSECURE_VALUE_FROM_USER, 3) };
-like $@, qr/Binding non-numeric field 1, value '\Q$INSECURE_VALUE_FROM_USER\E' as a numeric!/, "bind_param failed on incorrect numeric value";
+like $sth->errstr(), qr/Binding non-numeric field 1, value '\Q$INSECURE_VALUE_FROM_USER\E' as a numeric!/, "bind_param failed on incorrect numeric value";
 pass "perl interpreter did not crash";

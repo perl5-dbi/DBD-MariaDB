@@ -39,7 +39,7 @@ foreach my $server_prepare (0, 1) {
     my $enable_str = "mariadb_server_prepare=$server_prepare";
     my $enable_hash = { mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
 
-    $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash) or die DBI->errstr;
+    $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash);
 
     foreach my $charset ("latin1", "utf8") {
 
