@@ -22,7 +22,7 @@ if ($dbh->{mariadb_serverversion} < 50000) {
 
 if (!CheckRoutinePerms($dbh)) {
     plan skip_all =>
-        "Your test user does not have ALTER_ROUTINE privileges.";
+        $dbh->errstr();
 }
 
 plan tests => 32;
