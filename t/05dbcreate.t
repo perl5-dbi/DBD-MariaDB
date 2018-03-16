@@ -15,9 +15,12 @@ $test_dsn_without_db =~ s/^(DBI:[^:]+):(?:[^:;]+)([:;]?)/$1:$2/;
 
 sub fatal_error {
     my ($message) = @_;
-    my $err = $@;
-    $err =~ s/ at \S+ line \d+\.?\s*$//;
-    $err = "unknown error" unless $err;
+    my $err = $DBI::errstr;
+    if (not $err) {
+      $err = $@;
+      $err =~ s/ at \S+ line \d+\.?\s*$//;
+      $err = "unknown error" unless $err;
+    }
     if ( $ENV{CONNECTION_TESTING} ) {
         BAIL_OUT "$message: $err";
     } else {

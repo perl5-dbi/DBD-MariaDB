@@ -58,12 +58,9 @@ ok $dbh1->do("INSERT INTO dbd_mysql_rt75353_innodb_lock_timeout VALUES(1)"), "db
 
 my $error_handler_called = 0;
 $dbh2->{HandleError} = sub { $error_handler_called = 1; die $_[0]; };
-ok !defined eval { $dbh2->selectcol_arrayref("SELECT id FROM dbd_mysql_rt75353_innodb_lock_timeout FOR UPDATE") };
-my $error_message = $@;
+ok !defined eval { $dbh2->selectcol_arrayref("SELECT id FROM dbd_mysql_rt75353_innodb_lock_timeout FOR UPDATE") }, "dbh2: acquiring same lock as dbh1 on table dbd_mysql_rt75353_innodb_lock_timeout failed";
 $dbh2->{HandleError} = undef;
-ok $error_message, "dbh2: acquiring same lock as dbh1 on table dbd_mysql_rt75353_innodb_lock_timeout failed";
-
-like $error_message, qr/Lock wait timeout exceeded; try restarting transaction/, "dbh2: error message for acquiring lock is 'Lock wait timeout exceeded'";
+like $DBI::errstr, qr/Lock wait timeout exceeded; try restarting transaction/, "dbh2: error message for acquiring lock is 'Lock wait timeout exceeded'";
 ok $error_handler_called, "dbh2: error handler code ref was called";
 
 $dbh2->disconnect();

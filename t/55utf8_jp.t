@@ -21,7 +21,7 @@ eval {
   plan skip_all => "Server lc_messages ja_JP are needed for this test";
 };
 
-plan tests => 21;
+plan tests => 22;
 
 my $jpnTable = "\N{U+8868}"; # Japanese table
 my $jpnGender = "\N{U+6027}\N{U+5225}"; # Japanese word "gender"
@@ -93,6 +93,7 @@ eval {
 $SIG{__WARN__} = 'default';
 
 ok($failed);
+like($dieerr, $jpnErr);
 like($DBI::errstr, $jpnErr);
 like($dbh->errstr, $jpnErr);
 

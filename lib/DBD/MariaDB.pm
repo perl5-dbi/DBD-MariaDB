@@ -863,9 +863,8 @@ DBD::MariaDB - MariaDB and MySQL driver for the Perl5 Database Interface (DBI)
   # Thus we put an eval around it.
   eval {
       $dbh->do("DROP TABLE foo");
-      1;
   } or do {
-      print "Dropping foo failed: $@\n";
+      print "Dropping foo failed: " . $dbh->errstr() . "\n";
   };
 
   # Create a new table 'foo'. This must not fail, thus we don't
