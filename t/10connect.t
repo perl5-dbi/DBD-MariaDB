@@ -72,6 +72,10 @@ foreach (sort keys %{$res}) {
 }
 
 my $info_hashref = $dbh->{mariadb_dbd_stats};
+ok(defined $info_hashref, "Value of 'mariadb_dbd_stats'");
+foreach (sort keys %{$info_hashref}) {
+    diag("$_ is: ". $info_hashref->{$_});
+}
 
 ok($dbh->disconnect(), 'Disconnected');
 
