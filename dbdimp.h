@@ -617,7 +617,7 @@ MYSQL* mariadb_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
 
 int mariadb_db_reconnect(SV*);
 
-int mariadb_db_async_result(SV* h, MYSQL_RES** resp);
+my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);
 
 int mariadb_dr_socket_ready(my_socket fd);

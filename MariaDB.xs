@@ -80,7 +80,7 @@ type_info_all(dbh)
 }
 
 
-void
+SV *
 do(dbh, statement, attr=Nullsv, ...)
   SV *        dbh
   SV *	statement
@@ -91,7 +91,7 @@ do(dbh, statement, attr=Nullsv, ...)
   D_imp_dbh(dbh);
   int num_params= (items > 3 ? items - 3 : 0);
   int i;
-  int retval;
+  my_ulonglong retval;
   STRLEN slen;
   char *str_ptr;
   struct imp_sth_ph_st* params= NULL;
@@ -197,7 +197,7 @@ do(dbh, statement, attr=Nullsv, ...)
       {
         mariadb_dr_do_error(dbh, mysql_stmt_errno(stmt), mysql_stmt_error(stmt)
                  ,mysql_stmt_sqlstate(stmt));
-        retval=-2;
+        retval = (my_ulonglong)-1;
       }
       mysql_stmt_close(stmt);
       stmt= NULL;
@@ -246,7 +246,7 @@ do(dbh, statement, attr=Nullsv, ...)
       mysql_stmt_close(stmt);
       stmt= NULL;
 
-      if (retval == -2) /* -2 means error */
+      if (retval == (my_ulonglong)-1) /* -1 means error */
       {
         SV *err = DBIc_ERR(imp_dbh);
         if (!disable_fallback_for_server_prepare && SvIV(err) == ER_UNSUPPORTED_PS)
@@ -289,7 +289,7 @@ do(dbh, statement, attr=Nullsv, ...)
     result= 0;
   }
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
-  if (retval != -2 && !async) /* -2 means error */
+  if (retval != (my_ulonglong)-1 && !async) /* -1 means error */
     {
       /* more results? -1 = no, >0 = error, 0 = yes (keep looping) */
       while ((next_result_rc= mysql_next_result(imp_dbh->pmysql)) == 0)
@@ -309,18 +309,20 @@ do(dbh, statement, attr=Nullsv, ...)
               mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                        mysql_error(imp_dbh->pmysql),
                        mysql_sqlstate(imp_dbh->pmysql));
-              retval= -2;
+              retval = (my_ulonglong)-1;
           }
     }
 #endif
-  /* remember that dbd_st_execute must return <= -2 for error	*/
-  if (retval == 0)		/* ok with no rows affected	*/
-    XST_mPV(0, "0E0");	/* (true but zero)		*/
-  else if (retval < -1)	/* -1 == unknown number of rows	*/
-    XST_mUNDEF(0);		/* <= -2 means error   		*/
-  else
-    XST_mIV(0, retval);	/* typically 1, rowcount or -1	*/
+
+  if (retval == 0)                      /* ok with no rows affected     */
+    XSRETURN_PV("0E0");                 /* (true but zero)              */
+  else if (retval == (my_ulonglong)-1)  /* -1 means error               */
+    XSRETURN_UNDEF;
+
+  RETVAL = my_ulonglong2sv(retval);
 }
+  OUTPUT:
+    RETVAL
 
 
 SV*
@@ -392,22 +394,24 @@ void mariadb_sockfd(dbh)
         }
     }
 
-void mariadb_async_result(dbh)
+SV *
+mariadb_async_result(dbh)
     SV* dbh
-  PPCODE:
+  CODE:
     {
-        int retval;
+        my_ulonglong retval;
 
         retval = mariadb_db_async_result(dbh, NULL);
 
-        if(retval > 0) {
-            XSRETURN_IV(retval);
-        } else if(retval == 0) {
+        if (retval == 0)
             XSRETURN_PV("0E0");
-        } else {
+        else if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
-        }
+
+        RETVAL = my_ulonglong2sv(retval);
     }
+  OUTPUT:
+    RETVAL
 
 void mariadb_async_ready(dbh)
     SV* dbh
@@ -459,50 +463,40 @@ more_results(sth)
     OUTPUT:
       RETVAL
 
-void
+SV *
 rows(sth)
     SV* sth
   CODE:
     D_imp_sth(sth);
-    char buf[64];
     D_imp_dbh_from_sth;
     if(imp_dbh->async_query_in_flight) {
-        if(mariadb_db_async_result(sth, &imp_sth->result) < 0) {
+        if (mariadb_db_async_result(sth, &imp_sth->result) == (my_ulonglong)-1) {
             XSRETURN_UNDEF;
         }
     }
+    RETVAL = my_ulonglong2sv(imp_sth->row_num);
+  OUTPUT:
+    RETVAL
 
-  /* fix to make rows able to handle errors and handle max value from 
-     affected rows.
-     if mysql_affected_row returns an error, it's value is 18446744073709551614,
-     while a (my_ulonglong)-1 is  18446744073709551615, so we have to add 1 to
-     imp_sth->row_num to know if there's an error
-  */
-  if (imp_sth->row_num+1 ==  (my_ulonglong) -1)
-    sprintf(buf, "%d", -1);
-  else
-    sprintf(buf, "%llu", imp_sth->row_num);
-
-  ST(0) = sv_2mortal(newSVpvn(buf, strlen(buf)));
-
-int mariadb_async_result(sth)
+SV *
+mariadb_async_result(sth)
     SV* sth
   CODE:
     {
         D_imp_sth(sth);
-        int retval;
+        my_ulonglong retval;
 
         retval= mariadb_db_async_result(sth, &imp_sth->result);
 
-        if(retval > 0) {
-            imp_sth->row_num = retval;
-            XSRETURN_IV(retval);
-        } else if(retval == 0) {
-            imp_sth->row_num = retval;
-            XSRETURN_PV("0E0");
-        } else {
+        if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
-        }
+
+        imp_sth->row_num = retval;
+
+        if (retval == 0)
+            XSRETURN_PV("0E0");
+
+        RETVAL = my_ulonglong2sv(retval);
     }
   OUTPUT:
     RETVAL
