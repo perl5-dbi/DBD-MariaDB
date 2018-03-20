@@ -23,12 +23,3 @@ sub MY::postamble {
   require DBI::DBD;
   "\n" . DBI::DBD::dbd_postamble(@_);
 };
-
-sub MY::dynamic_lib {
-  my $self = shift;
-  my $result = $self->SUPER::dynamic_lib(@_);
-  if (!$::opt->{nocatchstderr}  &&  $result =~ /\$\(LD\)/) {
-    $result =~ s/(\$\(LD\))/\$\(PERL\) myld \$(LD)/sg;
-  }
-  return $result;
-};

@@ -46,7 +46,6 @@ Getopt::Long::GetOptions(
     "cflags=s",
     "libs=s",
     "verbose",
-    "nocatchstderr",
     "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
@@ -103,7 +102,7 @@ MSG
   }
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
-                    cflags embedded libs nocatchstderr
+                    cflags embedded libs
                     force-embedded/)
 {
   Configure($opt, $source, $key);
@@ -522,8 +521,6 @@ Possible options are:
                          mariadb/mysqlclient library
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
-  --nocatchstderr        Suppress using the "myld" script that redirects
-                         STDERR while running the linker.
   --help                 Print this message and exit
 
 All options may be configured on the command line. If they are
@@ -635,10 +632,6 @@ perl Makefile.PL --testuser=username
 ";
       $opt->{$param} = $user;
 	  $source->{$param} = 'guessed';
-    }
-    elsif ($param eq "nocatchstderr") {
-      $source->{$param} = "default";
-      $opt->{$param} = 0;
     }
     elsif ($param eq "testdb") {
       $source->{$param} = "default";
