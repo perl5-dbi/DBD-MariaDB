@@ -8,7 +8,6 @@ package DBD::MariaDB;
 
 use DBI;
 use DynaLoader();
-use Carp;
 our @ISA = qw(DynaLoader);
 
 # please make sure the sub-version does not increase above '099'
@@ -372,6 +371,7 @@ sub column_info {
   $column = '%' unless defined $column;
 
   my $ER_NO_SUCH_TABLE= 1146;
+  my $ER_BAD_FIELD_ERROR = 1054;
 
   my $table_id = $dbh->quote_identifier($catalog, $schema, $table);
 
@@ -531,7 +531,7 @@ sub column_info {
 	  }
 	  else
     {
-	    Carp::carp("column_info: unrecognized column type '$basetype' of $table_id.$row->{field} treated as varchar");
+        return $dbh->DBI::set_err($ER_BAD_FIELD_ERROR, "column_info: unrecognized column type '$basetype' of $table_id.$row->{field} treated as varchar");
     }
     $info->{SQL_DATA_TYPE} ||= $info->{DATA_TYPE};
   }

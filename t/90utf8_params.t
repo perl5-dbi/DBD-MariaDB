@@ -8,7 +8,6 @@ use strict;
 use warnings FATAL => 'all';
 use DBI;
 use DBI::Const::GetInfoType;
-use Carp qw(croak);
 use Test::More;
 use vars qw($table $test_dsn $test_user $test_password); 
 use vars qw($COL_NULLABLE $COL_KEY);
