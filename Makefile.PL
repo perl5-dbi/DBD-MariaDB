@@ -45,7 +45,6 @@ Getopt::Long::GetOptions(
     "testsocket=s",
     "cflags=s",
     "libs=s",
-    "verbose",
     "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
