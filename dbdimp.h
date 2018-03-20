@@ -310,7 +310,7 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 /* MYSQL_OPT_SSL_VERIFY_SERVER_CERT automatically enforce SSL mode */
 PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 #ifdef MARIADB_BASE_VERSION
-	my_ulonglong version = mysql_get_client_version();
+	unsigned long version = mysql_get_client_version();
 	return ((version >= 50544 && version < 50600) || (version >= 100020 && version < 100100) || version >= 100106);
 #else
 	return false;
@@ -319,7 +319,7 @@ PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 
 /* MYSQL_OPT_SSL_VERIFY_SERVER_CERT is not vulnerable (CVE-2016-2047) and can be used */
 PERL_STATIC_INLINE bool ssl_verify_usable(void) {
-	my_ulonglong version = mysql_get_client_version();
+	unsigned long version = mysql_get_client_version();
 #ifdef MARIADB_BASE_VERSION
 	return ((version >= 50547 && version < 50600) || (version >= 100023 && version < 100100) || version >= 100110);
 #else
