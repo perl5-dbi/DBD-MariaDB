@@ -21,7 +21,7 @@ my $TESTDB = "test";
 our $opt = { "help" => \&Usage, };
 
 {
-local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config);
+local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } || eval { require "../t/MariaDB.mtest" } and do {
 $opt->{'testhost'} = $::test_host;
 $opt->{'testport'} = $::test_port;
@@ -31,6 +31,8 @@ $opt->{'testpassword'} = $::test_password;
 $opt->{'testdb'} = $::test_db;
 $opt->{'force-embedded'} = $::test_force_embedded if $::test_force_embedded;
 $opt->{'mysql_config'} = $::test_mysql_config;
+$opt->{'cflags'} = $::test_cflags;
+$opt->{'libs'} = $::test_libs;
 }
 }
 
@@ -45,8 +47,6 @@ Getopt::Long::GetOptions(
     "testsocket=s",
     "cflags=s",
     "libs=s",
-    "verbose",
-    "nocatchstderr",
     "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
@@ -103,7 +103,7 @@ MSG
   }
 
 for my $key (qw/testdb testhost testuser testpassword testsocket testport
-                    cflags embedded libs nocatchstderr
+                    cflags embedded libs
                     force-embedded/)
 {
   Configure($opt, $source, $key);
@@ -233,6 +233,8 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
+	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
+	      "\$::test_libs = \$opt->{'libs'} if \$source->{'libs'} eq 'User\\'s choice';\n" .
 	      "} 1;\n"))  &&
   close(FILE))  ||  die "Failed to create $fileName: $!";
 
@@ -522,8 +524,6 @@ Possible options are:
                          mariadb/mysqlclient library
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
-  --nocatchstderr        Suppress using the "myld" script that redirects
-                         STDERR while running the linker.
   --help                 Print this message and exit
 
 All options may be configured on the command line. If they are
@@ -635,10 +635,6 @@ perl Makefile.PL --testuser=username
 ";
       $opt->{$param} = $user;
 	  $source->{$param} = 'guessed';
-    }
-    elsif ($param eq "nocatchstderr") {
-      $source->{$param} = "default";
-      $opt->{$param} = 0;
     }
     elsif ($param eq "testdb") {
       $source->{$param} = "default";
@@ -902,61 +898,4 @@ sub WriteMakefile1 {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-
   delete $params{BINARY_LOCATION} if $] < 5.005;
 
   ExtUtils::MakeMaker::WriteMakefile(%params);
-}
-__DATA__
-
-my %opts = ();
-GetOptions(\%opts,
-           'cflags',
-           'libs',
-           'port',
-           'version',
-           'libmysqld-libs',
-           'embedded',
-           'embedded-libs',
-           'help',
-          ) or usage();
-
-usage() if ($opts{help} or not %opts);
-
-SWITCH : {
-  local $\ = "\n";
-  $opts{cflags} and do {
-    print $cflags;
-    last SWITCH;
-  };
-  $opts{libs} and do {
-    print $libs;
-    last SWITCH;
-  };
-  $opts{port} and do {
-    print $port;
-    last SWITCH;
-  };
-  $opts{version} and do {
-    print $version;
-    last SWITCH;
-  };
-  ($opts{'libmysqld-libs'} or $opts{embedded} or $opts{'libmysqld-libs'} )
-    and do {
-      print $embedded_libs;
-      last SWITCH;
-    };
-  usage();
-}
-
-exit(0);
-
-sub usage {
-  print << "EOU";
-Usage: $0 [OPTIONS]
-
-Options:
-        --cflags         [$cflags]
-        --libs           [$libs]
-        --port           [$port]
-        --version        [$version]
-	--libmysqld-libs [$embedded_libs]
-EOU
-    exit(1);
 }

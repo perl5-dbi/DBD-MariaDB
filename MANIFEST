@@ -10,7 +10,6 @@ Makefile.PL
 Makefile.PL.embedded
 MANIFEST			This list of files
 MANIFEST.SKIP
-myld
 MariaDB.xs
 README.pod
 socket.c
