@@ -21,7 +21,7 @@ my $TESTDB = "test";
 our $opt = { "help" => \&Usage, };
 
 {
-local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config);
+local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } || eval { require "../t/MariaDB.mtest" } and do {
 $opt->{'testhost'} = $::test_host;
 $opt->{'testport'} = $::test_port;
@@ -31,6 +31,8 @@ $opt->{'testpassword'} = $::test_password;
 $opt->{'testdb'} = $::test_db;
 $opt->{'force-embedded'} = $::test_force_embedded if $::test_force_embedded;
 $opt->{'mysql_config'} = $::test_mysql_config;
+$opt->{'cflags'} = $::test_cflags;
+$opt->{'libs'} = $::test_libs;
 }
 }
 
@@ -231,6 +233,8 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
+	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
+	      "\$::test_libs = \$opt->{'libs'} if \$source->{'libs'} eq 'User\\'s choice';\n" .
 	      "} 1;\n"))  &&
   close(FILE))  ||  die "Failed to create $fileName: $!";
 
