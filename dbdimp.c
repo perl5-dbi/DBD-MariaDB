@@ -3236,16 +3236,23 @@ signed_my_ulonglong2str(my_ulonglong val, char *buf, STRLEN *len)
 }
 #endif
 
-static SV*
-my_ulonglong2sv(pTHX_ my_ulonglong val)
+SV*
+mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val)
 {
 #if IVSIZE >= 8
   return newSVuv(val);
 #else
-  char buf[64];
-  STRLEN len = sizeof(buf);
-  char *ptr = my_ulonglong2str(val, buf, &len);
-  return newSVpvn(ptr, len);
+  if (val <= UV_MAX)
+  {
+    return newSVuv(val);
+  }
+  else
+  {
+    char buf[64];
+    STRLEN len = sizeof(buf);
+    char *ptr = my_ulonglong2str(val, buf, &len);
+    return newSVpvn(ptr, len);
+  }
 #endif
 }
 
@@ -3322,7 +3329,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (kl == 13 && strEQ(key, "clientversion"))
     {
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_get_client_version()));
+      result= sv_2mortal(my_ulonglong2sv(mysql_get_client_version()));
     }
     break;
   case 'e':
@@ -3377,7 +3384,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (kl == 8  &&  strEQ(key, "insertid"))
       /* We cannot return an IV, because the insertid is a long. */
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_insert_id(imp_dbh->pmysql)));
+      result= sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
     break;
   case 'n':
     if (kl == strlen("no_autocommit_cmd") &&
@@ -3407,7 +3414,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
 #endif
     else if (kl == 13 && strEQ(key, "serverversion"))
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_get_server_version(imp_dbh->pmysql)));
+      result= sv_2mortal(my_ulonglong2sv(mysql_get_server_version(imp_dbh->pmysql)));
     else if (strEQ(key, "sock"))
       result= sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
     else if (strEQ(key, "sockfd"))
@@ -5699,7 +5706,7 @@ SV* mariadb_st_FETCH_attrib(
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "INSERT ID %llu\n", imp_sth->insertid);
 
-        return sv_2mortal(my_ulonglong2sv(aTHX_ imp_sth->insertid));
+        return sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
       }
       break;
     case 17:
@@ -6385,7 +6392,7 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
   attr= attr;
 
   ASYNC_CHECK_RETURN(dbh, &PL_sv_undef);
-  return sv_2mortal(my_ulonglong2sv(aTHX_ mysql_insert_id(imp_dbh->pmysql)));
+  return sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
 }
 
 int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
