@@ -558,7 +558,7 @@ struct imp_sth_st {
 #define dbd_db_last_insert_id   mariadb_db_last_insert_id
 #define dbd_db_data_sources	mariadb_db_data_sources
 #define dbd_st_prepare_sv	mariadb_st_prepare_sv
-#define dbd_st_execute		mariadb_st_execute
+#define dbd_st_execute_iv	mariadb_st_execute_iv
 #define dbd_st_fetch		mariadb_st_fetch
 #define dbd_st_finish		mariadb_st_finish
 #define dbd_st_destroy		mariadb_st_destroy
@@ -568,6 +568,19 @@ struct imp_sth_st {
 #define dbd_bind_ph		mariadb_st_bind_ph
 
 #include <dbd_xsh.h>
+
+/* Compatibility for DBI version prior to 1.634 which do not support dbd_st_execute_iv API */
+#ifndef HAVE_DBI_1_634
+#define dbd_st_execute		mariadb_st_execute
+IV dbd_st_execute_iv(SV *sth, imp_sth_t *imp_sth);
+PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
+  IV ret = dbd_st_execute_iv(sth, imp_sth);
+  if (ret >= INT_MIN && ret <= INT_MAX)
+    return ret;
+  else         /* overflow */
+    return -1; /* -1 is unknown number of rows */
+}
+#endif
 
 void    mariadb_dr_do_error (SV* h, int rc, const char *what, const char *sqlstate);
 

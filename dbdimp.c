@@ -4408,7 +4408,7 @@ error:
 
 /***************************************************************************
  *
- *  Name:    mariadb_st_execute
+ *  Name:    mariadb_st_execute_iv
  *
  *  Purpose: Called for preparing an SQL statement; our part of the
  *           statement handle constructor
@@ -4421,7 +4421,7 @@ error:
  *
  **************************************************************************/
 
-int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
+IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   char actual_row_num[64];
@@ -4440,7 +4440,7 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-      " -> mariadb_st_execute for %p\n", sth);
+      " -> mariadb_st_execute_iv for %p\n", sth);
 
   if (!SvROK(sth)  ||  SvTYPE(SvRV(sth)) != SVt_PVHV)
     croak("Expected hash array");
@@ -4558,11 +4558,11 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
     */
     sprintf(actual_row_num, "%llu", imp_sth->row_num);
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  " <- mariadb_st_execute returning imp_sth->row_num %s\n",
+                  " <- mariadb_st_execute_iv returning imp_sth->row_num %s\n",
                   actual_row_num);
   }
 
-  return (int)imp_sth->row_num;
+  return (IV)imp_sth->row_num;
 }
 
  /**************************************************************************
@@ -5574,7 +5574,7 @@ static SV* mariadb_st_fetch_internal(
     }
 
     /* Ensure that this value is kept, decremented in
-     *  mariadb_st_destroy and mariadb_st_execute.  */
+     *  mariadb_st_destroy and mariadb_st_execute_iv.  */
     if (!cacheit)
       return sv_2mortal(newRV_noinc((SV*)av));
     imp_sth->av_attr[what]= av;
