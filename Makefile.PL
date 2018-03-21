@@ -14,6 +14,7 @@ use File::Path;
 use File::Copy;
 use File::Basename;
 use File::Spec;
+require DBI;
 require DBI::DBD;
 
 my $TESTDB = "test";
@@ -243,6 +244,7 @@ my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
 if ($^O eq 'VMS') {
   $cflags = "\$(DBI_INSTARCH_DIR),$opt->{'cflags'}";
 }
+$cflags .= " -DHAVE_DBI_1_634" if eval { DBI->VERSION(1.634) };
 $cflags .= " -g ";
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,

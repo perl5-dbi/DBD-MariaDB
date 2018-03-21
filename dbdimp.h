@@ -310,7 +310,7 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 /* MYSQL_OPT_SSL_VERIFY_SERVER_CERT automatically enforce SSL mode */
 PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 #ifdef MARIADB_BASE_VERSION
-	my_ulonglong version = mysql_get_client_version();
+	unsigned long version = mysql_get_client_version();
 	return ((version >= 50544 && version < 50600) || (version >= 100020 && version < 100100) || version >= 100106);
 #else
 	return false;
@@ -319,7 +319,7 @@ PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 
 /* MYSQL_OPT_SSL_VERIFY_SERVER_CERT is not vulnerable (CVE-2016-2047) and can be used */
 PERL_STATIC_INLINE bool ssl_verify_usable(void) {
-	my_ulonglong version = mysql_get_client_version();
+	unsigned long version = mysql_get_client_version();
 #ifdef MARIADB_BASE_VERSION
 	return ((version >= 50547 && version < 50600) || (version >= 100023 && version < 100100) || version >= 100110);
 #else
@@ -558,7 +558,7 @@ struct imp_sth_st {
 #define dbd_db_last_insert_id   mariadb_db_last_insert_id
 #define dbd_db_data_sources	mariadb_db_data_sources
 #define dbd_st_prepare_sv	mariadb_st_prepare_sv
-#define dbd_st_execute		mariadb_st_execute
+#define dbd_st_execute_iv	mariadb_st_execute_iv
 #define dbd_st_fetch		mariadb_st_fetch
 #define dbd_st_finish		mariadb_st_finish
 #define dbd_st_destroy		mariadb_st_destroy
@@ -568,6 +568,22 @@ struct imp_sth_st {
 #define dbd_bind_ph		mariadb_st_bind_ph
 
 #include <dbd_xsh.h>
+
+/* Compatibility for DBI version prior to 1.634 which do not support dbd_st_execute_iv API */
+#ifndef HAVE_DBI_1_634
+#define dbd_st_execute		mariadb_st_execute
+IV dbd_st_execute_iv(SV *sth, imp_sth_t *imp_sth);
+PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
+  IV ret = dbd_st_execute_iv(sth, imp_sth);
+  if (ret >= INT_MIN && ret <= INT_MAX)
+    return ret;
+  else         /* overflow */
+    return -1; /* -1 is unknown number of rows */
+}
+#endif
+
+SV* mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val);
+#define my_ulonglong2sv(val) mariadb_dr_my_ulonglong2sv(aTHX_ val)
 
 void    mariadb_dr_do_error (SV* h, int rc, const char *what, const char *sqlstate);
 
@@ -601,7 +617,7 @@ MYSQL* mariadb_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
 
 int mariadb_db_reconnect(SV*);
 
-int mariadb_db_async_result(SV* h, MYSQL_RES** resp);
+my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);
 
 int mariadb_dr_socket_ready(my_socket fd);

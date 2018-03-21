@@ -3236,16 +3236,23 @@ signed_my_ulonglong2str(my_ulonglong val, char *buf, STRLEN *len)
 }
 #endif
 
-static SV*
-my_ulonglong2sv(pTHX_ my_ulonglong val)
+SV*
+mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val)
 {
 #if IVSIZE >= 8
   return newSVuv(val);
 #else
-  char buf[64];
-  STRLEN len = sizeof(buf);
-  char *ptr = my_ulonglong2str(val, buf, &len);
-  return newSVpvn(ptr, len);
+  if (val <= UV_MAX)
+  {
+    return newSVuv(val);
+  }
+  else
+  {
+    char buf[64];
+    STRLEN len = sizeof(buf);
+    char *ptr = my_ulonglong2str(val, buf, &len);
+    return newSVpvn(ptr, len);
+  }
 #endif
 }
 
@@ -3322,7 +3329,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (kl == 13 && strEQ(key, "clientversion"))
     {
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_get_client_version()));
+      result= sv_2mortal(newSVuv(mysql_get_client_version()));
     }
     break;
   case 'e':
@@ -3377,7 +3384,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (kl == 8  &&  strEQ(key, "insertid"))
       /* We cannot return an IV, because the insertid is a long. */
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_insert_id(imp_dbh->pmysql)));
+      result= sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
     break;
   case 'n':
     if (kl == strlen("no_autocommit_cmd") &&
@@ -3407,7 +3414,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
 #endif
     else if (kl == 13 && strEQ(key, "serverversion"))
-      result= sv_2mortal(my_ulonglong2sv(aTHX_ mysql_get_server_version(imp_dbh->pmysql)));
+      result= sv_2mortal(newSVuv(mysql_get_server_version(imp_dbh->pmysql)));
     else if (strEQ(key, "sock"))
       result= sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
     else if (strEQ(key, "sockfd"))
@@ -4189,12 +4196,12 @@ my_ulonglong mariadb_st_internal_execute(
     if (!slen)
     {
       mariadb_dr_do_error(h, JW_ERR_QUERY, "Missing table name" ,NULL);
-      return -2;
+      return -1;
     }
     if (!(table= malloc(slen+1)))
     {
       mariadb_dr_do_error(h, JW_ERR_MEM, "Out of memory" ,NULL);
-      return -2;
+      return -1;
     }
 
     strncpy(table, sbuf, slen);
@@ -4215,7 +4222,7 @@ my_ulonglong mariadb_st_internal_execute(
     {
       mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock)
                ,mysql_sqlstate(svsock));
-      return -2;
+      return -1;
     }
 
     return 0;
@@ -4226,7 +4233,7 @@ my_ulonglong mariadb_st_internal_execute(
        (!mariadb_db_reconnect(h) ||
         (mysql_send_query(svsock, sbuf, slen))))
     {
-        rows = -2;
+        rows = -1;
     } else {
         rows = 0;
     }
@@ -4235,21 +4242,18 @@ my_ulonglong mariadb_st_internal_execute(
           (!mariadb_db_reconnect(h)  ||
            (mysql_real_query(svsock, sbuf, slen))))
       {
-        rows = -2;
+        rows = -1;
       } else {
           /** Store the result from the Query */
           *result= use_mysql_use_result ?
             mysql_use_result(svsock) : mysql_store_result(svsock);
 
           if (mysql_errno(svsock))
-            rows = -2;
+            rows = -1;
           else if (*result)
             rows = mysql_num_rows(*result);
           else {
             rows = mysql_affected_rows(svsock);
-            /* mysql_affected_rows(): -1 indicates that the query returned an error */
-            if (rows == (my_ulonglong)-1)
-              rows = -2;
           }
       }
   }
@@ -4257,7 +4261,8 @@ my_ulonglong mariadb_st_internal_execute(
   if (salloc)
     Safefree(salloc);
 
-  if(rows == (my_ulonglong)-2) {
+  if (rows == (my_ulonglong)-1)
+  {
     mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock), 
              mysql_sqlstate(svsock));
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -4400,7 +4405,7 @@ error:
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "\t<- mariadb_st_internal_execute41\n");
-  return -2;
+  return -1;
 
 }
 #endif
@@ -4408,7 +4413,7 @@ error:
 
 /***************************************************************************
  *
- *  Name:    mariadb_st_execute
+ *  Name:    mariadb_st_execute_iv
  *
  *  Purpose: Called for preparing an SQL statement; our part of the
  *           statement handle constructor
@@ -4421,10 +4426,9 @@ error:
  *
  **************************************************************************/
 
-int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
+IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
-  char actual_row_num[64];
   int i;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
@@ -4440,7 +4444,7 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-      " -> mariadb_st_execute for %p\n", sth);
+      " -> mariadb_st_execute_iv for %p\n", sth);
 
   if (!SvROK(sth)  ||  SvTYPE(SvRV(sth)) != SVt_PVHV)
     croak("Expected hash array");
@@ -4479,7 +4483,7 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
         mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
                  "\"mariadb_use_result\" not supported with server side prepare",
                  "HY000");
-        return 0;
+        return -2;
       }
       use_server_side_prepare = 0;
     }
@@ -4494,7 +4498,7 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
                                                     imp_sth->bind,
                                                     &imp_sth->has_been_bound
                                                    );
-      if (imp_sth->row_num == (my_ulonglong)-2) /* -2 means error */
+      if (imp_sth->row_num == (my_ulonglong)-1) /* -1 means error */
       {
         SV *err = DBIc_ERR(imp_xxh);
         if (!disable_fallback_for_server_prepare && SvIV(err) == ER_UNSUPPORTED_PS)
@@ -4525,7 +4529,7 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
     }
   }
 
-  if (imp_sth->row_num+1 != (my_ulonglong)-1)
+  if (imp_sth->row_num != (my_ulonglong)-1)
   {
     if (!imp_sth->result)
     {
@@ -4552,17 +4556,17 @@ int mariadb_st_execute(SV* sth, imp_sth_t* imp_sth)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
   {
-    /* 
-      PerlIO_printf doesn't always handle imp_sth->row_num %llu 
-      consistently!!
-    */
-    sprintf(actual_row_num, "%llu", imp_sth->row_num);
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  " <- mariadb_st_execute returning imp_sth->row_num %s\n",
-                  actual_row_num);
+                  " <- mariadb_st_execute_iv returning imp_sth->row_num %" SVf "\n",
+                  SVfARG(sv_2mortal(my_ulonglong2sv(imp_sth->row_num))));
   }
 
-  return (int)imp_sth->row_num;
+  if (imp_sth->row_num == (my_ulonglong)-1)
+    return -2; /* -2 is error */
+  else if (imp_sth->row_num <= IV_MAX)
+    return imp_sth->row_num;
+  else         /* overflow */
+    return -1; /* -1 is unknown number of rows */
 }
 
  /**************************************************************************
@@ -4769,9 +4773,8 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> mariadb_st_fetch\n");
 
   if(imp_dbh->async_query_in_flight) {
-      if(mariadb_db_async_result(sth, &imp_sth->result) <= 0) {
+      if (mariadb_db_async_result(sth, &imp_sth->result) == (my_ulonglong)-1)
         return Nullav;
-      }
   }
 
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
@@ -5574,7 +5577,7 @@ static SV* mariadb_st_fetch_internal(
     }
 
     /* Ensure that this value is kept, decremented in
-     *  mariadb_st_destroy and mariadb_st_execute.  */
+     *  mariadb_st_destroy and mariadb_st_execute_iv.  */
     if (!cacheit)
       return sv_2mortal(newRV_noinc((SV*)av));
     imp_sth->av_attr[what]= av;
@@ -5699,7 +5702,7 @@ SV* mariadb_st_FETCH_attrib(
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "INSERT ID %llu\n", imp_sth->insertid);
 
-        return sv_2mortal(my_ulonglong2sv(aTHX_ imp_sth->insertid));
+        return sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
       }
       break;
     case 17:
@@ -6385,17 +6388,17 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
   attr= attr;
 
   ASYNC_CHECK_RETURN(dbh, &PL_sv_undef);
-  return sv_2mortal(my_ulonglong2sv(aTHX_ mysql_insert_id(imp_dbh->pmysql)));
+  return sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
 }
 
-int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
+my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 {
   dTHX;
   D_imp_xxh(h);
   imp_dbh_t* dbh;
   MYSQL* svsock = NULL;
   MYSQL_RES* _res;
-  int retval = 0;
+  my_ulonglong retval = 0;
   int htype;
   bool async_sth = FALSE;
 
@@ -6429,8 +6432,8 @@ int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   dbh->async_query_in_flight = NULL;
 
   svsock= dbh->pmysql;
-  retval= mysql_read_query_result(svsock);
-  if(! retval) {
+  if (!mysql_read_query_result(svsock))
+  {
     *resp= mysql_store_result(svsock);
 
     if (mysql_errno(svsock))
@@ -6451,7 +6454,7 @@ int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
       D_imp_sth(h);
       D_imp_dbh_from_sth;
 
-      if((my_ulonglong)retval+1 != (my_ulonglong)-1) {
+      if (retval != (my_ulonglong)-1) {
         if(! *resp) {
           imp_sth->insertid= mysql_insert_id(svsock);
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
@@ -6469,7 +6472,7 @@ int mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   } else {
      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock),
               mysql_sqlstate(svsock));
-     return -1;
+     return (my_ulonglong)-1;
   }
  return retval;
 }
