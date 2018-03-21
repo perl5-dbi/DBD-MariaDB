@@ -1678,7 +1678,6 @@ MYSQL *mariadb_dr_connect(
 {
   int portNr;
   unsigned int client_flag;
-  bool reconnect_with_utf8;
   bool client_supports_utf8mb4;
   MYSQL* result;
   dTHX;
@@ -2446,7 +2445,8 @@ MYSQL *mariadb_dr_connect(
       MySQL's "utf8mb4" charset was introduced in MySQL server version 5.5.3.
       If MySQL's "utf8mb4" is not supported by server, fallback to MySQL's "utf8".
       If MySQL's "utf8mb4" is not supported by client, connect with "utf8" and issue SET NAMES 'utf8mb4'.
-      Some clients do not correct detect in mysql_real_connect() if server supports utf8mb4.
+      MYSQL_SET_CHARSET_NAME option (prior to establishing connection) sets client's charset.
+      Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different. So issue SET NAMES.
       To enable UTF-8 storage on server it is needed to configure it via session variable character_set_server.
       MySQL client prior to 5.7 provides function get_charset_number() to check if charset is supported.
       If MySQL client does not support specified charset it used to print error message to stdout or stderr.
@@ -2457,67 +2457,37 @@ MYSQL *mariadb_dr_connect(
 #else
     client_supports_utf8mb4 = TRUE;
 #endif
-    reconnect_with_utf8 = FALSE;
+    result = NULL;
     if (client_supports_utf8mb4)
     {
       mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8mb4");
       result = mysql_real_connect(sock, host, user, password, dbname,
                                   portNr, mysql_socket,
                                   client_flag | CLIENT_REMEMBER_OPTIONS);
-      if (result)
-      {
-        if (mysql_query(result, "SET character_set_server = 'utf8mb4'") != 0)
-        {
-          if (mysql_errno(result) == ER_UNKNOWN_CHARACTER_SET)
-          {
-            if (mysql_query(result, "SET NAMES 'utf8'") != 0 ||
-                mysql_query(result, "SET character_set_server = 'utf8'") != 0)
-            {
-              mariadb_db_disconnect(dbh, imp_dbh);
-              return NULL;
-            }
-          }
-          else
-          {
-            mariadb_db_disconnect(dbh, imp_dbh);
-            return NULL;
-          }
-        }
-      }
-      else
-      {
-        if (mysql_errno(sock) == CR_CANT_READ_CHARSET)
-          reconnect_with_utf8 = TRUE;
-      }
+      if (!result && mysql_errno(sock) != CR_CANT_READ_CHARSET)
+        return NULL;
     }
-    if (!client_supports_utf8mb4 || reconnect_with_utf8)
+    if (!result)
     {
       mysql_options(sock, MYSQL_SET_CHARSET_NAME, "utf8");
       result = mysql_real_connect(sock, host, user, password, dbname,
                                   portNr, mysql_socket, client_flag);
-      if (result)
-      {
-        if (reconnect_with_utf8)
-        {
-          if (mysql_query(result, "SET character_set_server = 'utf8'") != 0)
-          {
-            mariadb_db_disconnect(dbh, imp_dbh);
-            return NULL;
-          }
-        }
-      }
+      if (!result)
+        return NULL;
     }
-    if (result && !client_supports_utf8mb4)
+    if (mysql_query(sock, "SET NAMES 'utf8mb4'") != 0 ||
+        mysql_query(sock, "SET character_set_server = 'utf8mb4'") != 0)
     {
-      if (mysql_query(result, "SET NAMES 'utf8mb4'") != 0 ||
-          mysql_query(result, "SET character_set_server = 'utf8mb4'") != 0)
+      if (mysql_errno(sock) != ER_UNKNOWN_CHARACTER_SET)
       {
-        if (mysql_errno(result) != ER_UNKNOWN_CHARACTER_SET ||
-            mysql_query(result, "SET character_set_server = 'utf8'") != 0)
-        {
-          mariadb_db_disconnect(dbh, imp_dbh);
-          return NULL;
-        }
+        mariadb_db_disconnect(dbh, imp_dbh);
+        return NULL;
+      }
+      if (mysql_query(sock, "SET NAMES 'utf8'") != 0 ||
+          mysql_query(sock, "SET character_set_server = 'utf8'") != 0)
+      {
+        mariadb_db_disconnect(dbh, imp_dbh);
+        return NULL;
       }
     }
 
