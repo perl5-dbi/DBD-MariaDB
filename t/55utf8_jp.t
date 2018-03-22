@@ -9,6 +9,10 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
+sub skip_rt_102404 {
+  skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", $_[0] unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
+}
+
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1 });
 
 eval {
@@ -21,7 +25,7 @@ eval {
   plan skip_all => "Server lc_messages ja_JP are needed for this test";
 };
 
-plan tests => 22;
+plan tests => 21;
 
 my $jpnTable = "\N{U+8868}"; # Japanese table
 my $jpnGender = "\N{U+6027}\N{U+5225}"; # Japanese word "gender"
@@ -73,10 +77,14 @@ eval {
 $dbh->{HandleError} = undef;
 
 ok($failed);
-like($dieerr, $jpnErr);
 like($dbierr, $jpnErr);
 like($DBI::errstr, $jpnErr);
 like($dbh->errstr, $jpnErr);
+
+SKIP : {
+  skip_rt_102404 1;
+  like($dieerr, $jpnErr);
+}
 
 $failed = 0;
 $warn = undef;
@@ -93,12 +101,11 @@ eval {
 $SIG{__WARN__} = 'default';
 
 ok($failed);
-like($dieerr, $jpnErr);
 like($DBI::errstr, $jpnErr);
 like($dbh->errstr, $jpnErr);
 
 SKIP : {
-  skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", 2 unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
+  skip_rt_102404 2;
   like($warn, $jpnErr);
   like($dieerr, $jpnErr);
 }
