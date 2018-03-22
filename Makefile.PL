@@ -507,7 +507,7 @@ Possible options are:
                          to the value of "mariadb_config --cflags" or a guessed
                          value
   --libs=<libs>          Use <libs> for running the linker; defaults
-                         to the value of "mariadb_config --libs" or a gussed
+                         to the value of "mariadb_config --libs" or a guessed
                          value
   --force-embedded       Build version of driver supporting MariaDBEmb
   --embedded=<libs>      Use these libs when building the embedded version of
