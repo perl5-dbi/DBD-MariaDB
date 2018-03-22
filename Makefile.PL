@@ -73,7 +73,7 @@ my $source = {};
     if ($opt->{'mysql_config'} ne 'skip') {
     $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
         if $^O eq 'MSWin32';
-    if (! defined `$opt->{'mysql_config'}`)
+    if (! defined `$opt->{'mysql_config'} 2>&1`)
     {
       die <<"MSG";
 
@@ -85,11 +85,11 @@ MSG
   }
   else
   {
-    if (defined `mariadb_config`)
+    if (defined `mariadb_config 2>&1`)
     {
       $opt->{'mysql_config'} = "mariadb_config";
     }
-    elsif (defined `mysql_config`)
+    elsif (defined `mysql_config 2>&1`)
     {
       $opt->{'mysql_config'} = "mysql_config";
     }
