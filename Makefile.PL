@@ -73,7 +73,7 @@ my $source = {};
     if ($opt->{'mysql_config'} ne 'skip') {
     $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
         if $^O eq 'MSWin32';
-    if (! defined `$opt->{'mysql_config'}`)
+    if (! defined `$opt->{'mysql_config'} 2>&1`)
     {
       die <<"MSG";
 
@@ -85,11 +85,11 @@ MSG
   }
   else
   {
-    if (defined `mariadb_config`)
+    if (defined `mariadb_config 2>&1`)
     {
       $opt->{'mysql_config'} = "mariadb_config";
     }
-    elsif (defined `mysql_config`)
+    elsif (defined `mysql_config 2>&1`)
     {
       $opt->{'mysql_config'} = "mysql_config";
     }
@@ -507,7 +507,7 @@ Possible options are:
                          to the value of "mariadb_config --cflags" or a guessed
                          value
   --libs=<libs>          Use <libs> for running the linker; defaults
-                         to the value of "mariadb_config --libs" or a gussed
+                         to the value of "mariadb_config --libs" or a guessed
                          value
   --force-embedded       Build version of driver supporting MariaDBEmb
   --embedded=<libs>      Use these libs when building the embedded version of
@@ -523,7 +523,12 @@ Possible options are:
                          test suite; defaults to localhost.
   --testport=<port>      Use <port> as the port number of the database;
                          by default the port number is chosen from the
-                         mariadb/mysqlclient library
+                         mariadb/mysqlclient library; ignored when --testhost
+                         is set to "localhost"
+  --testsocket=<socket>  Use <socket> as a unix socket for connecting to
+                         the database server; by default unix socket is chosen
+                         by mariadb/mysqlclient library; takes effect only
+                         when --testhost is set to "localhost"
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --help                 Print this message and exit

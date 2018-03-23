@@ -1883,6 +1883,7 @@ MYSQL *mariadb_dr_connect(
         hv_store(processed, "user", strlen("user"), &PL_sv_yes, 0);
         hv_store(processed, "password", strlen("password"), &PL_sv_yes, 0);
         hv_store(processed, "database", strlen("database"), &PL_sv_yes, 0);
+        hv_store(processed, "mariadb_socket", strlen("mariadb_socket"), &PL_sv_yes, 0);
 
 #if defined(DBD_MYSQL_EMBEDDED)
         hv_store(processed, "mariadb_embedded_groups", strlen("mariadb_embedded_groups"), &PL_sv_yes, 0);

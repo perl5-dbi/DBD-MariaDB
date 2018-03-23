@@ -333,7 +333,13 @@ Host name or IP number of the test database; defaults to localhost.
 
 =item testport
 
-Port number of the test database
+Port number of the test database; ignored when L</testhost> is set to
+C<localhost>.
+
+=item testsocket
+
+Unix socket of the test database; takes effect only when L</testhost>
+is set to C<localhost>.
 
 =item cflags
 
