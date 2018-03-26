@@ -227,6 +227,18 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define sv_cmp_flags(a,b,c) sv_cmp(a,b) /* Sorry, there is no way to compare magic scalars properly prior to perl 5.13.6 */
 #endif
 
+#ifndef hv_fetchs
+#define hv_fetchs(hv, key, lval) hv_fetch((hv), "" key "", sizeof((key))-1, (lval))
+#endif
+
+#ifndef hv_stores
+#define hv_stores(hv, key, val) hv_store((hv), "" key "", sizeof((key))-1, (val), 0)
+#endif
+
+#ifndef hv_deletes
+#define hv_deletes(hv, key, flags) hv_delete((hv), "" key "", sizeof((key))-1, (flags))
+#endif
+
 
 /*
  * This is the version of MariaDB or MySQL wherer

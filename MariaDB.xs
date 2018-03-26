@@ -125,7 +125,7 @@ do(dbh, statement, attr=Nullsv, ...)
     if (SvMAGICAL(param))
       mg_get(param);
   }
-  (void)hv_store((HV*)SvRV(dbh), "Statement", 9, SvREFCNT_inc(statement), 0);
+  (void)hv_stores((HV*)SvRV(dbh), "Statement", SvREFCNT_inc(statement));
   str_ptr = SvPVutf8_nomg(statement, slen);
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /*
