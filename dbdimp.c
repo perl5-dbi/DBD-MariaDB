@@ -2091,7 +2091,7 @@ MYSQL *mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_bind_type_guessing", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_bind_type_guessing", TRUE)) && *svp)
+        if ((svp = hv_fetchs(hv, "mariadb_bind_type_guessing", FALSE)) && *svp)
         {
           imp_dbh->bind_type_guessing= SvTRUE(*svp);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
