@@ -582,6 +582,8 @@ PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
 }
 #endif
 
+#define MARIADB_DR_ATTRIB_GET_SVPS(attribs, key) DBD_ATTRIB_GET_SVP((attribs), "" key "", sizeof((key))-1)
+
 SV* mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val);
 #define my_ulonglong2sv(val) mariadb_dr_my_ulonglong2sv(aTHX_ val)
 

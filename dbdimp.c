@@ -3572,11 +3572,11 @@ mariadb_st_prepare_sv(
   imp_sth->disable_fallback_for_server_prepare= imp_dbh->disable_fallback_for_server_prepare;
   if (attribs)
   {
-    svp= DBD_ATTRIB_GET_SVP(attribs, "mariadb_server_prepare", strlen("mariadb_server_prepare"));
+    svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare");
     imp_sth->use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp= DBD_ATTRIB_GET_SVP(attribs, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"));
+    svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare_disable_fallback");
     imp_sth->disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
@@ -3585,7 +3585,7 @@ mariadb_st_prepare_sv(
 
   if (attribs)
   {
-    svp = DBD_ATTRIB_GET_SVP(attribs, "async", 5);
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "async");
 
     if(svp && SvTRUE(*svp)) {
         imp_sth->is_async = TRUE;
@@ -3606,7 +3606,7 @@ mariadb_st_prepare_sv(
   imp_sth->currow= 0;
 
   /* Set default value of 'mariadb_use_result' attribute for sth from dbh */
-  svp= DBD_ATTRIB_GET_SVP(attribs, "mariadb_use_result", strlen("mariadb_use_result"));
+  svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_use_result");
   imp_sth->use_mysql_use_result= svp ?
     SvTRUE(*svp) : imp_dbh->use_mysql_use_result;
 

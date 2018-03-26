@@ -140,12 +140,12 @@ do(dbh, statement, attr=Nullsv, ...)
   {
     SV** svp;
     DBD_ATTRIBS_CHECK("do", dbh, attr);
-    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare", strlen("mariadb_server_prepare"));
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare");
 
     use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"));
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare_disable_fallback");
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
@@ -157,7 +157,7 @@ do(dbh, statement, attr=Nullsv, ...)
   if (attr)
   {
     SV** svp;
-    svp   = DBD_ATTRIB_GET_SVP(attr, "async", 5);
+    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "async");
     async = (svp) ? SvTRUE(*svp) : FALSE;
   }
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
