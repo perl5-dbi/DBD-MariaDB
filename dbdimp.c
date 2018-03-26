@@ -3009,7 +3009,7 @@ mariadb_db_STORE_attrib(
   int cacheit = FALSE;
   const bool bool_value = SvTRUE_nomg(valuesv);
 
-  if (kl == strlen("AutoCommit") && strEQ(key, "AutoCommit"))
+  if (memEQs(key, kl, "AutoCommit"))
   {
     if (imp_dbh->has_transactions)
     {
@@ -3055,24 +3055,24 @@ mariadb_db_STORE_attrib(
       }
     }
   }
-  else if (strncmp(key, "mariadb_", strlen("mariadb_")) == 0)
+  else if (strBEGINs(key, "mariadb_"))
   {
-    if (kl == strlen("mariadb_use_result") && strEQ(key,"mariadb_use_result"))
+    if (memEQs(key, kl, "mariadb_use_result"))
       imp_dbh->use_mysql_use_result = bool_value;
-    else if (kl == strlen("mariadb_auto_reconnect") && strEQ(key,"mariadb_auto_reconnect"))
+    else if (memEQs(key, kl, "mariadb_auto_reconnect"))
       imp_dbh->auto_reconnect = bool_value;
-    else if (kl == strlen("mariadb_server_prepare") && strEQ(key, "mariadb_server_prepare"))
+    else if (memEQs(key, kl, "mariadb_server_prepare"))
       imp_dbh->use_server_side_prepare = bool_value;
-    else if (kl == strlen("mariadb_server_prepare_disable_fallback") && strEQ(key, "mariadb_server_prepare_disable_fallback"))
+    else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
       imp_dbh->disable_fallback_for_server_prepare = bool_value;
-    else if (kl == strlen("mariadb_no_autocommit_cmd") && strEQ(key,"mariadb_no_autocommit_cmd"))
+    else if (memEQs(key, kl, "mariadb_no_autocommit_cmd"))
       imp_dbh->no_autocommit_cmd = bool_value;
-    else if (kl == strlen("mariadb_bind_type_guessing") && strEQ(key,"mariadb_bind_type_guessing"))
+    else if (memEQs(key, kl, "mariadb_bind_type_guessing"))
       imp_dbh->bind_type_guessing = bool_value;
-    else if (kl == strlen("mariadb_bind_comment_placeholders") && strEQ(key,"mariadb_bind_comment_placeholders"))
+    else if (memEQs(key, kl, "mariadb_bind_comment_placeholders"))
       imp_dbh->bind_comment_placeholders = bool_value;
   #if FABRIC_SUPPORT
-    else if (kl == strlen("mariadb_fabric_opt_group") && strEQ(key, "mariadb_fabric_opt_group"))
+    else if (memEQs(key, kl, "mariadb_fabric_opt_group"))
     {
       STRLEN len;
       char *str = SvPVutf8_nomg(valuesv, len);
@@ -3083,12 +3083,12 @@ mariadb_db_STORE_attrib(
       }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_GROUP, str);
     }
-    else if (kl == strlen("mariadb_fabric_opt_default_mode") && strEQ(key, "mariadb_fabric_opt_default_mode"))
+    else if (memEQs(key, kl, "mariadb_fabric_opt_default_mode"))
     {
       if (SvOK(valuesv)) {
         STRLEN len;
         const char *str = SvPV_nomg(valuesv, len);
-        if ( len == 0 || ( len == 2 && (strnEQ(str, "ro", 3) || strnEQ(str, "rw", 3)) ) )
+        if (len == 0 || memEQs(str, len, "ro") || memEQs(str, len, "rw"))
           mysql_options(imp_dbh->pmysql, FABRIC_OPT_DEFAULT_MODE, len == 0 ? NULL : str);
         else
         {
@@ -3100,18 +3100,18 @@ mariadb_db_STORE_attrib(
         mysql_options(imp_dbh->pmysql, FABRIC_OPT_DEFAULT_MODE, NULL);
       }
     }
-    else if (kl == strlen("mariadb_fabric_opt_mode") && strEQ(key, "mariadb_fabric_opt_mode"))
+    else if (memEQs(key, kl, "mariadb_fabric_opt_mode"))
     {
       STRLEN len;
       const char *str = SvPV_nomg(valuesv, len);
-      if (len != 2 || (strnNE(str, "ro", 3) && strnNE(str, "rw", 3)))
+      if (!memEQs(str, len, "ro") && !memEQs(str, len, "rw"))
       {
         mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
         return FALSE;
       }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_MODE, str);
     }
-    else if (kl == strlen("mariadb_fabric_opt_group_credentials") && strEQ(key, "mariadb_fabric_opt_group_credentials"))
+    else if (memEQs(key, kl, "mariadb_fabric_opt_group_credentials"))
     {
       mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "'fabric_opt_group_credentials' is not supported", "HY000");
       return FALSE;
@@ -3238,7 +3238,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
 
   switch (*key) {
     case 'A':
-      if (strEQ(key, "AutoCommit"))
+      if (memEQs(key, kl, "AutoCommit"))
       {
         if (imp_dbh->has_transactions)
           return sv_2mortal(boolSV(DBIc_has(imp_dbh,DBIcf_AutoCommit)));
@@ -3248,7 +3248,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       break;
   }
 
-  if (strncmp(key, "mariadb_", strlen("mariadb_")) != 0)
+  if (!strBEGINs(key, "mariadb_"))
   {
     if (!skip_attribute(key)) /* Not handled by this driver */
       error_unknown_attribute(dbh, key);
@@ -3260,38 +3260,30 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
 
   switch(*key) {
   case 'a':
-    if (kl == strlen("auto_reconnect") && strEQ(key, "auto_reconnect"))
+    if (memEQs(key, kl, "auto_reconnect"))
       result= sv_2mortal(newSViv(imp_dbh->auto_reconnect));
     break;
   case 'b':
-    if (kl == strlen("bind_type_guessing") &&
-        strEQ(key, "bind_type_guessing"))
-    {
+    if (memEQs(key, kl, "bind_type_guessing"))
       result = sv_2mortal(newSViv(imp_dbh->bind_type_guessing));
-    }
-    else if (kl == strlen("bind_comment_placeholders") &&
-        strEQ(key, "bind_comment_placeholders"))
-    {
+    else if (memEQs(key, kl, "bind_comment_placeholders"))
       result = sv_2mortal(newSViv(imp_dbh->bind_comment_placeholders));
-    }
     break;
   case 'c':
-    if (kl == 10 && strEQ(key, "clientinfo"))
+    if (memEQs(key, kl, "clientinfo"))
     {
       const char* clientinfo = mysql_get_client_info();
       result= clientinfo ?
         sv_2mortal(newSVpvn(clientinfo, strlen(clientinfo))) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (kl == 13 && strEQ(key, "clientversion"))
-    {
+    else if (memEQs(key, kl, "clientversion"))
       result= sv_2mortal(newSVuv(mysql_get_client_version()));
-    }
     break;
   case 'e':
-    if (strEQ(key, "errno"))
+    if (memEQs(key, kl, "errno"))
       result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
-    else if (strEQ(key, "error"))
+    else if (memEQs(key, kl, "error"))
     {
       const char* msg = mysql_error(imp_dbh->pmysql);
       result= sv_2mortal(newSVpvn(msg, strlen(msg)));
@@ -3300,7 +3292,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
 
   case 'd':
-    if (strEQ(key, "dbd_stats"))
+    if (memEQs(key, kl, "dbd_stats"))
     {
       HV* hv = newHV();
       result = sv_2mortal((newRV_noinc((SV*)hv)));
@@ -3309,7 +3301,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
 
   case 'h':
-    if (strEQ(key, "hostinfo"))
+    if (memEQs(key, kl, "hostinfo"))
     {
       const char* hostinfo = mysql_get_host_info(imp_dbh->pmysql);
       result= hostinfo ?
@@ -3319,36 +3311,38 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
 
   case 'i':
-    if (strEQ(key, "info"))
+    if (memEQs(key, kl, "info"))
     {
       const char* info = mysql_info(imp_dbh->pmysql);
       result= info ? sv_2mortal(newSVpvn(info, strlen(info))) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (kl == 8  &&  strEQ(key, "insertid"))
+    else if (memEQs(key, kl, "insertid"))
+    {
       /* We cannot return an IV, because the insertid is a long. */
       result= sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
+    }
     break;
   case 'n':
-    if (kl == strlen("no_autocommit_cmd") &&
-        strEQ(key, "no_autocommit_cmd"))
+    if (memEQs(key, kl, "no_autocommit_cmd"))
       result = sv_2mortal(newSViv(imp_dbh->no_autocommit_cmd));
     break;
 
   case 'p':
-    if (kl == 9  &&  strEQ(key, "protoinfo"))
+    if (memEQs(key, kl, "protoinfo"))
       result= sv_2mortal(newSViv(mysql_get_proto_info(imp_dbh->pmysql)));
     break;
 
   case 's':
-    if (kl == 10 && strEQ(key, "serverinfo")) {
+    if (memEQs(key, kl, "serverinfo"))
+    {
       const char* serverinfo = mysql_get_server_info(imp_dbh->pmysql);
       result= serverinfo ?
         sv_2mortal(newSVpvn(serverinfo, strlen(serverinfo))) : &PL_sv_undef;
       sv_utf8_decode(result);
     } 
 #if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
-    else if (kl == 10 && strEQ(key, "ssl_cipher"))
+    else if (memEQs(key, kl, "ssl_cipher"))
     {
       const char* ssl_cipher = mysql_get_ssl_cipher(imp_dbh->pmysql);
       result= ssl_cipher ?
@@ -3356,40 +3350,38 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       sv_utf8_decode(result);
     }
 #endif
-    else if (kl == 13 && strEQ(key, "serverversion"))
+    else if (memEQs(key, kl, "serverversion"))
       result= sv_2mortal(newSVuv(mysql_get_server_version(imp_dbh->pmysql)));
-    else if (strEQ(key, "sock"))
+    else if (memEQs(key, kl, "sock"))
       result= sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
-    else if (strEQ(key, "sockfd"))
+    else if (memEQs(key, kl, "sockfd"))
       result= (imp_dbh->pmysql->net.fd != -1) ?
         sv_2mortal(newSViv((IV) imp_dbh->pmysql->net.fd)) : &PL_sv_undef;
-    else if (strEQ(key, "stat"))
+    else if (memEQs(key, kl, "stat"))
     {
       const char* stats = mysql_stat(imp_dbh->pmysql);
       result= stats ?
         sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (kl == 14 && strEQ(key,"server_prepare"))
+    else if (memEQs(key, kl, "server_prepare"))
         result= sv_2mortal(newSViv((IV) imp_dbh->use_server_side_prepare));
-    else if (kl == 31 && strEQ(key, "server_prepare_disable_fallback"))
+    else if (memEQs(key, kl, "server_prepare_disable_fallback"))
         result= sv_2mortal(newSViv((IV) imp_dbh->disable_fallback_for_server_prepare));
     break;
 
   case 't':
-    if (kl == 9  &&  strEQ(key, "thread_id"))
+    if (memEQs(key, kl, "thread_id"))
       result= sv_2mortal(newSViv(mysql_thread_id(imp_dbh->pmysql)));
     break;
 
   case 'w':
-    if (kl == 13 && strEQ(key, "warning_count"))
+    if (memEQs(key, kl, "warning_count"))
       result= sv_2mortal(newSViv(mysql_warning_count(imp_dbh->pmysql)));
     break;
   case 'u':
-    if (strEQ(key, "use_result"))
-    {
+    if (memEQs(key, kl, "use_result"))
       result= sv_2mortal(newSViv((IV) imp_dbh->use_mysql_use_result));
-    }
     break;
   }
 

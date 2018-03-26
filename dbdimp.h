@@ -239,6 +239,14 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define hv_deletes(hv, key, flags) hv_delete((hv), "" key "", sizeof((key))-1, (flags))
 #endif
 
+#ifndef memEQs
+#define memEQs(s1, l, s2) (sizeof((s2))-1 == (l) && memEQ((s1), "" s2 "", sizeof((s2))-1))
+#endif
+
+#ifndef strBEGINs
+#define strBEGINs(s1, s2) strnEQ((s1), "" s2 "", sizeof((s2))-1)
+#endif
+
 
 /*
  * This is the version of MariaDB or MySQL wherer
