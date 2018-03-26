@@ -582,10 +582,7 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    retsv = newSVpvn("database",8);
 	    break;
 	case SQL_DBMS_VER:
-	    retsv = newSVpvn(
-	        imp_dbh->pmysql->server_version,
-		strlen(imp_dbh->pmysql->server_version)
-	    );
+	    retsv = newSVpv(mysql_get_server_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
 	case SQL_IDENTIFIER_QUOTE_CHAR:
@@ -614,7 +611,7 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    retsv= newSViv(NAME_LEN);
 	    break;
 	case SQL_SERVER_NAME:
-	    retsv= newSVpvn(imp_dbh->pmysql->host_info,strlen(imp_dbh->pmysql->host_info));
+	    retsv = newSVpv(mysql_get_host_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
         case SQL_ASYNC_MODE:
