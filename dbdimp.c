@@ -3967,7 +3967,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     {
       /* No "real" rowset*/
       DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
-      DBIS->set_attr_k(sth, sv_2mortal(newSVpvn("NUM_OF_FIELDS",13)), 0,
+      DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
 			               sv_2mortal(newSViv(0)));
       return 1;
     }
@@ -4000,7 +4000,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
-      DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvn("NUM_OF_FIELDS",13)), 0,
+      DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
           sv_2mortal(newSViv(mysql_num_fields(imp_sth->result)))
       );
 
@@ -6217,7 +6217,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
     mg_get(str);
 
   if (!SvOK(str))
-    result= newSVpvn("NULL", 4);
+    result= newSVpvs("NULL");
   else
   {
     char *ptr, *sptr;

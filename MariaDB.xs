@@ -575,18 +575,18 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     switch(type) {
     	case SQL_CATALOG_NAME_SEPARATOR:
 	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvn(".",1);
+	    retsv = newSVpvs(".");
 	    break;
 	case SQL_CATALOG_TERM:
 	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvn("database",8);
+	    retsv = newSVpvs("database");
 	    break;
 	case SQL_DBMS_VER:
 	    retsv = newSVpv(mysql_get_server_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
 	case SQL_IDENTIFIER_QUOTE_CHAR:
-	    retsv = newSVpvn("`", 1);
+	    retsv = newSVpvs("`");
 	    break;
 	case SQL_MAXIMUM_STATEMENT_LENGTH:
 	{
