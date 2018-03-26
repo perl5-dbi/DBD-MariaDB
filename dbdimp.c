@@ -5345,7 +5345,7 @@ mariadb_st_STORE_attrib(
                   "\t\t-> mariadb_st_STORE_attrib for %p, key %s\n",
                   sth, key);
 
-  if (strEQ(key, "mariadb_use_result"))
+  if (memEQs(key, kl, "mariadb_use_result"))
   {
     imp_sth->use_mysql_use_result= SvTRUE_nomg(valuesv);
     retval = TRUE;
@@ -5563,15 +5563,15 @@ SV* mariadb_st_FETCH_attrib(
 
   switch (*key) {
   case 'N':
-    if (strEQ(key, "NAME"))
+    if (memEQs(key, kl, "NAME"))
       retsv= ST_FETCH_AV(AV_ATTRIB_NAME);
-    else if (strEQ(key, "NULLABLE"))
+    else if (memEQs(key, kl, "NULLABLE"))
       retsv= ST_FETCH_AV(AV_ATTRIB_NULLABLE);
     break;
   case 'P':
-    if (strEQ(key, "PRECISION"))
+    if (memEQs(key, kl, "PRECISION"))
       retsv= ST_FETCH_AV(AV_ATTRIB_PRECISION);
-    if (strEQ(key, "ParamValues"))
+    else if (memEQs(key, kl, "ParamValues"))
     {
         HV *pvhv= newHV();
         if (DBIc_NUM_PARAMS(imp_sth))
@@ -5593,90 +5593,66 @@ SV* mariadb_st_FETCH_attrib(
     }
     break;
   case 'S':
-    if (strEQ(key, "SCALE"))
+    if (memEQs(key, kl, "SCALE"))
       retsv= ST_FETCH_AV(AV_ATTRIB_SCALE);
     break;
   case 'T':
-    if (strEQ(key, "TYPE"))
+    if (memEQs(key, kl, "TYPE"))
       retsv= ST_FETCH_AV(AV_ATTRIB_SQL_TYPE);
     break;
   case 'm':
-    switch (kl) {
-    case 12:
-      if (strEQ(key, "mariadb_type"))
+      if (memEQs(key, kl, "mariadb_type"))
         retsv= ST_FETCH_AV(AV_ATTRIB_TYPE);
-      else if (strEQ(key, "mariadb_sock"))
+      else if (memEQs(key, kl, "mariadb_sock"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         retsv= (imp_sth->stmt) ? sv_2mortal(newSViv(PTR2IV(imp_sth->stmt->mysql))) : boolSV(0);
 #else
         retsv= boolSV(0);
 #endif
-      break;
-    case 13:
-      if (strEQ(key, "mariadb_table"))
+      else if (memEQs(key, kl, "mariadb_table"))
         retsv= ST_FETCH_AV(AV_ATTRIB_TABLE);
-      break;
-    case 14:
-      if (       strEQ(key, "mariadb_is_key"))
+      else if (memEQs(key, kl, "mariadb_is_key"))
         retsv= ST_FETCH_AV(AV_ATTRIB_IS_KEY);
-      else if (strEQ(key, "mariadb_is_num"))
+      else if (memEQs(key, kl, "mariadb_is_num"))
         retsv= ST_FETCH_AV(AV_ATTRIB_IS_NUM);
-      else if (strEQ(key, "mariadb_length"))
+      else if (memEQs(key, kl, "mariadb_length"))
         retsv= ST_FETCH_AV(AV_ATTRIB_LENGTH);
-      else if (strEQ(key, "mariadb_result"))
+      else if (memEQs(key, kl, "mariadb_result"))
         retsv= sv_2mortal(newSViv(PTR2IV(imp_sth->result)));
-      break;
-    case 15:
-      if (strEQ(key, "mariadb_is_blob"))
+      else if (memEQs(key, kl, "mariadb_is_blob"))
         retsv= ST_FETCH_AV(AV_ATTRIB_IS_BLOB);
-      break;
-    case 16:
-      if (strEQ(key, "mariadb_insertid"))
+      else if (memEQs(key, kl, "mariadb_insertid"))
       {
         /* We cannot return an IV, because the insertid is a long.  */
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "INSERT ID %llu\n", imp_sth->insertid);
 
-        return sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
+        retsv= sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
       }
-      break;
-    case 17:
-      if (strEQ(key, "mariadb_type_name"))
+      else if (memEQs(key, kl, "mariadb_type_name"))
         retsv = ST_FETCH_AV(AV_ATTRIB_TYPE_NAME);
-      break;
-    case 18:
-      if ( strEQ(key, "mariadb_is_pri_key"))
+      else if (memEQs(key, kl, "mariadb_is_pri_key"))
         retsv= ST_FETCH_AV(AV_ATTRIB_IS_PRI_KEY);
-      else if (strEQ(key, "mariadb_max_length"))
+      else if (memEQs(key, kl, "mariadb_max_length"))
         retsv= ST_FETCH_AV(AV_ATTRIB_MAX_LENGTH);
-      else if (strEQ(key, "mariadb_use_result"))
+      else if (memEQs(key, kl, "mariadb_use_result"))
         retsv= boolSV(imp_sth->use_mysql_use_result);
-      break;
-    case 21:
-      if (strEQ(key, "mariadb_warning_count"))
+      else if (memEQs(key, kl, "mariadb_warning_count"))
         retsv= sv_2mortal(newSViv((IV) imp_sth->warning_count));
-      break;
-    case 22:
-      if (strEQ(key, "mariadb_server_prepare"))
+      else if (memEQs(key, kl, "mariadb_server_prepare"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         retsv= sv_2mortal(newSViv((IV) imp_sth->use_server_side_prepare));
 #else
         retsv= boolSV(0);
 #endif
-      break;
-    case 25:
-      if (strEQ(key, "mariadb_is_auto_increment"))
+      else if (memEQs(key, kl, "mariadb_is_auto_increment"))
         retsv = ST_FETCH_AV(AV_ATTRIB_IS_AUTO_INCREMENT);
-      break;
-    case 39:
-      if (strEQ(key, "mariadb_server_prepare_disable_fallback"))
+      else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         retsv= sv_2mortal(newSViv((IV) imp_sth->disable_fallback_for_server_prepare));
 #else
         retsv= boolSV(0);
 #endif
-      break;
-    }
     break;
   }
   if (retsv == Nullsv)
