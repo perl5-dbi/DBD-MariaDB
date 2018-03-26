@@ -5440,13 +5440,13 @@ static SV* mariadb_st_fetch_internal(
 
       switch(what) {
       case AV_ATTRIB_NAME:
-        sv= newSVpvn(curField->name, strlen(curField->name));
+        sv= newSVpvn(curField->name, curField->name_length);
         if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
       case AV_ATTRIB_TABLE:
-        sv= newSVpvn(curField->table, strlen(curField->table));
+        sv= newSVpvn(curField->table, curField->table_length);
         if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
