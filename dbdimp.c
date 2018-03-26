@@ -2768,7 +2768,7 @@ mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
   if (imp_dbh->has_transactions)
   {
 #if MYSQL_VERSION_ID < SERVER_PREPARE_VERSION
-    if (mysql_real_query(imp_dbh->pmysql, "COMMIT", 6))
+    if (mysql_query(imp_dbh->pmysql, "COMMIT"))
 #else
     if (mysql_commit(imp_dbh->pmysql))
 #endif
@@ -2798,7 +2798,7 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
   if (imp_dbh->has_transactions)
   {
 #if MYSQL_VERSION_ID < SERVER_PREPARE_VERSION
-    if (mysql_real_query(imp_dbh->pmysql, "ROLLBACK", 8))
+    if (mysql_query(imp_dbh->pmysql, "ROLLBACK"))
 #else
       if (mysql_rollback(imp_dbh->pmysql))
 #endif
@@ -2963,7 +2963,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
     {
       if (!DBIc_has(imp_dbh, DBIcf_AutoCommit))
 #if MYSQL_VERSION_ID < SERVER_PREPARE_VERSION
-        if ( mysql_real_query(imp_dbh->pmysql, "ROLLBACK", 8))
+        if (mysql_query(imp_dbh->pmysql, "ROLLBACK"))
 #else
         if (mysql_rollback(imp_dbh->pmysql))
 #endif
@@ -3025,9 +3025,7 @@ mariadb_db_STORE_attrib(
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
             mysql_autocommit(imp_dbh->pmysql, bool_value)
 #else
-            mysql_real_query(imp_dbh->pmysql,
-                             bool_value ? "SET AUTOCOMMIT=1" : "SET AUTOCOMMIT=0",
-                             16)
+            mysql_query(imp_dbh->pmysql, bool_value ? "SET AUTOCOMMIT=1" : "SET AUTOCOMMIT=0")
 #endif
            )
         {
