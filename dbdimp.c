@@ -3273,8 +3273,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     if (memEQs(key, kl, "clientinfo"))
     {
       const char* clientinfo = mysql_get_client_info();
-      result= clientinfo ?
-        sv_2mortal(newSVpvn(clientinfo, strlen(clientinfo))) : &PL_sv_undef;
+      result = clientinfo ? sv_2mortal(newSVpv(clientinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
     else if (memEQs(key, kl, "clientversion"))
@@ -3285,8 +3284,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "error"))
     {
-      const char* msg = mysql_error(imp_dbh->pmysql);
-      result= sv_2mortal(newSVpvn(msg, strlen(msg)));
+      result = sv_2mortal(newSVpv(mysql_error(imp_dbh->pmysql), 0));
       sv_utf8_decode(result);
     }
     break;
@@ -3304,8 +3302,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     if (memEQs(key, kl, "hostinfo"))
     {
       const char* hostinfo = mysql_get_host_info(imp_dbh->pmysql);
-      result= hostinfo ?
-        sv_2mortal(newSVpvn(hostinfo, strlen(hostinfo))) : &PL_sv_undef;
+      result = hostinfo ? sv_2mortal(newSVpv(hostinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
     break;
@@ -3314,7 +3311,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     if (memEQs(key, kl, "info"))
     {
       const char* info = mysql_info(imp_dbh->pmysql);
-      result= info ? sv_2mortal(newSVpvn(info, strlen(info))) : &PL_sv_undef;
+      result = info ? sv_2mortal(newSVpv(info, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
     else if (memEQs(key, kl, "insertid"))
@@ -3337,16 +3334,14 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     if (memEQs(key, kl, "serverinfo"))
     {
       const char* serverinfo = mysql_get_server_info(imp_dbh->pmysql);
-      result= serverinfo ?
-        sv_2mortal(newSVpvn(serverinfo, strlen(serverinfo))) : &PL_sv_undef;
+      result = serverinfo ? sv_2mortal(newSVpv(serverinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     } 
 #if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
     else if (memEQs(key, kl, "ssl_cipher"))
     {
       const char* ssl_cipher = mysql_get_ssl_cipher(imp_dbh->pmysql);
-      result= ssl_cipher ?
-        sv_2mortal(newSVpvn(ssl_cipher, strlen(ssl_cipher))) : &PL_sv_undef;
+      result = ssl_cipher ? sv_2mortal(newSVpv(ssl_cipher, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
 #endif
@@ -3360,8 +3355,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "stat"))
     {
       const char* stats = mysql_stat(imp_dbh->pmysql);
-      result= stats ?
-        sv_2mortal(newSVpvn(stats, strlen(stats))) : &PL_sv_undef;
+      result = stats ? sv_2mortal(newSVpv(stats, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
     else if (memEQs(key, kl, "server_prepare"))
