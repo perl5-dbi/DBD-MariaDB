@@ -506,7 +506,7 @@ static bool sql_type_is_numeric(IV sql_type)
 */
 static bool skip_attribute(const char *key)
 {
-  return !(strnNE(key,"private_",8) && strnNE(key,"dbd_",4) && strnNE(key,"dbi_",4) && !isUPPER(*key));
+  return strBEGINs(key, "private_") || strBEGINs(key, "dbd_") || strBEGINs(key, "dbi_") || isUPPER(*key);
 }
 
 #if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
