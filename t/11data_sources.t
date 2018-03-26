@@ -23,7 +23,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 
 plan tests => 2;
 
 my @dsns1 = $dbh->data_sources();
-cmp_deeply(\@dsns1, supersetof("dbi:MariaDB:$test_db"), '$dbh->data_sources() contains current used database');
+cmp_deeply(\@dsns1, supersetof("DBI:MariaDB:$test_db"), '$dbh->data_sources() contains current used database');
 
 my @dsns2 = DBI->data_sources('MariaDB', \%attributes);
-cmp_deeply(\@dsns2, supersetof("dbi:MariaDB:$test_db"), 'DBI->data_sources(\'MariaDB\') contains current used database');
+cmp_deeply(\@dsns2, supersetof("DBI:MariaDB:$test_db"), 'DBI->data_sources(\'MariaDB\') contains current used database');

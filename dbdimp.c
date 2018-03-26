@@ -3441,7 +3441,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   MYSQL_FIELD* field;
   my_ulonglong num_rows;
   unsigned long *lengths;
-  const char *prefix = "dbi:MariaDB:";
+  const char *prefix = "DBI:MariaDB:";
   const Size_t prefix_len = strlen(prefix);
   PERL_UNUSED_ARG(attr);
 
