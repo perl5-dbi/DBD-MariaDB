@@ -1581,7 +1581,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   if (sqlstate)
   {
     errstate= DBIc_STATE(imp_xxh);
-    sv_setpvn(errstate, sqlstate, 5);
+    sv_setpv(errstate, sqlstate);
   }
 #endif
 
