@@ -66,26 +66,30 @@ typedef struct sql_type_info_s
 
 */
 static int
-count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, bool bind_comment_placeholders)
+count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bool bind_comment_placeholders)
 {
   bool comment_end= false;
   char* ptr= statement;
   int num_params= 0;
   int comment_length= 0;
+  char *end = statement + statement_len;
   char c;
 
   if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">count_params statement %s\n", statement);
 
-  while ( (c = *ptr++) )
+  while (ptr < end)
   {
+    c = *ptr++;
     switch (c) {
       /* so, this is a -- comment, so let's burn up characters */
     case '-':
       {
+          if (ptr >= end)
+              break;
           if (bind_comment_placeholders)
           {
-              c = *ptr++;
+              ptr++;
               break;
           }
           else
@@ -93,14 +97,13 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, bool bind_comment_placeh
               comment_length= 1;
               /* let's see if the next one is a dash */
               c = *ptr++;
-
               if  (c == '-') {
                   /* if two dashes, ignore everything until newline */
-                  while ((c = *ptr))
+                  while (ptr < end)
                   {
+                      c = *ptr++;
                       if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
                           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c\n", c);
-                      ptr++;
                       comment_length++;
                       if (c == '\n')
                       {
@@ -125,9 +128,11 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, bool bind_comment_placeh
     /* c-type comments */
     case '/':
       {
+          if (ptr >= end)
+              break;
           if (bind_comment_placeholders)
           {
-              c = *ptr++;
+              ptr++;
               break;
           }
           else
@@ -139,12 +144,12 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, bool bind_comment_placeh
                   comment_length= 0;
                   comment_end= false;
                   /* ignore everything until closing comment */
-                  while ((c= *ptr))
+                  while (ptr < end)
                   {
-                      ptr++;
+                      c = *ptr++;
                       comment_length++;
 
-                      if (c == '*')
+                      if (c == '*' && ptr < end)
                       {
                           c = *ptr++;
                           /* alas, end of comment */
@@ -181,16 +186,16 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, bool bind_comment_placeh
     case '\'':
       /* Skip string */
       {
+        if (ptr >= end)
+          break;
         char end_token = c;
-        while ((c = *ptr)  &&  c != end_token)
+        while (ptr < end && *ptr != end_token)
         {
-          if (c == '\\')
-            if (! *(++ptr))
-              continue;
-
+          if (*ptr == '\\' && ptr+1 < end)
+            ++ptr;
           ++ptr;
         }
-        if (c)
+        if (ptr < end)
           ++ptr;
         break;
       }
@@ -3768,9 +3773,11 @@ mariadb_st_prepare_sv(
   /* Count the number of parameters (driver, vs server-side) */
   if (imp_sth->use_server_side_prepare == 0)
     DBIc_NUM_PARAMS(imp_sth) = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement,
+                                            statement_len,
                                             imp_dbh->bind_comment_placeholders);
 #else
   DBIc_NUM_PARAMS(imp_sth) = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement,
+                                          statement_len,
                                           imp_dbh->bind_comment_placeholders);
 #endif
 
