@@ -125,7 +125,7 @@ do(dbh, statement, attr=Nullsv, ...)
     if (SvMAGICAL(param))
       mg_get(param);
   }
-  (void)hv_store((HV*)SvRV(dbh), "Statement", 9, SvREFCNT_inc(statement), 0);
+  (void)hv_stores((HV*)SvRV(dbh), "Statement", SvREFCNT_inc(statement));
   str_ptr = SvPVutf8_nomg(statement, slen);
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /*
@@ -140,12 +140,12 @@ do(dbh, statement, attr=Nullsv, ...)
   {
     SV** svp;
     DBD_ATTRIBS_CHECK("do", dbh, attr);
-    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare", strlen("mariadb_server_prepare"));
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare");
 
     use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp = DBD_ATTRIB_GET_SVP(attr, "mariadb_server_prepare_disable_fallback", strlen("mariadb_server_prepare_disable_fallback"));
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare_disable_fallback");
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
@@ -157,7 +157,7 @@ do(dbh, statement, attr=Nullsv, ...)
   if (attr)
   {
     SV** svp;
-    svp   = DBD_ATTRIB_GET_SVP(attr, "async", 5);
+    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "async");
     async = (svp) ? SvTRUE(*svp) : FALSE;
   }
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
@@ -575,21 +575,18 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     switch(type) {
     	case SQL_CATALOG_NAME_SEPARATOR:
 	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvn(".",1);
+	    retsv = newSVpvs(".");
 	    break;
 	case SQL_CATALOG_TERM:
 	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvn("database",8);
+	    retsv = newSVpvs("database");
 	    break;
 	case SQL_DBMS_VER:
-	    retsv = newSVpvn(
-	        imp_dbh->pmysql->server_version,
-		strlen(imp_dbh->pmysql->server_version)
-	    );
+	    retsv = newSVpv(mysql_get_server_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
 	case SQL_IDENTIFIER_QUOTE_CHAR:
-	    retsv = newSVpvn("`", 1);
+	    retsv = newSVpvs("`");
 	    break;
 	case SQL_MAXIMUM_STATEMENT_LENGTH:
 	{
@@ -614,7 +611,7 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    retsv= newSViv(NAME_LEN);
 	    break;
 	case SQL_SERVER_NAME:
-	    retsv= newSVpvn(imp_dbh->pmysql->host_info,strlen(imp_dbh->pmysql->host_info));
+	    retsv = newSVpv(mysql_get_host_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
         case SQL_ASYNC_MODE:

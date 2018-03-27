@@ -227,6 +227,30 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define sv_cmp_flags(a,b,c) sv_cmp(a,b) /* Sorry, there is no way to compare magic scalars properly prior to perl 5.13.6 */
 #endif
 
+#ifndef newSVpvs
+#define newSVpvs(str) newSVpvn("" str "", sizeof((str)) - 1)
+#endif
+
+#ifndef hv_fetchs
+#define hv_fetchs(hv, key, lval) hv_fetch((hv), "" key "", sizeof((key))-1, (lval))
+#endif
+
+#ifndef hv_stores
+#define hv_stores(hv, key, val) hv_store((hv), "" key "", sizeof((key))-1, (val), 0)
+#endif
+
+#ifndef hv_deletes
+#define hv_deletes(hv, key, flags) hv_delete((hv), "" key "", sizeof((key))-1, (flags))
+#endif
+
+#ifndef memEQs
+#define memEQs(s1, l, s2) (sizeof((s2))-1 == (l) && memEQ((s1), "" s2 "", sizeof((s2))-1))
+#endif
+
+#ifndef strBEGINs
+#define strBEGINs(s1, s2) strnEQ((s1), "" s2 "", sizeof((s2))-1)
+#endif
+
 
 /*
  * This is the version of MariaDB or MySQL wherer
@@ -581,6 +605,8 @@ PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
     return -1; /* -1 is unknown number of rows */
 }
 #endif
+
+#define MARIADB_DR_ATTRIB_GET_SVPS(attribs, key) DBD_ATTRIB_GET_SVP((attribs), "" key "", sizeof((key))-1)
 
 SV* mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val);
 #define my_ulonglong2sv(val) mariadb_dr_my_ulonglong2sv(aTHX_ val)
