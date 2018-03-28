@@ -14,7 +14,7 @@ if (!MinimumVersion($dbh, '4.1') ) {
         "SKIP TEST: You must have MySQL version 4.1 and greater for this test to run";
 }
 
-plan tests => 28*2+1;
+plan tests => 29*2+1;
 
 for my $mariadb_server_prepare (0, 1) {
 
@@ -43,29 +43,29 @@ ok ($sth->execute());
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (name, id) VALUES (?, ?)"));
 
-ok ($sth->execute("Charles de Batz de Castelmore, comte d\\'Artagnan", 3));
+ok ($sth->execute("Charles de Batz de Castelmore, comte d'Artagnan", 3));
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name)" .
                          " VALUES (?, 'Charles de Batz de Castelmore, comte d\\'Artagnan')"));
 
-ok ($sth->execute(1));
+ok ($sth->execute(4));
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name)" .
-                         " VALUES (2, 'Charles de Batz de Castelmore, comte d\\'Artagnan')"));
+                         " VALUES (5, 'Charles de Batz de Castelmore, comte d\\'Artagnan')"));
 
 ok ($sth->execute());
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
-ok ($sth->execute(3, "Charles de Batz de Castelmore, comte d\\'Artagnan"));
+ok ($sth->execute(6, "Charles de Batz de Castelmore, comte d'Artagnan"));
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
-ok !defined eval { $sth->execute(4) };
+ok !defined eval { $sth->execute(9) };
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
-ok !defined eval { $sth->execute(5, "Charles de Batz de Castelmore, comte d\\'Artagnan", 10) };
+ok !defined eval { $sth->execute(10, "Charles de Batz de Castelmore, comte d'Artagnan", 10) };
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
@@ -73,17 +73,29 @@ ok !defined eval { $sth->execute() };
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
-ok $sth->bind_param(1, 5);
+ok $sth->bind_param(1, 11);
 
 ok !defined eval { $sth->execute() };
 
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
-ok $sth->bind_param(1, 6);
+ok $sth->bind_param(1, 12);
 
-ok $sth->bind_param(2, "Charles de Batz de Castelmore, comte d\\'Artagnan");
+ok $sth->bind_param(2, "Charles de Batz de Castelmore, comte d'Artagnan");
 
 ok !defined eval { $sth->bind_param(3, 10) };
+
+is_deeply (
+    $dbh->selectall_arrayref("SELECT id, name FROM dbd_mysql_t43count_params"),
+    [
+        [ 1, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 2, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 3, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 4, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 5, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 6, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+    ]
+);
 
 ok ($dbh->do("DROP TABLE dbd_mysql_t43count_params"));
 
