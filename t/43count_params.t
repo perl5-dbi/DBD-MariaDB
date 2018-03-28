@@ -14,7 +14,7 @@ if (!MinimumVersion($dbh, '4.1') ) {
         "SKIP TEST: You must have MySQL version 4.1 and greater for this test to run";
 }
 
-plan tests => 29*2+1;
+plan tests => 33*2+1;
 
 for my $mariadb_server_prepare (0, 1) {
 
@@ -59,6 +59,15 @@ ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUE
 
 ok ($sth->execute(6, "Charles de Batz de Castelmore, comte d'Artagnan"));
 
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (name, id)" .
+                         " VALUES ('Charles \x00 de Batz de Castelmore, comte d\\'Artagnan', ?)"));
+
+ok ($sth->execute(7));
+
+ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
+
+ok ($sth->execute(8, "Charles de \x00 Batz de Castelmore, comte d'Artagnan"));
+
 ok ($sth = $dbh->prepare("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)"));
 
 ok !defined eval { $sth->execute(9) };
@@ -94,6 +103,8 @@ is_deeply (
         [ 4, "Charles de Batz de Castelmore, comte d'Artagnan" ],
         [ 5, "Charles de Batz de Castelmore, comte d'Artagnan" ],
         [ 6, "Charles de Batz de Castelmore, comte d'Artagnan" ],
+        [ 7, "Charles \x00 de Batz de Castelmore, comte d'Artagnan" ],
+        [ 8, "Charles de \x00 Batz de Castelmore, comte d'Artagnan" ],
     ]
 );
 
