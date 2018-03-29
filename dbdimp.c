@@ -76,7 +76,7 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
   char c;
 
   if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">count_params statement %s\n", statement);
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">count_params statement %.1000s%s\n", statement, statement_len > 1000 ? "..." : "");
 
   while (ptr < end)
   {
@@ -679,7 +679,7 @@ static char *parse_params(
   imp_sth_ph_t *ph;
 
   if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">parse_params statement %s\n", statement);
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">parse_params statement %.1000s%s\n", statement, slen > 1000 ? "..." : "");
 
   if (num_params == 0)
     return NULL;
@@ -3524,8 +3524,8 @@ mariadb_st_prepare_sv(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                 "\t-> mariadb_st_prepare_sv MYSQL_VERSION_ID %d, SQL statement: %s\n",
-                  MYSQL_VERSION_ID, statement);
+                 "\t-> mariadb_st_prepare_sv MYSQL_VERSION_ID %d, SQL statement: %.1000s%s\n",
+                  MYSQL_VERSION_ID, statement, statement_len > 1000 ? "..." : "");
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
  /* Set default value of 'mariadb_server_prepare' attribute for sth from dbh */
@@ -4116,7 +4116,7 @@ my_ulonglong mariadb_st_internal_execute(
   {
     sbuf= salloc;
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Binding parameters: %s\n", sbuf);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Binding parameters: %.1000s%s\n", sbuf, slen > 1000 ? "..." : "");
   }
 
   if (slen >= 11 && (!strncmp(sbuf, "listfields ", 11) ||
@@ -5964,7 +5964,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         buffer_length= imp_sth->params[idx].len;
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                        "   SCALAR sql_type %"IVdf" ->%s<- IS A STRING\n", sql_type, buffer);
+                        "   SCALAR sql_type %"IVdf" ->%.1000s%s<- IS A STRING\n", sql_type, buffer, buffer_length > 1000 ? "..." : "");
         break;
       }
     }
