@@ -295,9 +295,6 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define my_bool bool
 #endif
 
-#define true 1
-#define false 0
-
 /* MYSQL_SECURE_AUTH became a no-op from MySQL 5.7.5 and is removed from MySQL 8.0.3 */
 #if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID <= 50704
 #define HAVE_SECURE_AUTH
@@ -337,7 +334,7 @@ PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 	unsigned long version = mysql_get_client_version();
 	return ((version >= 50544 && version < 50600) || (version >= 100020 && version < 100100) || version >= 100106);
 #else
-	return false;
+	return FALSE;
 #endif
 }
 
@@ -507,7 +504,7 @@ typedef struct imp_sth_phb_st {
 typedef struct imp_sth_fbh_st {
     unsigned long  length;
     my_bool        is_null;
-    bool           error;
+    my_bool        error;
     char           *data;
     numeric_val_t  numeric_val;
     bool           is_utf8;
@@ -541,24 +538,24 @@ struct imp_sth_st {
     MYSQL_BIND       *buffer;
     imp_sth_phb_t    *fbind;
     imp_sth_fbh_t    *fbh;
-    int              has_been_bound;
-    int use_server_side_prepare;  /* server side prepare statements? */
-    int disable_fallback_for_server_prepare;
+    bool             has_been_bound;
+    bool use_server_side_prepare;  /* server side prepare statements? */
+    bool disable_fallback_for_server_prepare;
 #endif
 
     MYSQL_RES* result;       /* result                                 */
     int currow;           /* number of current row                  */
-    int fetch_done;       /* mark that fetch done                   */
+    bool fetch_done;      /* mark that fetch done                   */
     my_ulonglong row_num;         /* total number of rows                   */
 
-    int   done_desc;      /* have we described this sth yet ?	    */
+    bool  done_desc;      /* have we described this sth yet ?	    */
     long  long_buflen;    /* length for long/longraw (if >0)	    */
     bool  long_trunc_ok;  /* is truncating a long an error	    */
     my_ulonglong insertid; /* ID of auto insert                      */
     int   warning_count;  /* Number of warnings after execute()     */
     imp_sth_ph_t* params; /* Pointer to parameter array             */
     AV* av_attr[AV_ATTRIB_LAST];/*  For caching array attributes        */
-    int   use_mysql_use_result;  /*  TRUE if execute should use     */
+    bool  use_mysql_use_result;  /*  TRUE if execute should use     */
                           /* mysql_use_result rather than           */
                           /* mysql_store_result */
 
@@ -621,7 +618,7 @@ my_ulonglong mariadb_st_internal_execute(SV *,
                                        imp_sth_ph_t *,
                                        MYSQL_RES **,
                                        MYSQL *,
-                                       int);
+                                       bool);
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
 my_ulonglong mariadb_st_internal_execute41(SV *,
@@ -629,11 +626,11 @@ my_ulonglong mariadb_st_internal_execute41(SV *,
                                          MYSQL_RES **,
                                          MYSQL_STMT *,
                                          MYSQL_BIND *,
-                                         int *);
+                                         bool *);
 #endif
 
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
-int mariadb_st_more_results(SV*, imp_sth_t*);
+bool mariadb_st_more_results(SV*, imp_sth_t*);
 #endif
 
 AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
@@ -641,7 +638,7 @@ SV* mariadb_db_quote(SV*, SV*, SV*);
 MYSQL* mariadb_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
 			       char*, imp_dbh_t*);
 
-int mariadb_db_reconnect(SV*);
+bool mariadb_db_reconnect(SV*);
 
 my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);

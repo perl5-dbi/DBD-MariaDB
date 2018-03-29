@@ -101,9 +101,9 @@ do(dbh, statement, attr=Nullsv, ...)
   int next_result_rc;
 #endif
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
-  int             has_binded;
-  int             use_server_side_prepare= 0;
-  int             disable_fallback_for_server_prepare= 0;
+  bool            has_been_bound = FALSE;
+  bool            use_server_side_prepare = FALSE;
+  bool            disable_fallback_for_server_prepare = FALSE;
   MYSQL_STMT      *stmt= NULL;
   MYSQL_BIND      *bind= NULL;
   STRLEN          blen;
@@ -152,7 +152,7 @@ do(dbh, statement, attr=Nullsv, ...)
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_dbh),
                   "mysql.xs do() use_server_side_prepare %d\n",
-                  use_server_side_prepare);
+                  use_server_side_prepare ? 1 : 0);
 #endif
   if (attr)
   {
@@ -191,7 +191,7 @@ do(dbh, statement, attr=Nullsv, ...)
       */
       if (!disable_fallback_for_server_prepare && mysql_stmt_errno(stmt) == ER_UNSUPPORTED_PS)
       {
-        use_server_side_prepare= 0;
+        use_server_side_prepare = FALSE;
       }
       else
       {
@@ -232,14 +232,13 @@ do(dbh, statement, attr=Nullsv, ...)
             bind[i].buffer_type= MYSQL_TYPE_NULL;
           }
         }
-        has_binded= 0;
       }
       retval = mariadb_st_internal_execute41(dbh,
                                            num_params,
                                            &result,
                                            stmt,
                                            bind,
-                                           &has_binded);
+                                           &has_been_bound);
       if (bind)
         Safefree(bind);
 
@@ -251,7 +250,7 @@ do(dbh, statement, attr=Nullsv, ...)
         SV *err = DBIc_ERR(imp_dbh);
         if (!disable_fallback_for_server_prepare && SvIV(err) == ER_UNSUPPORTED_PS)
         {
-          use_server_side_prepare = 0;
+          use_server_side_prepare = FALSE;
         }
       }
     }
@@ -276,7 +275,7 @@ do(dbh, statement, attr=Nullsv, ...)
       }
     }
     retval = mariadb_st_internal_execute(dbh, str_ptr, slen, attr, num_params,
-                                       params, &result, imp_dbh->pmysql, 0);
+                                       params, &result, imp_dbh->pmysql, FALSE);
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
   }
 #endif
@@ -286,7 +285,7 @@ do(dbh, statement, attr=Nullsv, ...)
   if (result)
   {
     mysql_free_result(result);
-    result= 0;
+    result = NULL;
   }
 #if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
   if (retval != (my_ulonglong)-1 && !async) /* -1 means error */
@@ -325,13 +324,12 @@ do(dbh, statement, attr=Nullsv, ...)
     RETVAL
 
 
-SV*
+bool
 ping(dbh)
     SV* dbh;
   PROTOTYPE: $
   CODE:
     {
-      int retval;
 /* MySQL 5.7 below 5.7.18 is affected by Bug #78778.
  * MySQL 5.7.18 and higher (including 8.0.3) is affected by Bug #89139.
  *
@@ -342,22 +340,22 @@ ping(dbh)
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
       unsigned long long insertid;
 #endif
-
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
+      if (!imp_dbh->pmysql)
+        XSRETURN_NO;
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
       insertid = mysql_insert_id(imp_dbh->pmysql);
 #endif
-      retval = (mysql_ping(imp_dbh->pmysql) == 0);
-      if (!retval) {
-	if (mariadb_db_reconnect(dbh)) {
-	  retval = (mysql_ping(imp_dbh->pmysql) == 0);
-	}
+      RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
+      if (!RETVAL)
+      {
+        if (mariadb_db_reconnect(dbh))
+          RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       }
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
       imp_dbh->pmysql->insert_id = insertid;
 #endif
-      RETVAL = boolSV(retval);
     }
   OUTPUT:
     RETVAL
@@ -440,24 +438,17 @@ void _async_check(dbh)
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::st
 
-int
+bool
 more_results(sth)
     SV *	sth
     CODE:
 {
 #if (MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION)
   D_imp_sth(sth);
-  if (mariadb_st_more_results(sth, imp_sth))
-  {
-    RETVAL=1;
-  }
-  else
-  {
-    RETVAL=0;
-  }
+  RETVAL = mariadb_st_more_results(sth, imp_sth);
 #else
   PERL_UNUSED_ARG(sth);
-  RETVAL=0;
+  RETVAL = FALSE;
 #endif
 }
     OUTPUT:
