@@ -23,5 +23,5 @@ for my $ur (0,1) {
     ok ($dbh->disconnect());
     ok ($dbh= DBI->connect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 }));
-    is $dbh->{mariadb_use_result}, $ur, "mariadb_use_result set to $ur";
+    cmp_ok $dbh->{mariadb_use_result}, '==', $ur, "mariadb_use_result set to $ur";
 }

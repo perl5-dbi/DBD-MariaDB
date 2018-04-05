@@ -29,7 +29,7 @@
       return (value);\
   }
 
-static int parse_number(char *string, STRLEN len, char **end);
+static bool parse_number(char *string, STRLEN len, char **end);
 
 DBISTATE_DECLARE;
 
@@ -55,7 +55,7 @@ typedef struct sql_type_info_s
     int sql_datetime_sub;
     int interval_precision;
     int native_type;
-    int is_num;
+    bool is_num;
 } sql_type_info_t;
 
 
@@ -68,7 +68,7 @@ typedef struct sql_type_info_s
 static int
 count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bool bind_comment_placeholders)
 {
-  bool comment_end= false;
+  bool comment_end = FALSE;
   char* ptr= statement;
   int num_params= 0;
   int comment_length= 0;
@@ -107,7 +107,7 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
                       comment_length++;
                       if (c == '\n')
                       {
-                          comment_end= true;
+                          comment_end = TRUE;
                           break;
                       }
                   }
@@ -142,7 +142,7 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
               if  (c == '*')
               {
                   comment_length= 0;
-                  comment_end= false;
+                  comment_end = FALSE;
                   /* ignore everything until closing comment */
                   while (ptr < end)
                   {
@@ -155,7 +155,7 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
                           /* alas, end of comment */
                           if (c == '/')
                           {
-                              comment_end= true;
+                              comment_end = TRUE;
                               break;
                           }
                           /*
@@ -434,10 +434,10 @@ static bool mysql_type_needs_allocated_buffer(enum enum_field_types type)
   case MYSQL_TYPE_LONGLONG:
   case MYSQL_TYPE_FLOAT:
   case MYSQL_TYPE_DOUBLE:
-    return false;
+    return FALSE;
 
   default:
-    return true;
+    return TRUE;
   }
 }
 
@@ -447,10 +447,10 @@ static bool mysql_type_needs_allocated_buffer(enum enum_field_types type)
 static bool mysql_field_needs_string_type(MYSQL_FIELD *field)
 {
   if (field->flags & ZEROFILL_FLAG)
-    return true;
+    return TRUE;
   if ((field->type == MYSQL_TYPE_FLOAT || field->type == MYSQL_TYPE_DOUBLE) && field->decimals < NOT_FIXED_DEC)
-    return true;
-  return false;
+    return TRUE;
+  return FALSE;
 }
 
 /*
@@ -459,9 +459,9 @@ static bool mysql_field_needs_string_type(MYSQL_FIELD *field)
 static bool mysql_field_needs_allocated_buffer(MYSQL_FIELD *field)
 {
   if (mysql_type_needs_allocated_buffer(field->type) || mysql_field_needs_string_type(field))
-    return true;
+    return TRUE;
   else
-    return false;
+    return FALSE;
 }
 #endif
 
@@ -476,10 +476,10 @@ static bool sql_type_is_binary(IV sql_type)
   case SQL_BINARY:
   case SQL_VARBINARY:
   case SQL_LONGVARBINARY:
-    return true;
+    return TRUE;
 
   default:
-    return false;
+    return FALSE;
   }
 }
 
@@ -499,10 +499,10 @@ static bool sql_type_is_numeric(IV sql_type)
   case SQL_REAL:
   case SQL_NUMERIC:
   case SQL_DECIMAL:
-    return true;
+    return TRUE;
 
   default:
-    return false;
+    return FALSE;
   }
 }
 
@@ -668,13 +668,13 @@ static char *parse_params(
                           bool bind_type_guessing,
                           bool bind_comment_placeholders)
 {
-  bool comment_end= false;
+  bool comment_end = FALSE;
   char *salloc, *statement_ptr;
   char *statement_ptr_end, *ptr;
   char *cp, *end;
   int alen, i;
   int slen= *slen_ptr;
-  int limit_flag= 0;
+  bool limit_flag = FALSE;
   int comment_length=0;
   imp_sth_ph_t *ph;
 
@@ -707,7 +707,7 @@ static char *parse_params(
         if (bind_type_guessing)
         {
           ph->type= SQL_INTEGER;
-          if (parse_number(ph->value, ph->len, &end) != 0)
+          if (!parse_number(ph->value, ph->len, &end))
           {
               ph->type= SQL_VARCHAR;
           }
@@ -738,7 +738,7 @@ static char *parse_params(
           (!strncmp(statement_ptr+1, "imit ?", 6) ||
            !strncmp(statement_ptr+1, "IMIT ?", 6)))
       {
-        limit_flag = 1;
+        limit_flag = TRUE;
       }
     }
     switch (*statement_ptr)
@@ -754,7 +754,7 @@ static char *parse_params(
           else
           {
               comment_length= 1;
-              comment_end= false;
+              comment_end = FALSE;
               *ptr++ = *statement_ptr++;
               if  (*statement_ptr == '-')
               {
@@ -765,7 +765,7 @@ static char *parse_params(
                       *ptr++ = *statement_ptr++;
                       if (!*statement_ptr || *statement_ptr == '\n')
                       {
-                          comment_end= true;
+                          comment_end = TRUE;
                           break;
                       }
                   }
@@ -790,7 +790,7 @@ static char *parse_params(
           else
           {
               comment_length= 1;
-              comment_end= false;
+              comment_end = FALSE;
               *ptr++ = *statement_ptr++;
               if  (*statement_ptr == '*')
               {
@@ -802,7 +802,7 @@ static char *parse_params(
                       if (!strncmp(statement_ptr, "*/", 2))
                       {
                           comment_length += 2;
-                          comment_end= true;
+                          comment_end = TRUE;
                           break;
                       }
                   }
@@ -857,18 +857,18 @@ static char *parse_params(
         }
         else
         {
-          int is_num = FALSE;
+          bool is_num = FALSE;
 
           if (ph->value)
           {
             is_num = sql_type_is_numeric(ph->type);
 
             /* (note this sets *end, which we use if is_num) */
-            if ( parse_number(ph->value, ph->len, &end) != 0 && is_num)
+            if (!parse_number(ph->value, ph->len, &end) && is_num)
             {
               if (bind_type_guessing) {
                 /* .. not a number, so apparently we guessed wrong */
-                is_num = 0;
+                is_num = FALSE;
                 ph->type = SQL_VARCHAR;
               }
             }
@@ -876,7 +876,7 @@ static char *parse_params(
 
             /* we're at the end of the query, so any placeholders if */
             /* after a LIMIT clause will be numbers and should not be quoted */
-            if (limit_flag == 1)
+            if (limit_flag)
               is_num = TRUE;
 
             if (!is_num)
@@ -896,7 +896,7 @@ static char *parse_params(
 
 	/* in case this is a nested LIMIT */
       case ')':
-        limit_flag = 0;
+        limit_flag = FALSE;
 	*ptr++ = *statement_ptr++;
         break;
 
@@ -1833,13 +1833,13 @@ MYSQL *mariadb_dr_connect(
       /* Version is in format: "2.3.2" */
       const char version[] = MARIADB_PACKAGE_VERSION;
       if (version[0] != '2')
-        broken_timeouts = false;
+        broken_timeouts = FALSE;
       else if (sizeof(version) >= 3 && version[2] >= '0' && version[2] < '3')
-        broken_timeouts = true;
+        broken_timeouts = TRUE;
       else if (sizeof(version) >= 5 && version[2] == '3' && version[4] >= '0' && version[4] < '3')
-        broken_timeouts = true;
+        broken_timeouts = TRUE;
       else
-        broken_timeouts = false;
+        broken_timeouts = FALSE;
     }
 
     if (broken_timeouts)
@@ -1980,7 +1980,7 @@ MYSQL *mariadb_dr_connect(
         {
           int error = 1;
 #ifdef HAVE_SECURE_AUTH
-          my_bool secauth = 0;
+          my_bool secauth = FALSE;
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Skipping" \
@@ -2092,7 +2092,7 @@ MYSQL *mariadb_dr_connect(
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->use_mysql_use_result: %d\n",
-                          imp_dbh->use_mysql_use_result);
+                          imp_dbh->use_mysql_use_result ? 1 : 0);
         }
 
         (void)hv_stores(processed, "mariadb_bind_type_guessing", &PL_sv_yes);
@@ -2184,7 +2184,7 @@ MYSQL *mariadb_dr_connect(
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "imp_dbh->use_server_side_prepare: %d\n",
-                        imp_dbh->use_server_side_prepare);
+                        imp_dbh->use_server_side_prepare ? 1 : 0);
 
         (void)hv_stores(processed, "mariadb_server_prepare_disable_fallback", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_server_prepare_disable_fallback", FALSE)) && *svp)
@@ -2192,7 +2192,7 @@ MYSQL *mariadb_dr_connect(
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "imp_dbh->disable_fallback_for_server_prepare: %d\n",
-                        imp_dbh->disable_fallback_for_server_prepare);
+                        imp_dbh->disable_fallback_for_server_prepare ? 1 : 0);
 
         (void)hv_stores(processed, "mariadb_ssl", &PL_sv_yes);
         (void)hv_stores(processed, "mariadb_ssl_optional", &PL_sv_yes);
@@ -2204,7 +2204,7 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_ssl_cipher", &PL_sv_yes);
 	if ((svp = hv_fetchs(hv, "mariadb_ssl", FALSE)) && *svp && SvTRUE(*svp))
           {
-	    my_bool ssl_enforce = 1;
+	    my_bool ssl_enforce = TRUE;
 
 	    if ((svp = hv_fetchs(hv, "mariadb_ssl_optional", FALSE)) && *svp)
 	      ssl_enforce = !SvTRUE(*svp);
@@ -2220,15 +2220,15 @@ MYSQL *mariadb_dr_connect(
   #if defined(HAVE_SSL_MODE) || defined(HAVE_SSL_MODE_ONLY_REQUIRED)
 	    unsigned int ssl_mode;
   #endif
-	    my_bool ssl_verify = 0;
-	    my_bool ssl_verify_set = 0;
+	    my_bool ssl_verify = FALSE;
+	    my_bool ssl_verify_set = FALSE;
 
             /* Verify if the hostname we connect to matches the hostname in the certificate */
 	    if ((svp = hv_fetchs(hv, "mariadb_ssl_verify_server_cert", FALSE)) && *svp)
 	    {
   #if defined(HAVE_SSL_VERIFY) || defined(HAVE_SSL_MODE)
 	      ssl_verify = SvTRUE(*svp);
-	      ssl_verify_set = 1;
+	      ssl_verify_set = TRUE;
   #else
 	      set_ssl_error(sock, "mariadb_ssl_verify_server_cert=1 is not supported");
 	      return NULL;
@@ -2331,7 +2331,7 @@ MYSQL *mariadb_dr_connect(
 	        set_ssl_error(sock, "Enforcing SSL encryption is not supported without mariadb_ssl_verify_server_cert=1");
 	        return NULL;
 	      }
-	      ssl_verify = 1;
+	      ssl_verify = TRUE;
     #else
 	      set_ssl_error(sock, "Enforcing SSL encryption is not supported");
 	      return NULL;
@@ -2494,7 +2494,7 @@ MYSQL *mariadb_dr_connect(
       my_bool reconnect = FALSE;
       mysql_options(result, MYSQL_OPT_RECONNECT, &reconnect);
 #else
-      result->reconnect = 0;
+      result->reconnect = FALSE;
 #endif
 
 #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
@@ -2590,7 +2590,7 @@ static char *safe_hv_fetch(pTHX_ SV *dbh, imp_dbh_t *imp_dbh, HV *hv, const char
 /*
  Frontend for mariadb_dr_connect
 */
-static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
+static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 {
   SV* sv;
   HV* hv;
@@ -2600,7 +2600,6 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* user;
   char* password;
   char* mysql_socket;
-  int   result;
   D_imp_xxh(dbh);
 
   /* TODO- resolve this so that it is set only if DBI is 1.607 */
@@ -2670,9 +2669,8 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
      mysql_init(imp_dbh->pmysql);
      imp_dbh->pmysql->net.fd = -1;
   }
-  result = mariadb_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
+  return mariadb_dr_connect(dbh, imp_dbh->pmysql, mysql_socket, host, port, user,
 			  password, dbname, imp_dbh) ? TRUE : FALSE;
-  return result;
 }
 
 
@@ -2689,7 +2687,7 @@ static int mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
  *           user - user name to connect as
  *           password - password to connect with
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
@@ -2732,7 +2730,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
         Safefree(imp_dbh->pmysql);
 
     }
-    return FALSE;
+    return 0;
   }
 
     /*
@@ -2743,7 +2741,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
     /* Tell DBI, that dbh->destroy should be called for this handle */
     DBIc_on(imp_dbh, DBIcf_IMPSET);
 
-    return TRUE;
+    return 1;
 }
 
 
@@ -2757,7 +2755,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
  *  Input:   dbh - database handle being committed or rolled back
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
@@ -2766,9 +2764,9 @@ int
 mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
   if (DBIc_has(imp_dbh, DBIcf_AutoCommit))
-    return FALSE;
+    return 0;
 
-  ASYNC_CHECK_RETURN(dbh, FALSE);
+  ASYNC_CHECK_RETURN(dbh, 0);
 
   if (imp_dbh->has_transactions)
   {
@@ -2780,13 +2778,13 @@ mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
     {
       mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql)
                ,mysql_sqlstate(imp_dbh->pmysql));
-      return FALSE;
+      return 0;
     }
   }
   else
     mariadb_dr_do_warn(dbh, JW_ERR_NOT_IMPLEMENTED,
             "Commit ineffective because transactions are not available");
-  return TRUE;
+  return 1;
 }
 
 /*
@@ -2796,9 +2794,9 @@ int
 mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
   /* report error, if not in AutoCommit mode */
   if (DBIc_has(imp_dbh, DBIcf_AutoCommit))
-    return FALSE;
+    return 0;
 
-  ASYNC_CHECK_RETURN(dbh, FALSE);
+  ASYNC_CHECK_RETURN(dbh, 0);
 
   if (imp_dbh->has_transactions)
   {
@@ -2810,13 +2808,13 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
       {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
-        return FALSE;
+        return 0;
       }
   }
   else
     mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
              "Rollback ineffective because transactions are not available" ,NULL);
-  return TRUE;
+  return 1;
 }
 
 /*
@@ -2829,8 +2827,7 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
  *  Input:   dbh - database handle being disconnected
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
- *           been called in the latter case
+ *  Returns: 1 for success (always)
  *
  **************************************************************************/
 
@@ -2876,7 +2873,7 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
-  return TRUE;
+  return 1;
 }
 
 
@@ -2889,7 +2886,7 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
  *  Input:   dbh - database handle being disconnected
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error has already
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error has already
  *           been called in the latter case
  *
  **************************************************************************/
@@ -2937,10 +2934,10 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
              (char*)"disconnect_all not implemented");
     /* NO EFFECT DBIh_EVENT2(drh, ERROR_event,
       DBIc_ERR(imp_drh), DBIc_ERRSTR(imp_drh)); */
-    return FALSE;
+    return 0;
   }
   PL_perl_destruct_level = 0;
-  return FALSE;
+  return 1;
 }
 
 
@@ -2996,7 +2993,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
  *           keysv - the attribute name
  *           valuesv - the attribute value
  *
- *  Returns: TRUE for success, FALSE otherwise
+ *  Returns: 1 for success, 0 otherwise
  *
  **************************************************************************/
 int
@@ -3010,18 +3007,16 @@ mariadb_db_STORE_attrib(
   dTHX;
   STRLEN kl;
   char *key = SvPV(keysv, kl); /* needs to process get magic */
-  SV *cachesv = Nullsv;
-  int cacheit = FALSE;
   const bool bool_value = SvTRUE_nomg(valuesv);
 
   if (memEQs(key, kl, "AutoCommit"))
   {
     if (imp_dbh->has_transactions)
     {
-      bool oldval = DBIc_has(imp_dbh,DBIcf_AutoCommit) ? 1 : 0;
+      bool oldval = DBIc_has(imp_dbh, DBIcf_AutoCommit) ? TRUE : FALSE;
 
       if (bool_value == oldval)
-        return TRUE;
+        return 1;
 
       /* if setting AutoCommit on ... */
       if (!imp_dbh->no_autocommit_cmd)
@@ -3039,7 +3034,7 @@ mariadb_db_STORE_attrib(
                    "Turning on AutoCommit failed" :
                    "Turning off AutoCommit failed"
                    ,NULL);
-          return TRUE;  /* TRUE means we handled it - important to avoid spurious errors */
+          return 1;  /* 1 means we handled it - important to avoid spurious errors */
         }
       }
       DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
@@ -3054,7 +3049,7 @@ mariadb_db_STORE_attrib(
       {
         mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
                  "Transactions not supported by database" ,NULL);
-        return FALSE;
+        return 0;
       }
     }
   }
@@ -3082,7 +3077,7 @@ mariadb_db_STORE_attrib(
       if (strlen(str) != len)
       {
         mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "mariadb_fabric_opt_group contains nul character", "HY000");
-        return FALSE;
+        return 0;
       }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_GROUP, str);
     }
@@ -3096,7 +3091,7 @@ mariadb_db_STORE_attrib(
         else
         {
           mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_DEFAULT_MODE are 'ro', 'rw', or undef/empty string", "HY000");
-          return FALSE;
+          return 0;
         }
       }
       else {
@@ -3110,33 +3105,31 @@ mariadb_db_STORE_attrib(
       if (!memEQs(str, len, "ro") && !memEQs(str, len, "rw"))
       {
         mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
-        return FALSE;
+        return 0;
       }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_MODE, str);
     }
     else if (memEQs(key, kl, "mariadb_fabric_opt_group_credentials"))
     {
       mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "'fabric_opt_group_credentials' is not supported", "HY000");
-      return FALSE;
+      return 0;
     }
   #endif
     else
     {
       if (imp_dbh->connected) /* Ignore unknown attributes passed by DBI->connect, they are handled in mariadb_dr_connect() */
         error_unknown_attribute(dbh, key);
-      return FALSE;
+      return 0;
     }
   }
   else
   {
     if (!skip_attribute(key)) /* Not handled by this driver */
       error_unknown_attribute(dbh, key);
-    return FALSE;
+    return 0;
   }
 
-  if (cacheit) /* cache value for later DBI 'quick' fetch? */
-    (void)hv_store((HV*)SvRV(dbh), key, kl, cachesv, 0);
-  return TRUE;
+  return 1;
 }
 
 #if IVSIZE < 8
@@ -3264,13 +3257,13 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   switch(*key) {
   case 'a':
     if (memEQs(key, kl, "auto_reconnect"))
-      result= sv_2mortal(newSViv(imp_dbh->auto_reconnect));
+      result = boolSV(imp_dbh->auto_reconnect);
     break;
   case 'b':
     if (memEQs(key, kl, "bind_type_guessing"))
-      result = sv_2mortal(newSViv(imp_dbh->bind_type_guessing));
+      result = boolSV(imp_dbh->bind_type_guessing);
     else if (memEQs(key, kl, "bind_comment_placeholders"))
-      result = sv_2mortal(newSViv(imp_dbh->bind_comment_placeholders));
+      result = boolSV(imp_dbh->bind_comment_placeholders);
     break;
   case 'c':
     if (memEQs(key, kl, "clientinfo"))
@@ -3325,7 +3318,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
   case 'n':
     if (memEQs(key, kl, "no_autocommit_cmd"))
-      result = sv_2mortal(newSViv(imp_dbh->no_autocommit_cmd));
+      result = boolSV(imp_dbh->no_autocommit_cmd);
     break;
 
   case 'p':
@@ -3362,9 +3355,9 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       sv_utf8_decode(result);
     }
     else if (memEQs(key, kl, "server_prepare"))
-        result= sv_2mortal(newSViv((IV) imp_dbh->use_server_side_prepare));
+      result = boolSV(imp_dbh->use_server_side_prepare);
     else if (memEQs(key, kl, "server_prepare_disable_fallback"))
-        result= sv_2mortal(newSViv((IV) imp_dbh->disable_fallback_for_server_prepare));
+      result = boolSV(imp_dbh->disable_fallback_for_server_prepare);
     break;
 
   case 't':
@@ -3378,7 +3371,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
   case 'u':
     if (memEQs(key, kl, "use_result"))
-      result= sv_2mortal(newSViv((IV) imp_dbh->use_mysql_use_result));
+      result = boolSV(imp_dbh->use_mysql_use_result);
     break;
   }
 
@@ -3488,7 +3481,7 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
  *           statement - pointer to string with SQL statement
  *           attribs - statement attributes, currently not in use
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
@@ -3508,7 +3501,7 @@ mariadb_st_prepare_sv(
 #if MYSQL_VERSION_ID < CALL_PLACEHOLDER_VERSION
   char *str_ptr, *str_last_ptr;
 #if MYSQL_VERSION_ID < LIMIT_PLACEHOLDER_VERSION
-  int limit_flag=0;
+  bool limit_flag = FALSE;
 #endif
 #endif
   int prepare_retval;
@@ -3541,7 +3534,7 @@ mariadb_st_prepare_sv(
     imp_sth->disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
   }
-  imp_sth->fetch_done= 0;
+  imp_sth->fetch_done = FALSE;
 #endif
 
   if (attribs)
@@ -3562,7 +3555,7 @@ mariadb_st_prepare_sv(
     }
   }
 
-  imp_sth->done_desc= 0;
+  imp_sth->done_desc = FALSE;
   imp_sth->result= NULL;
   imp_sth->currow= 0;
 
@@ -3615,7 +3608,7 @@ mariadb_st_prepare_sv(
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tLIMIT and ? found, set to use_server_side_prepare=0\n");
+                    "\t\tLIMIT and ? found, set use_server_side_prepare to FALSE\n");
           if (imp_sth->disable_fallback_for_server_prepare)
           {
             mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
@@ -3623,10 +3616,10 @@ mariadb_st_prepare_sv(
                      "HY000");
             mysql_stmt_close(imp_sth->stmt);
             imp_sth->stmt= NULL;
-            return FALSE;
+            return 0;
           }
           /* ... then we do not want to try server side prepare (use emulation) */
-          imp_sth->use_server_side_prepare= 0;
+          imp_sth->use_server_side_prepare = FALSE;
           break;
         }
       }
@@ -3641,7 +3634,7 @@ mariadb_st_prepare_sv(
       {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "LIMIT set limit flag to 1\n");
-        limit_flag= 1;
+        limit_flag = TRUE;
       }
 #endif
       /*
@@ -3663,9 +3656,9 @@ mariadb_st_prepare_sv(
                      "HY000");
             mysql_stmt_close(imp_sth->stmt);
             imp_sth->stmt= NULL;
-            return FALSE;
+            return 0;
           }
-        imp_sth->use_server_side_prepare= 0;
+        imp_sth->use_server_side_prepare = FALSE;
         break;
       }
     }
@@ -3724,8 +3717,8 @@ mariadb_st_prepare_sv(
       {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tSETTING imp_sth->use_server_side_prepare to 0\n");
-        imp_sth->use_server_side_prepare= 0;
+                    "\t\tSETTING imp_sth->use_server_side_prepare to FALSE\n");
+        imp_sth->use_server_side_prepare = FALSE;
       }
       else
       {
@@ -3734,7 +3727,7 @@ mariadb_st_prepare_sv(
                 mysql_sqlstate(imp_dbh->pmysql));
         mysql_stmt_close(imp_sth->stmt);
         imp_sth->stmt= NULL;
-        return FALSE;
+        return 0;
       }
     }
     else
@@ -3747,7 +3740,7 @@ mariadb_st_prepare_sv(
         /* Allocate memory for bind variables */
         imp_sth->bind=            alloc_bind(DBIc_NUM_PARAMS(imp_sth));
         imp_sth->fbind=           alloc_fbind(DBIc_NUM_PARAMS(imp_sth));
-        imp_sth->has_been_bound=  0;
+        imp_sth->has_been_bound = FALSE;
 
         /* Initialize ph variables with  NULL values */
         for (i= 0,
@@ -3761,7 +3754,7 @@ mariadb_st_prepare_sv(
           bind->buffer=       NULL;
           bind->length=       &(fbind->length);
           bind->is_null=      &(fbind->is_null);
-          fbind->is_null=     1;
+          fbind->is_null=     TRUE;
           fbind->length=      0;
         }
       }
@@ -3771,7 +3764,7 @@ mariadb_st_prepare_sv(
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /* Count the number of parameters (driver, vs server-side) */
-  if (imp_sth->use_server_side_prepare == 0)
+  if (!imp_sth->use_server_side_prepare)
     DBIc_NUM_PARAMS(imp_sth) = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement,
                                             statement_len,
                                             imp_dbh->bind_comment_placeholders);
@@ -3876,17 +3869,16 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
  * Inputs: sth - Statement handle
  *         imp_sth - driver's private statement handle
  *
- * Returns: 1 if there are more results sets
- *          0 if there are not
- *         -1 for errors.
+ * Returns: TRUE if there are more results sets
+ *          FALSE if there are not
  *************************************************************************/
-int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
+bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
 
-  int use_mysql_use_result=imp_sth->use_mysql_use_result;
+  bool use_mysql_use_result = imp_sth->use_mysql_use_result;
   int next_result_return_code, i;
   MYSQL* svsock= imp_dbh->pmysql;
 
@@ -3899,7 +3891,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
 		    "\n      <- mariadb_st_more_results no more results\n");
-    return 0;
+    return FALSE;
   }
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
@@ -3907,7 +3899,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
   {
     mariadb_dr_do_warn(sth, JW_ERR_NOT_IMPLEMENTED,
             "Processing of multiple result set is not possible with server side prepare");
-    return 0;
+    return FALSE;
   }
 #endif
 
@@ -3947,11 +3939,11 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock),
              mysql_sqlstate(svsock));
 
-    return 0;
+    return FALSE;
   }
   else if(next_result_return_code == -1)                                                                                                                  
   {                                                                                                                                                       
-    return 0;                                                                                                                                             
+    return FALSE;
   }  
   else
   {
@@ -3963,7 +3955,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     {
       mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock), 
                mysql_sqlstate(svsock));
-      return 0;
+      return FALSE;
     }
 
     imp_sth->row_num= mysql_affected_rows(imp_dbh->pmysql);
@@ -3974,7 +3966,7 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
 			               sv_2mortal(newSViv(0)));
-      return 1;
+      return TRUE;
     }
     else
     {
@@ -4011,10 +4003,10 @@ int mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
       DBIc_ACTIVE_on(imp_sth);
 
-      imp_sth->done_desc = 0;
+      imp_sth->done_desc = FALSE;
     }
     imp_dbh->pmysql->net.last_errno= 0;
-    return 1;
+    return TRUE;
   }
 }
 #endif
@@ -4045,7 +4037,7 @@ my_ulonglong mariadb_st_internal_execute(
                                        imp_sth_ph_t *params,
                                        MYSQL_RES **result,
                                        MYSQL *svsock,
-                                       int use_mysql_use_result
+                                       bool use_mysql_use_result
                                       )
 {
   dTHX;
@@ -4078,7 +4070,7 @@ my_ulonglong mariadb_st_internal_execute(
       bind_type_guessing= imp_dbh->bind_type_guessing;
       bind_comment_placeholders= imp_dbh->bind_comment_placeholders;
     }
-    async = (bool) (imp_dbh->async_query_in_flight != NULL);
+    async = imp_dbh->async_query_in_flight ? TRUE : FALSE;
   }
   /* h is a sth */
   else
@@ -4092,11 +4084,7 @@ my_ulonglong mariadb_st_internal_execute(
       bind_comment_placeholders= imp_dbh->bind_comment_placeholders;
     }
     async = imp_sth->is_async;
-    if(async) {
-        imp_dbh->async_query_in_flight = imp_sth;
-    } else {
-        imp_dbh->async_query_in_flight = NULL;
-    }
+    imp_dbh->async_query_in_flight = async ? imp_sth : NULL;
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -4232,7 +4220,7 @@ my_ulonglong mariadb_st_internal_execute41(
                                          MYSQL_RES **result,
                                          MYSQL_STMT *stmt,
                                          MYSQL_BIND *bind,
-                                         int *has_been_bound
+                                         bool *has_been_bound
                                         )
 {
   int i;
@@ -4249,7 +4237,7 @@ my_ulonglong mariadb_st_internal_execute41(
   if (*result)
   {
     mysql_free_result(*result);
-    *result= 0;
+    *result = NULL;
   }
 
   /*
@@ -4262,7 +4250,7 @@ my_ulonglong mariadb_st_internal_execute41(
     if (mysql_stmt_bind_param(stmt,bind))
       goto error;
 
-    *has_been_bound= 1;
+    *has_been_bound = TRUE;
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -4304,7 +4292,7 @@ my_ulonglong mariadb_st_internal_execute41(
       if (mysql_field_needs_allocated_buffer(&stmt->fields[i]))
       {
         /* mysql_stmt_store_result to update MYSQL_FIELD->max_length */
-        my_bool on = 1;
+        my_bool on = TRUE;
         mysql_stmt_attr_set(stmt, STMT_ATTR_UPDATE_MAX_LENGTH, &on);
         break;
       }
@@ -4325,7 +4313,7 @@ error:
   if (*result)
   {
     mysql_free_result(*result);
-    *result= 0;
+    *result = NULL;
   }
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4355,8 +4343,8 @@ error:
  *  Input:   sth - statement handle being initialized
  *           imp_sth - drivers private statement handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
- *           be called in the latter case
+ *  Returns: -2 for errors, -1 for unknown number of rows, otherwise number
+ *           of rows; mariadb_dr_do_error will be called for errors
  *
  **************************************************************************/
 
@@ -4370,8 +4358,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
   dTHR;
 #endif
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
-  int use_server_side_prepare = imp_sth->use_server_side_prepare;
-  int disable_fallback_for_server_prepare = imp_sth->disable_fallback_for_server_prepare;
+  bool use_server_side_prepare = imp_sth->use_server_side_prepare;
+  bool disable_fallback_for_server_prepare = imp_sth->disable_fallback_for_server_prepare;
 #endif
 
   ASYNC_CHECK_RETURN(sth, -2);
@@ -4419,7 +4407,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                  "HY000");
         return -2;
       }
-      use_server_side_prepare = 0;
+      use_server_side_prepare = FALSE;
     }
 
     if (use_server_side_prepare)
@@ -4437,7 +4425,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
         SV *err = DBIc_ERR(imp_xxh);
         if (!disable_fallback_for_server_prepare && SvIV(err) == ER_UNSUPPORTED_PS)
         {
-          use_server_side_prepare = 0;
+          use_server_side_prepare = FALSE;
         }
       }
     }
@@ -4481,8 +4469,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
       if (!use_server_side_prepare)
 #endif
-        imp_sth->done_desc= 0;
-      imp_sth->fetch_done= 0;
+        imp_sth->done_desc = FALSE;
+      imp_sth->fetch_done = FALSE;
     }
   }
 
@@ -4513,7 +4501,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
  *           imp_sth - our part of the statement handle, there's no
  *               need for supplying both; Tim just doesn't remove it
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
@@ -4541,7 +4529,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
                     num_fields);
 
     if (imp_sth->done_desc)
-      return TRUE;
+      return 1;
 
     if (!num_fields || !imp_sth->result)
     {
@@ -4588,11 +4576,11 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
       fbh->is_utf8 = mysql_field_is_utf8(&fields[i]);
 
       buffer->buffer_type= fields[i].type;
-      buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? 1 : 0;
+      buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? TRUE : FALSE;
       buffer->length= &(fbh->length);
       buffer->is_null= &(fbh->is_null);
 #if MYSQL_VERSION_ID >= NEW_DATATYPE_VERSION
-      buffer->error= (my_bool*) &(fbh->error);
+      buffer->error= &(fbh->error);
 #endif
 
       if (mysql_field_needs_string_type(&fields[i]))
@@ -4662,10 +4650,10 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
   }
 #endif
 
-  imp_sth->done_desc= 1;
+  imp_sth->done_desc = TRUE;
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_describe\n");
-  return TRUE;
+  return 1;
 }
 
 /**************************************************************************
@@ -4688,10 +4676,12 @@ AV*
 mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 {
   dTHX;
-  int num_fields, ChopBlanks, i, rc;
+  bool ChopBlanks;
+  int num_fields, i, rc;
   unsigned long *lengths;
   AV *av;
-  int av_length, av_readonly;
+  int av_length;
+  bool av_readonly;
   MYSQL_ROW cols;
   D_imp_dbh_from_sth;
   imp_sth_fbh_t *fbh;
@@ -4738,12 +4728,12 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
   }
 #endif
 
-  ChopBlanks = DBIc_is(imp_sth, DBIcf_ChopBlanks);
+  ChopBlanks = DBIc_is(imp_sth, DBIcf_ChopBlanks) ? TRUE : FALSE;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "\t\tmariadb_st_fetch for %p, chopblanks %d\n",
-                  sth, ChopBlanks);
+                  sth, ChopBlanks ? 1 : 0);
 
   if (!imp_sth->result)
   {
@@ -4774,7 +4764,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
       {
         /* Update row_num to affected_rows value */
         imp_sth->row_num= mysql_stmt_affected_rows(imp_sth->stmt);
-        imp_sth->fetch_done=1;
+        imp_sth->fetch_done = TRUE;
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch no data\n");
       }
@@ -4827,7 +4817,7 @@ process:
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
               "\t\tRefetch BLOB/TEXT column: %d, length: %lu, error: %d\n",
-              i, fbh->length, fbh->error);
+              i, fbh->length, fbh->error ? 1 : 0);
 
           Renew(fbh->data, fbh->length, char);
           buffer->buffer_length= fbh->length;
@@ -5049,7 +5039,7 @@ process:
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, result fields(%d)\n",
                                    DBIc_NUM_FIELDS(imp_sth));
 
-        av_readonly = SvREADONLY(av);
+        av_readonly = SvREADONLY(av) ? TRUE : FALSE;
 
         if (av_readonly)
           SvREADONLY_off( av );              /* DBI sets this readonly */
@@ -5162,7 +5152,7 @@ static int mariadb_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
  *  Input:   sth - statement handle being finished
  *           imp_sth - drivers private statement handle data
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error() will
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error() will
  *           be called in the latter case
  *
  **************************************************************************/
@@ -5321,7 +5311,7 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
  *           keysv - attribute name
  *           valuesv - attribute value
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
@@ -5336,7 +5326,7 @@ mariadb_st_STORE_attrib(
   dTHX;
   STRLEN(kl);
   char *key= SvPV(keysv, kl); /* needs to process get magic */
-  int retval= FALSE;
+  int retval = 0;
   D_imp_xxh(sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -5347,7 +5337,7 @@ mariadb_st_STORE_attrib(
   if (memEQs(key, kl, "mariadb_use_result"))
   {
     imp_sth->use_mysql_use_result= SvTRUE_nomg(valuesv);
-    retval = TRUE;
+    retval = 1;
   }
   else
   {
@@ -5400,7 +5390,7 @@ static SV* mariadb_st_fetch_internal(
   SV *sth,
   int what,
   MYSQL_RES *res,
-  int cacheit
+  bool cacheit
 )
 {
   dTHX;
@@ -5466,7 +5456,7 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_IS_NUM:
-        sv= newSViv((int) native2sql(curField->type)->is_num);
+        sv= boolSV(native2sql(curField->type)->is_num);
         break;
 
       case AV_ATTRIB_TYPE_NAME:
@@ -5640,7 +5630,7 @@ SV* mariadb_st_FETCH_attrib(
         retsv= sv_2mortal(newSViv((IV) imp_sth->warning_count));
       else if (memEQs(key, kl, "mariadb_server_prepare"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
-        retsv= sv_2mortal(newSViv((IV) imp_sth->use_server_side_prepare));
+        retsv= boolSV(imp_sth->use_server_side_prepare);
 #else
         retsv= boolSV(0);
 #endif
@@ -5648,7 +5638,7 @@ SV* mariadb_st_FETCH_attrib(
         retsv = ST_FETCH_AV(AV_ATTRIB_IS_AUTO_INCREMENT);
       else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
-        retsv= sv_2mortal(newSViv((IV) imp_sth->disable_fallback_for_server_prepare));
+        retsv= boolSV(imp_sth->disable_fallback_for_server_prepare);
 #else
         retsv= boolSV(0);
 #endif
@@ -5679,7 +5669,7 @@ SV* mariadb_st_FETCH_attrib(
  *           destrv - RV* that tells us where to store
  *           destoffset - destination offset
  *
- *  Returns: TRUE for success, FALSE otherwise; mariadb_dr_do_error will
+ *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
  *
  **************************************************************************/
@@ -5701,7 +5691,7 @@ int mariadb_st_blob_read (
     len= len;
     destrv= destrv;
     destoffset= destoffset;
-    return FALSE;
+    return 0;
 }
 
 
@@ -5722,7 +5712,7 @@ int mariadb_st_blob_read (
  *               this is not supported)
  *           maxlen - ???
  *
- *  Returns: TRUE for success, FALSE otherwise
+ *  Returns: 1 for success, 0 otherwise
  *
  **************************************************************************/
 
@@ -5737,8 +5727,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   char *buffer= NULL;
-  int buffer_is_null= 0;
-  int buffer_is_unsigned= 0;
+  my_bool buffer_is_null = FALSE;
+  my_bool buffer_is_unsigned = FALSE;
   int buffer_length= 0;
   unsigned int buffer_type= 0;
   IV int_val= 0;
@@ -5757,7 +5747,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   if (param_num <= 0  ||  param_num > DBIc_NUM_PARAMS(imp_sth))
   {
     mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, "Illegal parameter number", NULL);
-    return FALSE;
+    return 0;
   }
 
   /*
@@ -5772,14 +5762,14 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
               "Binding non-numeric field %d, value %s as a numeric!",
               param_num, neatsvpv(value,0))));
       mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
-      return FALSE;
+      return 0;
     }
   }
 
   if (is_inout)
   {
     mariadb_dr_do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Output parameters not implemented", NULL);
-    return FALSE;
+    return 0;
   }
 
   bind_param(&imp_sth->params[idx], value, sql_type);
@@ -5804,14 +5794,14 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         if (SvIsUV(value) || int_val == IV_MAX)
         {
           int_val = SvUV_nomg(value);
-          buffer_is_unsigned= 1;
+          buffer_is_unsigned = TRUE;
         }
 
         switch (buffer_type) {
         case MYSQL_TYPE_TINY:
           buffer_length= sizeof(imp_sth->fbind[idx].numeric_val.tval);
           if (int_val > SCHAR_MAX)
-            buffer_is_unsigned= 1;
+            buffer_is_unsigned = TRUE;
           if (buffer_is_unsigned)
             imp_sth->fbind[idx].numeric_val.tval= (unsigned char)((UV)int_val);
           else
@@ -5824,7 +5814,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         case MYSQL_TYPE_SHORT:
           buffer_length= sizeof(imp_sth->fbind[idx].numeric_val.sval);
           if (int_val > SHRT_MAX)
-            buffer_is_unsigned= 1;
+            buffer_is_unsigned = TRUE;
           if (buffer_is_unsigned)
             imp_sth->fbind[idx].numeric_val.sval= (unsigned short)((UV)int_val);
           else
@@ -5837,7 +5827,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         case MYSQL_TYPE_LONG:
           buffer_length= sizeof(imp_sth->fbind[idx].numeric_val.lval);
           if (int_val > INT32_MAX)
-            buffer_is_unsigned= 1;
+            buffer_is_unsigned = TRUE;
           if (buffer_is_unsigned)
             imp_sth->fbind[idx].numeric_val.lval= (uint32_t)((UV)int_val);
           else
@@ -5851,7 +5841,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         case MYSQL_TYPE_LONGLONG:
           buffer_length= sizeof(imp_sth->fbind[idx].numeric_val.llval);
           if (int_val > LLONG_MAX)
-            buffer_is_unsigned= 1;
+            buffer_is_unsigned = TRUE;
           if (buffer_is_unsigned)
             imp_sth->fbind[idx].numeric_val.llval= (UV)int_val;
           else
@@ -5892,7 +5882,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
           if (val == LLONG_MAX)
           {
             val= strtoull(buf, NULL, 10);
-            buffer_is_unsigned= 1;
+            buffer_is_unsigned = TRUE;
           }
 
           imp_sth->fbind[idx].numeric_val.llval= val;
@@ -5984,7 +5974,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "   FORCE REBIND: buffer type changed from %d to %d, sql-type=%"IVdf"\n",
                         (int) imp_sth->bind[idx].buffer_type, buffer_type, sql_type);
-      imp_sth->has_been_bound = 0;
+      imp_sth->has_been_bound = FALSE;
     }
 
     /* prepare has been called */
@@ -6003,7 +5993,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     imp_sth->fbind[idx].is_null= buffer_is_null;
   }
 #endif
-  return TRUE;
+  return 1;
 }
 
 
@@ -6019,7 +6009,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
  *
  **************************************************************************/
 
-int mariadb_db_reconnect(SV* h)
+bool mariadb_db_reconnect(SV* h)
 {
   dTHX;
   D_imp_xxh(h);
@@ -6061,7 +6051,8 @@ int mariadb_db_reconnect(SV* h)
    * prevent mariadb_db_my_login from thinking it's adopting an active child which
    * would prevent the handle from actually reconnecting
    */
-  if (!mariadb_db_disconnect(h, imp_dbh) || !mariadb_db_my_login(aTHX_ h, imp_dbh))
+  mariadb_db_disconnect(h, imp_dbh);
+  if (!mariadb_db_my_login(aTHX_ h, imp_dbh))
   {
     mariadb_dr_do_error(h, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
              mysql_sqlstate(imp_dbh->pmysql));
@@ -6182,7 +6173,7 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
     IV_PUSH(t->sql_datetime_sub); /* SQL_DATETIME_SUB*/
     IV_PUSH(t->interval_precision); /* INTERVAL_PRECISION */
     IV_PUSH(t->native_type);
-    IV_PUSH(t->is_num);
+    av_push(row, boolSV(t->is_num));
   }
   return av;
 }
@@ -6373,8 +6364,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 #endif
         } else {
           DBIc_NUM_FIELDS(imp_sth)= mysql_num_fields(imp_sth->result);
-          imp_sth->done_desc= 0;
-          imp_sth->fetch_done= 0;
+          imp_sth->done_desc = FALSE;
+          imp_sth->fetch_done = FALSE;
         }
       }
       imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
@@ -6432,16 +6423,13 @@ int mariadb_db_async_ready(SV* h)
   }
 }
 
-static int parse_number(char *string, STRLEN len, char **end)
+static bool parse_number(char *string, STRLEN len, char **end)
 {
-    int seen_neg;
-    int seen_dec;
-    int seen_e;
-    int seen_plus;
-    int seen_digit;
+    int seen_neg = 0;
+    bool seen_dec = FALSE;
+    bool seen_e = FALSE;
+    bool seen_plus = FALSE;
     char *cp;
-
-    seen_neg= seen_dec= seen_e= seen_plus= seen_digit= 0;
 
     if (len <= 0) {
         len= strlen(string);
@@ -6473,7 +6461,7 @@ static int parse_number(char *string, STRLEN len, char **end)
           /* second '.' */
           break;
         }
-        seen_dec= 1;
+        seen_dec = TRUE;
       }
       else if ('e' == *cp)
       {
@@ -6482,7 +6470,7 @@ static int parse_number(char *string, STRLEN len, char **end)
           /* second 'e' */
           break;
         }
-        seen_e= 1;
+        seen_e = TRUE;
       }
       else if ('+' == *cp)
       {
@@ -6491,7 +6479,7 @@ static int parse_number(char *string, STRLEN len, char **end)
           /* second '+' */
           break;
         }
-        seen_plus= 1;
+        seen_plus = TRUE;
       }
       else if (!isdigit(*cp))
       {
@@ -6507,8 +6495,8 @@ static int parse_number(char *string, STRLEN len, char **end)
     /* Need to revisit this */
     /*if (len == 0 || cp - string < (int) len || seen_digit == 0) {*/
     if (len == 0 || cp - string < (int) len) {
-        return -1;
+        return FALSE;
     }
 
-    return 0;
+    return TRUE;
 }
