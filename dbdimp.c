@@ -674,8 +674,9 @@ static char *parse_params(
   char *salloc, *statement_ptr;
   char *statement_ptr_end, *ptr;
   char *cp, *end;
-  int alen, i;
-  int slen= *slen_ptr;
+  int i;
+  STRLEN alen;
+  STRLEN slen = *slen_ptr;
   bool limit_flag = FALSE;
   int comment_length=0;
   imp_sth_ph_t *ph;
