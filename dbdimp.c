@@ -1577,7 +1577,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
   errstr= DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
+  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -1603,7 +1603,7 @@ void mariadb_dr_do_warn(SV* h, int rc, char* what)
   D_imp_xxh(h);
 
   SV *errstr = DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
+  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -2929,7 +2929,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 
   /* The disconnect_all concept is flawed and needs more work */
   if (!PL_dirty && !SvTRUE(get_sv("DBI::PERL_ENDING",0))) {
-    sv_setiv(DBIc_ERR(imp_drh), (IV)1);
+    sv_setiv(DBIc_ERR(imp_drh), 1);
     sv_setpv(DBIc_ERRSTR(imp_drh),
              (char*)"disconnect_all not implemented");
     /* NO EFFECT DBIh_EVENT2(drh, ERROR_event,
@@ -3277,7 +3277,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
   case 'e':
     if (memEQs(key, kl, "errno"))
-      result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
+      result= sv_2mortal(newSVuv(mysql_errno(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "error"))
     {
       result = sv_2mortal(newSVpv(mysql_error(imp_dbh->pmysql), 0));
@@ -3998,7 +3998,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
-          sv_2mortal(newSViv(mysql_num_fields(imp_sth->result)))
+          sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
 
       DBIc_ACTIVE_on(imp_sth);
@@ -5433,11 +5433,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_TYPE:
-        sv= newSViv((int) curField->type);
+        sv= newSVuv(curField->type);
         break;
 
       case AV_ATTRIB_SQL_TYPE:
-        sv= newSViv((int) native2sql(curField->type)->data_type);
+        sv= newSVuv(native2sql(curField->type)->data_type);
         break;
       case AV_ATTRIB_IS_PRI_KEY:
         sv= boolSV(IS_PRI_KEY(curField->flags));
@@ -5452,7 +5452,7 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_LENGTH:
-        sv= newSViv((int) curField->length);
+        sv= newSVuv(curField->length);
         break;
 
       case AV_ATTRIB_IS_NUM:
@@ -5460,11 +5460,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_TYPE_NAME:
-        sv= newSVpv((char*) native2sql(curField->type)->type_name, 0);
+        sv= newSVpv(native2sql(curField->type)->type_name, 0);
         break;
 
       case AV_ATTRIB_MAX_LENGTH:
-        sv= newSViv((int) curField->max_length);
+        sv= newSVuv(curField->max_length);
         break;
 
       case AV_ATTRIB_IS_AUTO_INCREMENT:
@@ -5485,11 +5485,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_SCALE:
-        sv= newSViv((int) curField->decimals);
+        sv= newSVuv(curField->decimals);
         break;
 
       case AV_ATTRIB_PRECISION:
-        sv= newSViv((int) (curField->length > curField->max_length) ?
+        sv= newSVuv((curField->length > curField->max_length) ?
                      curField->length : curField->max_length);
         break;
 
@@ -5627,7 +5627,7 @@ SV* mariadb_st_FETCH_attrib(
       else if (memEQs(key, kl, "mariadb_use_result"))
         retsv= boolSV(imp_sth->use_mysql_use_result);
       else if (memEQs(key, kl, "mariadb_warning_count"))
-        retsv= sv_2mortal(newSViv((IV) imp_sth->warning_count));
+        retsv= sv_2mortal(newSVuv(imp_sth->warning_count));
       else if (memEQs(key, kl, "mariadb_server_prepare"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         retsv= boolSV(imp_sth->use_server_side_prepare);
