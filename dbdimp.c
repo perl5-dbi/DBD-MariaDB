@@ -5741,8 +5741,8 @@ int mariadb_st_blob_read (
 int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 		 IV sql_type, SV *attribs, int is_inout, IV maxlen) {
   dTHX;
-  int param_num= SvIV(param); /* needs to process get magic */
-  int idx= param_num - 1;
+  IV param_num = SvIV(param); /* needs to process get magic */
+  int idx;
   char *err_msg;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
@@ -5772,6 +5772,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     return 0;
   }
 
+  idx = param_num - 1;
+
   /*
      This fixes the bug whereby no warning was issued upon binding a
      defined non-numeric as numeric
@@ -5781,7 +5783,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     if (! looks_like_number(value))
     {
       err_msg = SvPVX(sv_2mortal(newSVpvf(
-              "Binding non-numeric field %d, value %s as a numeric!",
+              "Binding non-numeric field %" IVdf ", value %s as a numeric!",
               param_num, neatsvpv(value,0))));
       mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
       return 0;
@@ -6124,7 +6126,7 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
   AV *row;
   HV *hv;
   SV *sv;
-  int i;
+  size_t i;
   const char *cols[] = {
     "TYPE_NAME",
     "DATA_TYPE",
@@ -6154,15 +6156,15 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
  
   hv= newHV();
   av_push(av, newRV_noinc((SV*) hv));
-  for (i= 0;  i < (int)(sizeof(cols) / sizeof(const char*));  i++)
+  for (i = 0; i < sizeof(cols) / sizeof(const char*); i++)
   {
-    if (!hv_store(hv, (char*) cols[i], strlen(cols[i]), newSViv(i), 0))
+    if (!hv_store(hv, (char*) cols[i], strlen(cols[i]), newSVuv(i), 0))
     {
       SvREFCNT_dec((SV*) av);
       return Nullav;
     }
   }
-  for (i= 0;  i < (int)SQL_GET_TYPE_INFO_num;  i++)
+  for (i = 0; i < SQL_GET_TYPE_INFO_num; i++)
   {
     const sql_type_info_t *t= &SQL_GET_TYPE_INFO_values[i];
 
@@ -6249,10 +6251,10 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 
     if (type  &&  SvOK(type))
     {
-      int i;
-      int tp= SvIV_nomg(type);
+      size_t i;
+      IV tp = SvIV_nomg(type);
       is_binary = sql_type_is_binary(tp);
-      for (i= 0;  i < (int)SQL_GET_TYPE_INFO_num;  i++)
+      for (i = 0; i < SQL_GET_TYPE_INFO_num; i++)
       {
         const sql_type_info_t *t= &SQL_GET_TYPE_INFO_values[i];
         if (t->data_type == tp)
@@ -6517,8 +6519,8 @@ static bool parse_number(char *string, STRLEN len, char **end)
 
     /* length 0 -> not a number */
     /* Need to revisit this */
-    /*if (len == 0 || cp - string < (int) len || seen_digit == 0) {*/
-    if (len == 0 || cp - string < (int) len) {
+    /*if (len == 0 || cp - string < len || seen_digit == 0) {*/
+    if (len == 0 || cp - string < len) {
         return FALSE;
     }
 
