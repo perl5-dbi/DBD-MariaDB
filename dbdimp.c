@@ -1927,11 +1927,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_connect_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_connect_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " connect timeout (%d).\n",to);
+                          " connect timeout (%u).\n", to);
           mysql_options(sock, MYSQL_OPT_CONNECT_TIMEOUT,
                         (const char *)&to);
         }
@@ -1939,11 +1940,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_write_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_write_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " write timeout (%d).\n",to);
+                          " write timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
           {
@@ -1960,11 +1962,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_read_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_read_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " read timeout (%d).\n",to);
+                          " read timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
           {
