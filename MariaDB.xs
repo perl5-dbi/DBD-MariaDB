@@ -89,8 +89,8 @@ do(dbh, statement, attr=Nullsv, ...)
   CODE:
 {
   D_imp_dbh(dbh);
-  int num_params= (items > 3 ? items - 3 : 0);
-  int i;
+  I32 num_params= (items > 3 ? items - 3 : 0);
+  I32 i;
   my_ulonglong retval;
   STRLEN slen;
   char *str_ptr;
