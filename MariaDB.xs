@@ -338,7 +338,7 @@ ping(dbh)
  * https://bugs.mysql.com/bug.php?id=78778
  * https://bugs.mysql.com/bug.php?id=89139 */
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
-      unsigned long long insertid;
+      my_ulonglong insertid;
 #endif
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
