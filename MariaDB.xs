@@ -89,8 +89,8 @@ do(dbh, statement, attr=Nullsv, ...)
   CODE:
 {
   D_imp_dbh(dbh);
-  int num_params= (items > 3 ? items - 3 : 0);
-  int i;
+  I32 num_params= (items > 3 ? items - 3 : 0);
+  I32 i;
   my_ulonglong retval;
   STRLEN slen;
   char *str_ptr;
@@ -338,7 +338,7 @@ ping(dbh)
  * https://bugs.mysql.com/bug.php?id=78778
  * https://bugs.mysql.com/bug.php?id=89139 */
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
-      unsigned long long insertid;
+      my_ulonglong insertid;
 #endif
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
@@ -587,10 +587,10 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    /* MYSQL_OPT_NET_BUFFER_LENGTH was added in MariaDB 10.2.2 */
 	    unsigned long buffer_len;
 	    mysql_get_option(NULL, MYSQL_OPT_NET_BUFFER_LENGTH, &buffer_len);
-	    retsv = newSViv(buffer_len);
+	    retsv = newSVuv(buffer_len);
 #else
 	    /* before MySQL 5.7.9 and MariaDB 10.2.2 use net_buffer_length macro */
-	    retsv = newSViv(net_buffer_length);
+	    retsv = newSVuv(net_buffer_length);
 #endif
 	    break;
 	}

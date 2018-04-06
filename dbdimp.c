@@ -65,12 +65,12 @@ typedef struct sql_type_info_s
   used for emulated prepare statements < 4.1.3
 
 */
-static int
+static unsigned long int
 count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bool bind_comment_placeholders)
 {
   bool comment_end = FALSE;
   char* ptr= statement;
-  int num_params= 0;
+  unsigned long int num_params = 0;
   int comment_length= 0;
   char *end = statement + statement_len;
   char c;
@@ -202,6 +202,8 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
 
     case '?':
       ++num_params;
+      if (num_params == ULONG_MAX)
+        return ULONG_MAX;
       break;
 
     default:
@@ -672,8 +674,9 @@ static char *parse_params(
   char *salloc, *statement_ptr;
   char *statement_ptr_end, *ptr;
   char *cp, *end;
-  int alen, i;
-  int slen= *slen_ptr;
+  int i;
+  STRLEN alen;
+  STRLEN slen = *slen_ptr;
   bool limit_flag = FALSE;
   int comment_length=0;
   imp_sth_ph_t *ph;
@@ -1577,7 +1580,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
   errstr= DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
+  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -1603,7 +1606,7 @@ void mariadb_dr_do_warn(SV* h, int rc, char* what)
   D_imp_xxh(h);
 
   SV *errstr = DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);	/* set err early	*/
+  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -1924,11 +1927,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_connect_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_connect_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " connect timeout (%d).\n",to);
+                          " connect timeout (%u).\n", to);
           mysql_options(sock, MYSQL_OPT_CONNECT_TIMEOUT,
                         (const char *)&to);
         }
@@ -1936,11 +1940,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_write_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_write_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " write timeout (%d).\n",to);
+                          " write timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
           {
@@ -1957,11 +1962,12 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_read_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_read_timeout", FALSE)) && *svp && SvTRUE(*svp))
         {
-          int to = SvIV_nomg(*svp);
+          UV uv = SvUV_nomg(*svp);
+          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting" \
-                          " read timeout (%d).\n",to);
+                          " read timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
           {
@@ -2929,7 +2935,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 
   /* The disconnect_all concept is flawed and needs more work */
   if (!PL_dirty && !SvTRUE(get_sv("DBI::PERL_ENDING",0))) {
-    sv_setiv(DBIc_ERR(imp_drh), (IV)1);
+    sv_setiv(DBIc_ERR(imp_drh), 1);
     sv_setpv(DBIc_ERRSTR(imp_drh),
              (char*)"disconnect_all not implemented");
     /* NO EFFECT DBIh_EVENT2(drh, ERROR_event,
@@ -3277,7 +3283,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     break;
   case 'e':
     if (memEQs(key, kl, "errno"))
-      result= sv_2mortal(newSViv((IV)mysql_errno(imp_dbh->pmysql)));
+      result= sv_2mortal(newSVuv(mysql_errno(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "error"))
     {
       result = sv_2mortal(newSVpv(mysql_error(imp_dbh->pmysql), 0));
@@ -3508,6 +3514,7 @@ mariadb_st_prepare_sv(
   MYSQL_BIND *bind, *bind_end;
   imp_sth_phb_t *fbind;
 #endif
+  unsigned long int num_params;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
@@ -3732,9 +3739,15 @@ mariadb_st_prepare_sv(
     }
     else
     {
-      DBIc_NUM_PARAMS(imp_sth)= mysql_stmt_param_count(imp_sth->stmt);
-      /* mysql_stmt_param_count */
-
+      num_params = mysql_stmt_param_count(imp_sth->stmt);
+      if (num_params > INT_MAX)
+      {
+        mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Prepared statement contains too many placeholders", "HY000");
+        mysql_stmt_close(imp_sth->stmt);
+        imp_sth->stmt = NULL;
+        return 0;
+      }
+      DBIc_NUM_PARAMS(imp_sth) = num_params;
       if (DBIc_NUM_PARAMS(imp_sth) > 0)
       {
         /* Allocate memory for bind variables */
@@ -3765,17 +3778,25 @@ mariadb_st_prepare_sv(
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /* Count the number of parameters (driver, vs server-side) */
   if (!imp_sth->use_server_side_prepare)
-    DBIc_NUM_PARAMS(imp_sth) = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement,
-                                            statement_len,
+  {
+#endif
+    num_params = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement, statement_len,
                                             imp_dbh->bind_comment_placeholders);
-#else
-  DBIc_NUM_PARAMS(imp_sth) = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement,
-                                          statement_len,
-                                          imp_dbh->bind_comment_placeholders);
+    if (num_params > INT_MAX || num_params == ULONG_MAX)
+    {
+      mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Prepared statement contains too many placeholders", "HY000");
+      mysql_stmt_close(imp_sth->stmt);
+      imp_sth->stmt = NULL;
+      return 0;
+    }
+    DBIc_NUM_PARAMS(imp_sth) = num_params;
+#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
+  }
 #endif
 
   /* Allocate memory for parameters */
-  imp_sth->params= alloc_param(DBIc_NUM_PARAMS(imp_sth));
+  if (DBIc_NUM_PARAMS(imp_sth) > 0)
+    imp_sth->params = alloc_param(DBIc_NUM_PARAMS(imp_sth));
   DBIc_IMPSET_on(imp_sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -3998,7 +4019,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
-          sv_2mortal(newSViv(mysql_num_fields(imp_sth->result)))
+          sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
 
       DBIc_ACTIVE_on(imp_sth);
@@ -4223,9 +4244,9 @@ my_ulonglong mariadb_st_internal_execute41(
                                          bool *has_been_bound
                                         )
 {
-  int i;
   dTHX;
   int execute_retval;
+  unsigned int i, num_fields;
   my_ulonglong rows=0;
   D_imp_xxh(sth);
 
@@ -4287,7 +4308,8 @@ my_ulonglong mariadb_st_internal_execute41(
   */
   else
   {
-    for (i = mysql_stmt_field_count(stmt) - 1; i >=0; --i)
+    num_fields = mysql_stmt_field_count(stmt);
+    for (i = 0; i < num_fields; ++i)
     {
       if (mysql_field_needs_allocated_buffer(&stmt->fields[i]))
       {
@@ -4352,6 +4374,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
 {
   dTHX;
   int i;
+  unsigned int num_fields;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
 #if defined (dTHR)
@@ -4464,7 +4487,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
     else
     {
       /** Store the result in the current statement handle */
-      DBIc_NUM_FIELDS(imp_sth)= mysql_num_fields(imp_sth->result);
+      num_fields = mysql_num_fields(imp_sth->result);
+      DBIc_NUM_FIELDS(imp_sth) = (num_fields <= INT_MAX) ? num_fields : INT_MAX;
       DBIc_ACTIVE_on(imp_sth);
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
       if (!use_server_side_prepare)
@@ -4531,7 +4555,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
     if (imp_sth->done_desc)
       return 1;
 
-    if (!num_fields || !imp_sth->result)
+    if (num_fields <= 0 || !imp_sth->result)
     {
       /* no metadata */
       mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
@@ -4677,10 +4701,11 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 {
   dTHX;
   bool ChopBlanks;
-  int num_fields, i, rc;
+  int rc;
+  unsigned int i, num_fields;
   unsigned long *lengths;
   AV *av;
-  int av_length;
+  unsigned int av_length;
   bool av_readonly;
   MYSQL_ROW cols;
   D_imp_dbh_from_sth;
@@ -4785,7 +4810,7 @@ process:
     num_fields=mysql_stmt_field_count(imp_sth->stmt);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tmariadb_st_fetch called mysql_fetch, rc %d num_fields %d\n",
+                    "\t\tmariadb_st_fetch called mysql_fetch, rc %d num_fields %u\n",
                     rc, num_fields);
 
     for (
@@ -4984,7 +5009,7 @@ process:
     }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %d cols\n", num_fields);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %u cols\n", num_fields);
 
     return av;
   }
@@ -5032,7 +5057,7 @@ process:
       if (av_length != num_fields)              /* Resize array if necessary */
       {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, size of results array(%d) != num_fields(%d)\n",
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, size of results array(%u) != num_fields(%u)\n",
                                    av_length, num_fields);
 
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -5117,7 +5142,7 @@ process:
     }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %d cols\n", num_fields);
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_fetch, %u cols\n", num_fields);
     return av;
 
 #if MYSQL_VERSION_ID  >= SERVER_PREPARE_VERSION
@@ -5237,17 +5262,18 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   imp_sth_fbh_t *fbh;
-  int n;
+  int num_params;
+  int num_fields;
 
   if (imp_sth->statement)
     Safefree(imp_sth->statement);
 
-  n= DBIc_NUM_PARAMS(imp_sth);
-  if (n)
+  num_params = DBIc_NUM_PARAMS(imp_sth);
+  if (num_params > 0)
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tFreeing %d parameters, bind %p fbind %p\n",
-          n, imp_sth->bind, imp_sth->fbind);
+          num_params, imp_sth->bind, imp_sth->fbind);
 
     free_bind(imp_sth->bind);
     free_fbind(imp_sth->fbind);
@@ -5256,9 +5282,9 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   fbh= imp_sth->fbh;
   if (fbh)
   {
-    n = DBIc_NUM_FIELDS(imp_sth);
+    num_fields = DBIc_NUM_FIELDS(imp_sth);
     i = 0;
-    while (i < n)
+    while (i < num_fields)
     {
       if (fbh[i].data) Safefree(fbh[i].data);
       ++i;
@@ -5282,7 +5308,7 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   /* Free values allocated by mariadb_st_bind_ph */
   if (imp_sth->params)
   {
-    free_param(aTHX_ imp_sth->params, DBIc_NUM_PARAMS(imp_sth));
+    free_param(aTHX_ imp_sth->params, num_params);
     imp_sth->params= NULL;
   }
 
@@ -5433,11 +5459,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_TYPE:
-        sv= newSViv((int) curField->type);
+        sv= newSVuv(curField->type);
         break;
 
       case AV_ATTRIB_SQL_TYPE:
-        sv= newSViv((int) native2sql(curField->type)->data_type);
+        sv= newSVuv(native2sql(curField->type)->data_type);
         break;
       case AV_ATTRIB_IS_PRI_KEY:
         sv= boolSV(IS_PRI_KEY(curField->flags));
@@ -5452,7 +5478,7 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_LENGTH:
-        sv= newSViv((int) curField->length);
+        sv= newSVuv(curField->length);
         break;
 
       case AV_ATTRIB_IS_NUM:
@@ -5460,11 +5486,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_TYPE_NAME:
-        sv= newSVpv((char*) native2sql(curField->type)->type_name, 0);
+        sv= newSVpv(native2sql(curField->type)->type_name, 0);
         break;
 
       case AV_ATTRIB_MAX_LENGTH:
-        sv= newSViv((int) curField->max_length);
+        sv= newSVuv(curField->max_length);
         break;
 
       case AV_ATTRIB_IS_AUTO_INCREMENT:
@@ -5485,11 +5511,11 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_SCALE:
-        sv= newSViv((int) curField->decimals);
+        sv= newSVuv(curField->decimals);
         break;
 
       case AV_ATTRIB_PRECISION:
-        sv= newSViv((int) (curField->length > curField->max_length) ?
+        sv= newSVuv((curField->length > curField->max_length) ?
                      curField->length : curField->max_length);
         break;
 
@@ -5563,17 +5589,17 @@ SV* mariadb_st_FETCH_attrib(
     else if (memEQs(key, kl, "ParamValues"))
     {
         HV *pvhv= newHV();
-        if (DBIc_NUM_PARAMS(imp_sth))
+        if (DBIc_NUM_PARAMS(imp_sth) > 0)
         {
-            int n;
+            int i;
             char key[100];
             I32 keylen;
             SV *sv;
-            for (n= 0; n < DBIc_NUM_PARAMS(imp_sth); n++)
+            for (i = 0; i < DBIc_NUM_PARAMS(imp_sth); i++)
             {
-                keylen= sprintf(key, "%d", n);
-                sv= newSVpvn(imp_sth->params[n].value, imp_sth->params[n].len);
-                if (!sql_type_is_binary(imp_sth->params[n].type))
+                keylen = sprintf(key, "%d", i);
+                sv = newSVpvn(imp_sth->params[i].value, imp_sth->params[i].len);
+                if (!sql_type_is_binary(imp_sth->params[i].type))
                   sv_utf8_decode(sv);
                 (void)hv_store(pvhv, key, keylen, sv, 0);
             }
@@ -5627,7 +5653,7 @@ SV* mariadb_st_FETCH_attrib(
       else if (memEQs(key, kl, "mariadb_use_result"))
         retsv= boolSV(imp_sth->use_mysql_use_result);
       else if (memEQs(key, kl, "mariadb_warning_count"))
-        retsv= sv_2mortal(newSViv((IV) imp_sth->warning_count));
+        retsv= sv_2mortal(newSVuv(imp_sth->warning_count));
       else if (memEQs(key, kl, "mariadb_server_prepare"))
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
         retsv= boolSV(imp_sth->use_server_side_prepare);
@@ -5719,8 +5745,8 @@ int mariadb_st_blob_read (
 int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 		 IV sql_type, SV *attribs, int is_inout, IV maxlen) {
   dTHX;
-  int param_num= SvIV(param); /* needs to process get magic */
-  int idx= param_num - 1;
+  IV param_num = SvIV(param); /* needs to process get magic */
+  int idx;
   char *err_msg;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
@@ -5750,6 +5776,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     return 0;
   }
 
+  idx = param_num - 1;
+
   /*
      This fixes the bug whereby no warning was issued upon binding a
      defined non-numeric as numeric
@@ -5759,7 +5787,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     if (! looks_like_number(value))
     {
       err_msg = SvPVX(sv_2mortal(newSVpvf(
-              "Binding non-numeric field %d, value %s as a numeric!",
+              "Binding non-numeric field %" IVdf ", value %s as a numeric!",
               param_num, neatsvpv(value,0))));
       mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
       return 0;
@@ -6102,7 +6130,7 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
   AV *row;
   HV *hv;
   SV *sv;
-  int i;
+  size_t i;
   const char *cols[] = {
     "TYPE_NAME",
     "DATA_TYPE",
@@ -6132,15 +6160,15 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
  
   hv= newHV();
   av_push(av, newRV_noinc((SV*) hv));
-  for (i= 0;  i < (int)(sizeof(cols) / sizeof(const char*));  i++)
+  for (i = 0; i < sizeof(cols) / sizeof(const char*); i++)
   {
-    if (!hv_store(hv, (char*) cols[i], strlen(cols[i]), newSViv(i), 0))
+    if (!hv_store(hv, (char*) cols[i], strlen(cols[i]), newSVuv(i), 0))
     {
       SvREFCNT_dec((SV*) av);
       return Nullav;
     }
   }
-  for (i= 0;  i < (int)SQL_GET_TYPE_INFO_num;  i++)
+  for (i = 0; i < SQL_GET_TYPE_INFO_num; i++)
   {
     const sql_type_info_t *t= &SQL_GET_TYPE_INFO_values[i];
 
@@ -6227,10 +6255,10 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 
     if (type  &&  SvOK(type))
     {
-      int i;
-      int tp= SvIV_nomg(type);
+      size_t i;
+      IV tp = SvIV_nomg(type);
       is_binary = sql_type_is_binary(tp);
-      for (i= 0;  i < (int)SQL_GET_TYPE_INFO_num;  i++)
+      for (i = 0; i < SQL_GET_TYPE_INFO_num; i++)
       {
         const sql_type_info_t *t= &SQL_GET_TYPE_INFO_values[i];
         if (t->data_type == tp)
@@ -6300,6 +6328,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   MYSQL* svsock = NULL;
   MYSQL_RES* _res;
   my_ulonglong retval = 0;
+  unsigned int num_fields;
   int htype;
   bool async_sth = FALSE;
 
@@ -6363,7 +6392,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
             DBIc_ACTIVE_off(imp_sth);
 #endif
         } else {
-          DBIc_NUM_FIELDS(imp_sth)= mysql_num_fields(imp_sth->result);
+          num_fields = mysql_num_fields(imp_sth->result);
+          DBIc_NUM_FIELDS(imp_sth) = (num_fields <= INT_MAX) ? num_fields : INT_MAX;
           imp_sth->done_desc = FALSE;
           imp_sth->fetch_done = FALSE;
         }
@@ -6493,8 +6523,8 @@ static bool parse_number(char *string, STRLEN len, char **end)
 
     /* length 0 -> not a number */
     /* Need to revisit this */
-    /*if (len == 0 || cp - string < (int) len || seen_digit == 0) {*/
-    if (len == 0 || cp - string < (int) len) {
+    /*if (len == 0 || cp - string < len || seen_digit == 0) {*/
+    if (len == 0 || cp - string < len) {
         return FALSE;
     }
 
