@@ -4327,8 +4327,8 @@ my_ulonglong mariadb_st_internal_execute41(
   }
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t<- mysql_internal_execute_41 returning %llu rows\n",
-                  rows);
+                  "\t<- mysql_internal_execute_41 returning %" SVf " rows\n",
+                  SVfARG(sv_2mortal(my_ulonglong2sv(rows))));
   return(rows);
 
 error:
@@ -5025,10 +5025,10 @@ process:
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\timp_sth->result=%p\n", imp_sth->result);
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_num_fields=%u\n",
                     mysql_num_fields(imp_sth->result));
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_num_rows=%llu\n",
-                    mysql_num_rows(imp_sth->result));
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_affected_rows=%llu\n",
-                    mysql_affected_rows(imp_dbh->pmysql));
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_num_rows=%" SVf "\n",
+                    SVfARG(sv_2mortal(my_ulonglong2sv(mysql_num_rows(imp_sth->result)))));
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmysql_affected_rows=%" SVf "\n",
+                    SVfARG(sv_2mortal(my_ulonglong2sv(mysql_affected_rows(imp_dbh->pmysql)))));
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch for %p, currow= %d\n",
                     sth,imp_sth->currow);
     }
@@ -5639,10 +5639,9 @@ SV* mariadb_st_FETCH_attrib(
       else if (memEQs(key, kl, "mariadb_insertid"))
       {
         /* We cannot return an IV, because the insertid is a long.  */
-        if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "INSERT ID %llu\n", imp_sth->insertid);
-
         retsv= sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
+        if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "INSERT ID %" SVf "\n", SVfARG(retsv));
       }
       else if (memEQs(key, kl, "mariadb_type_name"))
         retsv = ST_FETCH_AV(AV_ATTRIB_TYPE_NAME);
@@ -5918,14 +5917,9 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           {
-            if (buffer_is_unsigned)
-              PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                            "   SCALAR sql_type %"IVdf" ->%llu<- IS AN UNSIGNED LONGLONG INT NUMBER\n",
-                            sql_type, imp_sth->fbind[idx].numeric_val.llval);
-            else
-              PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                            "   SCALAR sql_type %"IVdf" ->%lld<- IS A SIGNED LONGLONG INT NUMBER\n",
-                            sql_type, imp_sth->fbind[idx].numeric_val.llval);
+            PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                          "   SCALAR sql_type %" IVdf " ->%s<- IS %s LONGLONG INT NUMBER\n",
+                          sql_type, buf, buffer_is_unsigned ? "AN UNSIGNED" : "A SIGNED");
           }
         }
         break;
