@@ -221,7 +221,7 @@ static imp_sth_ph_t *alloc_param(int num_params)
   imp_sth_ph_t *params;
 
   if (num_params)
-    Newz(908, params, (unsigned int) num_params, imp_sth_ph_t);
+    Newz(908, params, num_params, imp_sth_ph_t);
   else
     params= NULL;
 
@@ -239,7 +239,7 @@ static MYSQL_BIND *alloc_bind(int num_params)
   MYSQL_BIND *bind;
 
   if (num_params)
-    Newz(908, bind, (unsigned int) num_params, MYSQL_BIND);
+    Newz(908, bind, num_params, MYSQL_BIND);
   else
     bind= NULL;
 
@@ -255,7 +255,7 @@ static imp_sth_phb_t *alloc_fbind(int num_params)
   imp_sth_phb_t *fbind;
 
   if (num_params)
-    Newz(908, fbind, (unsigned int) num_params, imp_sth_phb_t);
+    Newz(908, fbind, num_params, imp_sth_phb_t);
   else
     fbind= NULL;
 
@@ -270,7 +270,7 @@ static imp_sth_fbh_t *alloc_fbuffer(int num_fields)
   imp_sth_fbh_t *fbh;
 
   if (num_fields)
-    Newz(908, fbh, (unsigned int) num_fields, imp_sth_fbh_t);
+    Newz(908, fbh, num_fields, imp_sth_fbh_t);
   else
     fbh= NULL;
 

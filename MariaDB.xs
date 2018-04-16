@@ -214,7 +214,7 @@ do(dbh, statement, attr=Nullsv, ...)
           Handle binding supplied values to placeholders assume user has
           passed the correct number of parameters
         */
-        Newz(0, bind, (unsigned int) num_params, MYSQL_BIND);
+        Newz(0, bind, num_params, MYSQL_BIND);
 
         for (i = 0; i < num_params; i++)
         {
