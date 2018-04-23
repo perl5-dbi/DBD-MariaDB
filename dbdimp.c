@@ -3510,7 +3510,7 @@ mariadb_st_prepare_sv(
 
   if (attribs)
   {
-    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "async");
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_async");
 
     if(svp && SvTRUE(*svp)) {
         imp_sth->is_async = TRUE;

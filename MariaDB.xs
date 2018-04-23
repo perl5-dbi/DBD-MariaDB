@@ -157,7 +157,7 @@ do(dbh, statement, attr=Nullsv, ...)
   if (attr)
   {
     SV** svp;
-    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "async");
+    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_async");
     async = (svp) ? SvTRUE(*svp) : FALSE;
   }
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)

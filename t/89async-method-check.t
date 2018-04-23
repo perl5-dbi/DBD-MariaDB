@@ -95,7 +95,7 @@ CREATE TEMPORARY TABLE async_test (
 SQL
 
 foreach my $method (@db_safe_methods) {
-    $dbh->do('SELECT 1', { async => 1 });
+    $dbh->do('SELECT 1', { mariadb_async => 1 });
     my $args = $dbh_args{$method} || [];
     $dbh->$method(@$args);
     ok !$dbh->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
@@ -103,11 +103,11 @@ foreach my $method (@db_safe_methods) {
     ok defined($dbh->mariadb_async_result);
 }
 
-$dbh->do('SELECT 1', { async => 1 });
+$dbh->do('SELECT 1', { mariadb_async => 1 });
 ok defined($dbh->mariadb_async_result);
 
 foreach my $method (@db_unsafe_methods) {
-    $dbh->do('SELECT 1', { async => 1 });
+    $dbh->do('SELECT 1', { mariadb_async => 1 });
     my $args = $dbh_args{$method} || [];
     my @values = $dbh->$method(@$args); # some methods complain unless they're called in list context
     like $dbh->errstr, qr/Calling a synchronous function on an asynchronous handle/, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
@@ -116,7 +116,7 @@ foreach my $method (@db_unsafe_methods) {
 }
 
 foreach my $method (@common_safe_methods) {
-    my $sth = $dbh->prepare('SELECT 1', { async => 1 });
+    my $sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
     $sth->execute;
     my $args = $dbh_args{$method} || []; # they're common methods, so this should be ok!
     $sth->$method(@$args);
@@ -126,7 +126,7 @@ foreach my $method (@common_safe_methods) {
 }
 
 foreach my $method (@st_safe_methods) {
-    my $sth = $dbh->prepare('SELECT 1', { async => 1 });
+    my $sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
     $sth->execute;
     my $args = $sth_args{$method} || [];
     $sth->$method(@$args);
@@ -139,8 +139,8 @@ foreach my $method (@st_safe_methods) {
 
 foreach my $method (@st_safe_methods) {
     my $sync_sth  = $dbh->prepare('SELECT 1');
-    my $async_sth = $dbh->prepare('SELECT 1', { async => 1 });
-    $dbh->do('SELECT 1', { async => 1 });
+    my $async_sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
+    $dbh->do('SELECT 1', { mariadb_async => 1 });
     ok !$sync_sth->execute;
     ok $sync_sth->errstr;
     ok !$async_sth->execute;
@@ -149,15 +149,15 @@ foreach my $method (@st_safe_methods) {
 }
 
 foreach my $method (@db_unsafe_methods) {
-    my $sth = $dbh->prepare('SELECT 1', { async => 1 });
+    my $sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
     $sth->execute;
-    ok !$dbh->do('SELECT 1', { async => 1 });
+    ok !$dbh->do('SELECT 1', { mariadb_async => 1 });
     ok $dbh->errstr;
     $sth->mariadb_async_result;
 }
 
 foreach my $method (@st_unsafe_methods) {
-    my $sth = $dbh->prepare('SELECT value FROM async_test WHERE value = ?', { async => 1 });
+    my $sth = $dbh->prepare('SELECT value FROM async_test WHERE value = ?', { mariadb_async => 1 });
     $sth->execute(1);
     my $args = $sth_args{$method} || [];
     my @values = $sth->$method(@$args);
@@ -166,7 +166,7 @@ foreach my $method (@st_unsafe_methods) {
     ok(defined $sth->mariadb_async_result);
 }
 
-my $sth = $dbh->prepare('SELECT 1', { async => 1 });
+my $sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
 $sth->execute;
 ok defined($sth->mariadb_async_ready);
 ok $sth->mariadb_async_result;
