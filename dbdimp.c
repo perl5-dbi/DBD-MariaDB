@@ -3463,7 +3463,10 @@ mariadb_st_prepare_sv(
   SV *attribs)
 {
   int i;
+  HV *hv;
+  HE *he;
   SV **svp;
+  HV *processed;
   char *statement;
   STRLEN statement_len;
   dTHX;
@@ -3486,32 +3489,46 @@ mariadb_st_prepare_sv(
   imp_sth->statement = savepvn(statement, statement_len);
   imp_sth->statement_len = statement_len;
 
+#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
+ /* Set default value of 'mariadb_server_prepare' attribute for sth from dbh */
+  imp_sth->use_server_side_prepare = imp_dbh->use_server_side_prepare;
+  imp_sth->disable_fallback_for_server_prepare = imp_dbh->disable_fallback_for_server_prepare;
+#endif
+
+  imp_sth->fetch_done = FALSE;
+  imp_sth->done_desc = FALSE;
+  imp_sth->result = NULL;
+  imp_sth->currow = 0;
+
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                  "\t-> mariadb_st_prepare_sv MYSQL_VERSION_ID %d, SQL statement: %.1000s%s\n",
                   MYSQL_VERSION_ID, statement, statement_len > 1000 ? "..." : "");
 
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
- /* Set default value of 'mariadb_server_prepare' attribute for sth from dbh */
-  imp_sth->use_server_side_prepare= imp_dbh->use_server_side_prepare;
-  imp_sth->disable_fallback_for_server_prepare= imp_dbh->disable_fallback_for_server_prepare;
   if (attribs)
   {
-    svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare");
+    processed = newHV();
+    sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
+
+    /* Automatically processed by DBI */
+    (void)hv_stores(processed, "Slice", &PL_sv_yes);
+    (void)hv_stores(processed, "Columns", &PL_sv_yes);
+    (void)hv_stores(processed, "MaxRows", &PL_sv_yes);
+
+#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
+    (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare");
     imp_sth->use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
 
-    svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare_disable_fallback");
+    (void)hv_stores(processed, "mariadb_server_prepare_disable_fallback", &PL_sv_yes);
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_server_prepare_disable_fallback");
     imp_sth->disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
-  }
-  imp_sth->fetch_done = FALSE;
 #endif
 
-  if (attribs)
-  {
+    (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_async");
-
     if(svp && SvTRUE(*svp)) {
         imp_sth->is_async = TRUE;
 #if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
@@ -3524,16 +3541,26 @@ mariadb_st_prepare_sv(
         imp_sth->use_server_side_prepare = FALSE;
 #endif
     }
+
+    /* Set default value of 'mariadb_use_result' attribute for sth from dbh */
+    (void)hv_stores(processed, "mariadb_use_result", &PL_sv_yes);
+    svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_use_result");
+    imp_sth->use_mysql_use_result= svp ?
+      SvTRUE(*svp) : imp_dbh->use_mysql_use_result;
+
+    hv = (HV*) SvRV(attribs);
+    hv_iterinit(hv);
+    while ((he = hv_iternext(hv)) != NULL)
+    {
+      I32 len;
+      const char *key;
+      key = hv_iterkey(he, &len);
+      if (hv_exists(processed, key, len))
+        continue;
+      error_unknown_attribute(sth, key);
+      return 0;
+    }
   }
-
-  imp_sth->done_desc = FALSE;
-  imp_sth->result= NULL;
-  imp_sth->currow= 0;
-
-  /* Set default value of 'mariadb_use_result' attribute for sth from dbh */
-  svp= MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_use_result");
-  imp_sth->use_mysql_use_result= svp ?
-    SvTRUE(*svp) : imp_dbh->use_mysql_use_result;
 
   for (i= 0; i < AV_ATTRIB_LAST; i++)
     imp_sth->av_attr[i]= Nullav;
