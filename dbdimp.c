@@ -3256,135 +3256,99 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       error_unknown_attribute(dbh, key);
     return Nullsv;
   }
-
-  key += strlen("mariadb_");
-  kl -= strlen("mariadb_");
-
-  switch(*key) {
-  case 'a':
-    if (memEQs(key, kl, "auto_reconnect"))
+  else
+  {
+    if (memEQs(key, kl, "mariadb_auto_reconnect"))
       result = boolSV(imp_dbh->auto_reconnect);
-    break;
-  case 'b':
-    if (memEQs(key, kl, "bind_type_guessing"))
+    else if (memEQs(key, kl, "mariadb_bind_type_guessing"))
       result = boolSV(imp_dbh->bind_type_guessing);
-    else if (memEQs(key, kl, "bind_comment_placeholders"))
+    else if (memEQs(key, kl, "mariadb_bind_comment_placeholders"))
       result = boolSV(imp_dbh->bind_comment_placeholders);
-    break;
-  case 'c':
-    if (memEQs(key, kl, "clientinfo"))
+    else if (memEQs(key, kl, "mariadb_clientinfo"))
     {
       const char* clientinfo = mysql_get_client_info();
       result = clientinfo ? sv_2mortal(newSVpv(clientinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (memEQs(key, kl, "clientversion"))
+    else if (memEQs(key, kl, "mariadb_clientversion"))
       result= sv_2mortal(newSVuv(mysql_get_client_version()));
-    break;
-  case 'e':
-    if (memEQs(key, kl, "errno"))
+    else if (memEQs(key, kl, "mariadb_errno"))
       result= sv_2mortal(newSVuv(mysql_errno(imp_dbh->pmysql)));
-    else if (memEQs(key, kl, "error"))
+    else if (memEQs(key, kl, "mariadb_error"))
     {
       result = sv_2mortal(newSVpv(mysql_error(imp_dbh->pmysql), 0));
       sv_utf8_decode(result);
     }
-    break;
-
-  case 'd':
-    if (memEQs(key, kl, "dbd_stats"))
+    else if (memEQs(key, kl, "mariadb_dbd_stats"))
     {
       HV* hv = newHV();
       result = sv_2mortal((newRV_noinc((SV*)hv)));
       (void)hv_stores(hv, "auto_reconnects_ok", newSViv(imp_dbh->stats.auto_reconnects_ok));
       (void)hv_stores(hv, "auto_reconnects_failed", newSViv(imp_dbh->stats.auto_reconnects_failed));
     }
-
-  case 'h':
-    if (memEQs(key, kl, "hostinfo"))
+    else if (memEQs(key, kl, "mariadb_hostinfo"))
     {
       const char* hostinfo = mysql_get_host_info(imp_dbh->pmysql);
       result = hostinfo ? sv_2mortal(newSVpv(hostinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    break;
-
-  case 'i':
-    if (memEQs(key, kl, "info"))
+    else if (memEQs(key, kl, "mariadb_info"))
     {
       const char* info = mysql_info(imp_dbh->pmysql);
       result = info ? sv_2mortal(newSVpv(info, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (memEQs(key, kl, "insertid"))
+    else if (memEQs(key, kl, "mariadb_insertid"))
     {
       /* We cannot return an IV, because the insertid is a long. */
       result= sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
     }
-    break;
-  case 'n':
-    if (memEQs(key, kl, "no_autocommit_cmd"))
+    else if (memEQs(key, kl, "mariadb_no_autocommit_cmd"))
       result = boolSV(imp_dbh->no_autocommit_cmd);
-    break;
-
-  case 'p':
-    if (memEQs(key, kl, "protoinfo"))
+    else if (memEQs(key, kl, "mariadb_protoinfo"))
       result= sv_2mortal(newSViv(mysql_get_proto_info(imp_dbh->pmysql)));
-    break;
-
-  case 's':
-    if (memEQs(key, kl, "serverinfo"))
+    else if (memEQs(key, kl, "mariadb_serverinfo"))
     {
       const char* serverinfo = mysql_get_server_info(imp_dbh->pmysql);
       result = serverinfo ? sv_2mortal(newSVpv(serverinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     } 
 #if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
-    else if (memEQs(key, kl, "ssl_cipher"))
+    else if (memEQs(key, kl, "mariadb_ssl_cipher"))
     {
       const char* ssl_cipher = mysql_get_ssl_cipher(imp_dbh->pmysql);
       result = ssl_cipher ? sv_2mortal(newSVpv(ssl_cipher, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
 #endif
-    else if (memEQs(key, kl, "serverversion"))
+    else if (memEQs(key, kl, "mariadb_serverversion"))
       result= sv_2mortal(newSVuv(mysql_get_server_version(imp_dbh->pmysql)));
-    else if (memEQs(key, kl, "sock"))
+    else if (memEQs(key, kl, "mariadb_sock"))
       result= sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
-    else if (memEQs(key, kl, "sockfd"))
+    else if (memEQs(key, kl, "mariadb_sockfd"))
       result= (imp_dbh->pmysql->net.fd != -1) ?
         sv_2mortal(newSViv((IV) imp_dbh->pmysql->net.fd)) : &PL_sv_undef;
-    else if (memEQs(key, kl, "stat"))
+    else if (memEQs(key, kl, "mariadb_stat"))
     {
       const char* stats = mysql_stat(imp_dbh->pmysql);
       result = stats ? sv_2mortal(newSVpv(stats, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
-    else if (memEQs(key, kl, "server_prepare"))
+    else if (memEQs(key, kl, "mariadb_server_prepare"))
       result = boolSV(imp_dbh->use_server_side_prepare);
-    else if (memEQs(key, kl, "server_prepare_disable_fallback"))
+    else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
       result = boolSV(imp_dbh->disable_fallback_for_server_prepare);
-    break;
-
-  case 't':
-    if (memEQs(key, kl, "thread_id"))
+    else if (memEQs(key, kl, "mariadb_thread_id"))
       result= sv_2mortal(newSViv(mysql_thread_id(imp_dbh->pmysql)));
-    break;
-
-  case 'w':
-    if (memEQs(key, kl, "warning_count"))
+    else if (memEQs(key, kl, "mariadb_warning_count"))
       result= sv_2mortal(newSViv(mysql_warning_count(imp_dbh->pmysql)));
-    break;
-  case 'u':
-    if (memEQs(key, kl, "use_result"))
+    else if (memEQs(key, kl, "mariadb_use_result"))
       result = boolSV(imp_dbh->use_mysql_use_result);
-    break;
-  }
-
-  if (result== NULL)
-  {
-    error_unknown_attribute(dbh, key);
-    return Nullsv;
+    else
+    {
+      error_unknown_attribute(dbh, key);
+      return Nullsv;
+    }
   }
 
   return result;
