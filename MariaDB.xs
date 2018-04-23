@@ -136,30 +136,48 @@ do(dbh, statement, attr=Nullsv, ...)
    * $dbh->do($stmt, {mariadb_server_prepare=>1});
   */
   use_server_side_prepare = imp_dbh->use_server_side_prepare;
+#endif
+  DBD_ATTRIBS_CHECK("do", dbh, attr);
   if (attr)
   {
-    SV** svp;
-    DBD_ATTRIBS_CHECK("do", dbh, attr);
+    HV *hv;
+    HE *he;
+    SV **svp;
+    HV *processed;
+    processed = newHV();
+    sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
+#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
+    (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare");
-
     use_server_side_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
-
+    (void)hv_stores(processed, "mariadb_server_prepare_disable_fallback", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare_disable_fallback");
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
+#endif
+    (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
+    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_async");
+    async = (svp) ? SvTRUE(*svp) : FALSE;
+    hv = (HV*) SvRV(attr);
+    hv_iterinit(hv);
+    while ((he = hv_iternext(hv)) != NULL)
+    {
+      I32 len;
+      const char *key;
+      key = hv_iterkey(he, &len);
+      if (hv_exists(processed, key, len))
+        continue;
+      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+      XSRETURN_UNDEF;
+    }
   }
+#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_dbh),
                   "mysql.xs do() use_server_side_prepare %d\n",
                   use_server_side_prepare ? 1 : 0);
 #endif
-  if (attr)
-  {
-    SV** svp;
-    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_async");
-    async = (svp) ? SvTRUE(*svp) : FALSE;
-  }
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_dbh),
                   "mysql.xs do() async %d\n",
