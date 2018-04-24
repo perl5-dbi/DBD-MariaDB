@@ -45,7 +45,7 @@ is $rows, 1;
 cmp_ok(($end - $start), '>=', 1.9);
 
 $start = Time::HiRes::gettimeofday();
-$rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { async => 1 });
+$rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { mariadb_async => 1 });
 ok(defined($dbh->mariadb_async_ready)) or die;
 $end = Time::HiRes::gettimeofday();
 
@@ -70,7 +70,7 @@ is $rows, 2;
 $dbh->do('DELETE FROM async_test');
 
 $start = Time::HiRes::gettimeofday();
-$rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { async => 1 }, 1, 2);
+$rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { mariadb_async => 1 }, 1, 2);
 $end = Time::HiRes::gettimeofday();
 
 ok $rows;
@@ -99,7 +99,7 @@ ok $sth->execute;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
-$sth = $dbh->prepare('SELECT SLEEP(2)', { async => 1 });
+$sth = $dbh->prepare('SELECT SLEEP(2)', { mariadb_async => 1 });
 ok !defined($sth->mariadb_async_ready);
 $start = Time::HiRes::gettimeofday();
 ok $sth->execute;
@@ -115,7 +115,7 @@ ok $row;
 is $row->[0], 0;
 cmp_ok(($end - $start), '>=', 1.9);
 
-$rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?', { async => 1 }, 1, 2);
+$rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?', { mariadb_async => 1 }, 1, 2);
 
 ok $rows;
 ok !$dbh->errstr;
@@ -125,7 +125,7 @@ ok $dbh->errstr;
 
 $dbh->do('DELETE FROM async_test');
 
-$sth = $dbh->prepare('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { async => 1 });
+$sth = $dbh->prepare('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { mariadb_async => 1 });
 $start = Time::HiRes::gettimeofday();
 $rows = $sth->execute(1, 2);
 $end = Time::HiRes::gettimeofday();
@@ -144,26 +144,26 @@ is $a, 0;
 is $b, 1;
 is $c, 2;
 
-$sth  = $dbh->prepare('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { async => 1 });
+$sth  = $dbh->prepare('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { mariadb_async => 1 });
 $rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', undef, 1, 2);
 is $rows, 1;
 
 $start = Time::HiRes::gettimeofday();
-$dbh->selectrow_array('SELECT SLEEP(2)', { async => 1 });
+$dbh->selectrow_array('SELECT SLEEP(2)', { mariadb_async => 1 });
 $end = Time::HiRes::gettimeofday();
 
 cmp_ok(($end - $start), '>=', 1.9);
 ok !defined($dbh->mariadb_async_result);
 ok !defined($dbh->mariadb_async_ready);
 
-$rows = $dbh->do('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { async => 1 });
+$rows = $dbh->do('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { mariadb_async => 1 });
 ok $rows;
 is $rows, '0E0';
 $rows = $dbh->mariadb_async_result;
 ok $rows;
 is $rows, '0E0';
 
-$sth  = $dbh->prepare('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { async => 1 });
+$sth  = $dbh->prepare('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { mariadb_async => 1 });
 $rows = $sth->execute;
 ok $rows;
 is $rows, '0E0';
@@ -178,7 +178,7 @@ undef $sth;
 $rows = $dbh->do('INSERT INTO async_test VALUES(1, 2, 3)');
 is $rows, 1;
 
-$sth = $dbh->prepare('SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?', { async => 1 });
+$sth = $dbh->prepare('SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?', { mariadb_async => 1 });
 $sth->execute(1);
 is $sth->{'NUM_OF_FIELDS'}, undef;
 is $sth->{'NUM_OF_PARAMS'}, 1;

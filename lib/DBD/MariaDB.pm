@@ -2037,15 +2037,15 @@ the manual.
 You can make a single asynchronous query per MySQL connection; this allows
 you to submit a long-running query to the server and have an event loop
 inform you when it's ready.  An asynchronous query is started by either
-setting the 'async' attribute to a true value in the L<DBI/do> method,
-or in the L<DBI/prepare> method.  Statements created with 'async' set to
+setting the 'mariadb_async' attribute to a true value in the L<DBI/do> method,
+or in the L<DBI/prepare> method.  Statements created with 'mariadb_async' set to
 true in prepare always run their queries asynchronously when L<DBI/execute>
 is called.  The driver also offers three additional methods:
 C<mariadb_async_result>, C<mariadb_async_ready>, and C<mariadb_sockfd>.
 C<mariadb_async_result> returns what do or execute would have; that is, the
 number of rows affected.  C<mariadb_async_ready> returns true if
 C<mariadb_async_result> will not block, and zero otherwise.  They both return
-C<undef> if that handle was not created with 'async' set to true
+C<undef> if that handle was not created with 'mariadb_async' set to true
 or if an asynchronous query was not started yet.
 C<mariadb_sockfd> returns the file descriptor number for the MySQL connection; you
 can use this in an event loop.
@@ -2053,7 +2053,7 @@ can use this in an event loop.
 Here's an example of how to use the asynchronous query interface:
 
   use feature 'say';
-  $dbh->do('SELECT SLEEP(10)', { async => 1 });
+  $dbh->do('SELECT SLEEP(10)', { mariadb_async => 1 });
   until($dbh->mariadb_async_ready) {
     say 'not ready yet!';
     sleep 1;

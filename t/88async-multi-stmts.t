@@ -19,8 +19,8 @@ CREATE TEMPORARY TABLE async_test (
 );
 SQL
 
-my $sth0 = $dbh->prepare('INSERT INTO async_test VALUES(0)', { async => 1 });
-my $sth1 = $dbh->prepare('INSERT INTO async_test VALUES(1)', { async => 1 });
+my $sth0 = $dbh->prepare('INSERT INTO async_test VALUES(0)', { mariadb_async => 1 });
+my $sth1 = $dbh->prepare('INSERT INTO async_test VALUES(1)', { mariadb_async => 1 });
 
 $sth0->execute;
 ok !defined($sth1->mariadb_async_ready);
