@@ -519,9 +519,11 @@ static bool skip_attribute(const char *key)
 #if MYSQL_VERSION_ID >= FIELD_CHARSETNR_VERSION
 PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
 {
-  /* See mysql source code for all utf8 ids: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
-  /* And MariaDB Connector/C source code: sed -n '/mariadb_compiled_charsets\[\]/,/^};$/{/utf8/I{s%,.*%%;s%\s*{\s*%%p}}' libmariadb/ma_charset.c | sort -n */
-  /* Some utf8 ids (selected at mysql compile time) can be retrieved by: SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
+  /* Check if supplied id belongs to some UTF-8 related MySQL charset number */
+  /* List of all utf8 charset numbers is harcoded in MySQL and MariaDB source code, to retrieve it grep source code */
+  /* Shell fragment for MySQL or MariaDB server source code: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
+  /* Shell fragment for MariaDB Connector/C source code: sed -n '/mariadb_compiled_charsets\[\]/,/^};$/{/utf8/I{s%,.*%%;s%\s*{\s*%%p}}' libmariadb/ma_charset.c | sort -n */
+  /* Runtime SQL statement (returns only subset selected at compile time): SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
   return (id == 33 || id == 45 || id == 46 || id == 56 || id == 76 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 307) || (id >= 576 && id <= 578)
       || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
 }
