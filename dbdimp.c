@@ -3978,7 +3978,6 @@ my_ulonglong mariadb_st_internal_execute(
   dTHX;
   bool bind_type_guessing= FALSE;
   bool bind_comment_placeholders= TRUE;
-  char *table;
   char *salloc;
   int htype;
   bool async = FALSE;
@@ -4040,49 +4039,6 @@ my_ulonglong mariadb_st_internal_execute(
     sbuf= salloc;
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Binding parameters: %.1000s%s\n", sbuf, slen > 1000 ? "..." : "");
-  }
-
-  if (slen >= 11 && (!strncmp(sbuf, "listfields ", 11) ||
-                     !strncmp(sbuf, "LISTFIELDS ", 11)))
-  {
-    /* remove pre-space */
-    slen-= 10;
-    sbuf+= 10;
-    while (slen && isspace(*sbuf)) { --slen;  ++sbuf; }
-
-    if (!slen)
-    {
-      mariadb_dr_do_error(h, JW_ERR_QUERY, "Missing table name" ,NULL);
-      return -1;
-    }
-    if (!(table= malloc(slen+1)))
-    {
-      mariadb_dr_do_error(h, JW_ERR_MEM, "Out of memory" ,NULL);
-      return -1;
-    }
-
-    strncpy(table, sbuf, slen);
-    sbuf= table;
-
-    while (slen && !isspace(*sbuf))
-    {
-      --slen;
-      ++sbuf;
-    }
-    *sbuf++= '\0';
-
-    *result= mysql_list_fields(svsock, table, NULL);
-
-    free(table);
-
-    if (!(*result))
-    {
-      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock)
-               ,mysql_sqlstate(svsock));
-      return -1;
-    }
-
-    return 0;
   }
 
   if(async) {
