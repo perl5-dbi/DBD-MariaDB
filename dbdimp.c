@@ -4914,6 +4914,8 @@ process:
 #endif
           default:
             NOT_REACHED;
+            int_val = 0;
+            int_type = "";
             break;
           }
 
