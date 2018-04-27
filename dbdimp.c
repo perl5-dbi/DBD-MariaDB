@@ -15,14 +15,6 @@
 
 #include "dbdimp.h"
 
-#ifdef _WIN32
-#define MIN min
-#else
-#ifndef MIN
-#define MIN(a, b)       ((a) < (b) ? (a) : (b))
-#endif
-#endif
-
 #define ASYNC_CHECK_RETURN(h, value)\
   if(imp_dbh->async_query_in_flight) {\
       mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
@@ -4844,8 +4836,10 @@ process:
           imp_sth->stmt->bind[i].buffer = (char *)fbh->data;
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
-            int j;
-            int m = MIN(*buffer->length, buffer->buffer_length);
+            unsigned long int j, m;
+            m = buffer->buffer_length;
+            if (m > *buffer->length)
+              m = *buffer->length;
             char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tbefore buffer->buffer: ");
             for (j = 0; j < m; j++) {
@@ -4864,8 +4858,10 @@ process:
           }
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
-            int j;
-            int m = MIN(*buffer->length, buffer->buffer_length);
+            unsigned long int j, m;
+            m = buffer->buffer_length;
+            if (m > *buffer->length)
+              m = *buffer->length;
             char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tafter buffer->buffer: ");
             for (j = 0; j < m; j++) {
@@ -5747,7 +5743,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   char *buffer= NULL;
   my_bool buffer_is_null = FALSE;
   my_bool buffer_is_unsigned = FALSE;
-  int buffer_length= 0;
+  unsigned long int buffer_length = 0;
   unsigned int buffer_type= 0;
   IV int_val= 0;
   const char *int_type = "";
@@ -5960,7 +5956,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         buffer_length= imp_sth->params[idx].len;
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                        "   SCALAR sql_type %"IVdf" ->length %d<- IS A BLOB\n", sql_type, buffer_length);
+                        "   SCALAR sql_type %" IVdf " ->length %lu<- IS A BLOB\n", sql_type, buffer_length);
         break;
 
       default:
