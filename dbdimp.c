@@ -6511,8 +6511,8 @@ static bool parse_number(char *string, STRLEN len, char **end)
 
     /* length 0 -> not a number */
     /* Need to revisit this */
-    /*if (len == 0 || cp - string < len || seen_digit == 0) {*/
-    if (len == 0 || cp - string < len) {
+    /*if (len == 0 || string + len < cp || seen_digit == 0) {*/
+    if (len == 0 || string + len > cp) {
         return FALSE;
     }
 
