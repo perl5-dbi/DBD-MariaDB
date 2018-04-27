@@ -46,6 +46,10 @@
 #define PERL_STATIC_INLINE static
 #endif
 
+#ifndef NOT_REACHED
+#define NOT_REACHED assert(0)
+#endif
+
 #ifndef SVfARG
 #define SVfARG(p) ((void*)(p))
 #endif

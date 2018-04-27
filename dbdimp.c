@@ -178,9 +178,9 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
     case '\'':
       /* Skip string */
       {
+        char end_token = c;
         if (ptr >= end)
           break;
-        char end_token = c;
         while (ptr < end && *ptr != end_token)
         {
           if (*ptr == '\\' && ptr+1 < end)
@@ -2049,7 +2049,7 @@ MYSQL *mariadb_dr_connect(
                   SV *sv_attr_val = hv_iterval(attrs, entry);
                   STRLEN attr_val_len;
                   char *attr_val  = SvPVutf8(sv_attr_val, attr_val_len);
-                  if (strlen(attr_name) != attr_name_len || strlen(attr_val) != attr_val_len)
+                  if (strlen(attr_name) != (STRLEN)attr_name_len || strlen(attr_val) != attr_val_len)
                   {
                     sock->net.last_errno = CR_CONNECTION_ERROR;
                     strcpy(sock->net.sqlstate, "HY000");
@@ -4836,11 +4836,11 @@ process:
           imp_sth->stmt->bind[i].buffer = (char *)fbh->data;
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
+            char *ptr = (char*)buffer->buffer;
             unsigned long int j, m;
             m = buffer->buffer_length;
             if (m > *buffer->length)
               m = *buffer->length;
-            char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tbefore buffer->buffer: ");
             for (j = 0; j < m; j++) {
               PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c", *ptr++);
@@ -4858,11 +4858,11 @@ process:
           }
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
+            char *ptr = (char*)buffer->buffer;
             unsigned long int j, m;
             m = buffer->buffer_length;
             if (m > *buffer->length)
               m = *buffer->length;
-            char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tafter buffer->buffer: ");
             for (j = 0; j < m; j++) {
               PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c", *ptr++);
@@ -4912,6 +4912,11 @@ process:
             int_type= "LONGLONG INT";
             break;
 #endif
+          default:
+            NOT_REACHED;
+            int_val = 0;
+            int_type = "";
+            break;
           }
 
           if (buffer->is_unsigned)
@@ -6506,8 +6511,8 @@ static bool parse_number(char *string, STRLEN len, char **end)
 
     /* length 0 -> not a number */
     /* Need to revisit this */
-    /*if (len == 0 || cp - string < len || seen_digit == 0) {*/
-    if (len == 0 || cp - string < len) {
+    /*if (len == 0 || string + len < cp || seen_digit == 0) {*/
+    if (len == 0 || string + len > cp) {
         return FALSE;
     }
 
