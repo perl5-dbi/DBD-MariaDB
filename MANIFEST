@@ -49,6 +49,8 @@ t/41blobs_prepare.t
 t/41int_min_max.t
 t/42bindparam.t
 t/43count_params.t
+t/44call_placeholder.t
+t/44limit_placeholder.t
 t/50chopblanks.t
 t/50commit.t
 t/51bind_type_guessing.t
