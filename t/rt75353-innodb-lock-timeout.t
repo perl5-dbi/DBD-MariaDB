@@ -17,18 +17,8 @@ if (!@ilwtenabled) {
   plan skip_all => 'innodb_lock_wait_timeout not available';
 }
 
-my $have_innodb = 0;
-  my $engines = $dbh1->selectall_arrayref('SHOW ENGINES');
-  if (!$engines) {
-    DbiError($dbh1->err, $dbh1->errstr);
-  } else {
-     STORAGE_ENGINE:
-     for my $engine (@$engines) {
-       next STORAGE_ENGINE if lc $engine->[0] ne 'innodb';
-       next STORAGE_ENGINE if lc $engine->[1] eq 'no';
-       $have_innodb = 1;
-     }
-  }
+my $engines = $dbh1->selectall_hashref('SHOW ENGINES', 'Engine');
+my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
 if (!$have_innodb) {
   plan skip_all => "Server doesn't support InnoDB, needed for testing innodb_lock_wait_timeout";
 }

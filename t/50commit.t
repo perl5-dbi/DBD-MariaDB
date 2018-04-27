@@ -6,7 +6,7 @@ use Test::More;
 use lib 't', '.';
 require 'lib.pl';
 
-use vars qw($have_transactions $got_warning $test_dsn $test_user $test_password);
+use vars qw($got_warning $test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
@@ -37,10 +37,10 @@ sub num_rows($$$) {
     return '';
 }
 
-$have_transactions = have_transactions($dbh);
-my $engine= $have_transactions ? 'InnoDB' : 'MyISAM';
+my $engines = $dbh->selectall_hashref('SHOW ENGINES', 'Engine');
+my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
 
-if ($have_transactions) {
+if ($have_innodb) {
   plan tests => 22;
 
   ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t50commit"), "drop table if exists dbd_mysql_t50commit";
@@ -48,7 +48,7 @@ if ($have_transactions) {
 CREATE TABLE dbd_mysql_t50commit (
     id INT(4) NOT NULL default 0,
     name VARCHAR(64) NOT NULL default ''
-) ENGINE=$engine
+) ENGINE=InnoDB
 EOT
 
   ok $dbh->do($create), 'create dbd_mysql_t50commit';
@@ -108,7 +108,7 @@ else {
   CREATE TABLE dbd_mysql_t50commit (
       id INT(4) NOT NULL default 0,
       name VARCHAR(64) NOT NULL default ''
-      ) ENGINE=$engine
+      )
 EOT
 
   ok $dbh->do($create), 'create dbd_mysql_t50commit';
