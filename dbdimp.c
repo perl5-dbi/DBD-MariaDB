@@ -178,9 +178,9 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
     case '\'':
       /* Skip string */
       {
+        char end_token = c;
         if (ptr >= end)
           break;
-        char end_token = c;
         while (ptr < end && *ptr != end_token)
         {
           if (*ptr == '\\' && ptr+1 < end)
@@ -4836,11 +4836,11 @@ process:
           imp_sth->stmt->bind[i].buffer = (char *)fbh->data;
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
+            char *ptr = (char*)buffer->buffer;
             unsigned long int j, m;
             m = buffer->buffer_length;
             if (m > *buffer->length)
               m = *buffer->length;
-            char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tbefore buffer->buffer: ");
             for (j = 0; j < m; j++) {
               PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c", *ptr++);
@@ -4858,11 +4858,11 @@ process:
           }
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
+            char *ptr = (char*)buffer->buffer;
             unsigned long int j, m;
             m = buffer->buffer_length;
             if (m > *buffer->length)
               m = *buffer->length;
-            char *ptr = (char*)buffer->buffer;
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\t\tafter buffer->buffer: ");
             for (j = 0; j < m; j++) {
               PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c", *ptr++);
