@@ -3420,12 +3420,6 @@ mariadb_st_prepare_sv(
   char *statement;
   STRLEN statement_len;
   dTHX;
-#if MYSQL_VERSION_ID < CALL_PLACEHOLDER_VERSION
-  char *str_ptr, *str_last_ptr;
-#if MYSQL_VERSION_ID < LIMIT_PLACEHOLDER_VERSION
-  bool limit_flag = FALSE;
-#endif
-#endif
   int prepare_retval;
   MYSQL_BIND *bind, *bind_end;
   imp_sth_phb_t *fbind;
@@ -3513,98 +3507,6 @@ mariadb_st_prepare_sv(
   */
   mariadb_st_free_result_sets(sth, imp_sth);
 
-#if MYSQL_VERSION_ID < CALL_PLACEHOLDER_VERSION
-  if (imp_sth->use_server_side_prepare)
-  {
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tuse_server_side_prepare set, check restrictions\n");
-    /*
-      This code is here because placeholder support is not implemented for
-      statements with :-
-      1. LIMIT < 5.0.7
-      2. CALL < 5.5.3 (Added support for out & inout parameters)
-      In these cases we have to disable server side prepared statements
-      NOTE: These checks could cause a false positive on statements which
-      include columns / table names that match "call " or " limit "
-    */ 
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-#if MYSQL_VERSION_ID < LIMIT_PLACEHOLDER_VERSION
-                    "\t\tneed to test for LIMIT & CALL\n");
-#else
-                    "\t\tneed to test for restrictions\n");
-#endif
-    str_last_ptr = statement + statement_len;
-    for (str_ptr= statement; str_ptr < str_last_ptr; str_ptr++)
-    {
-#if MYSQL_VERSION_ID < LIMIT_PLACEHOLDER_VERSION
-      /*
-        Place holders not supported in LIMIT's
-      */
-      if (limit_flag)
-      {
-        if (*str_ptr == '?')
-        {
-          if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-            PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "\t\tLIMIT and ? found, set use_server_side_prepare to FALSE\n");
-          if (imp_sth->disable_fallback_for_server_prepare)
-          {
-            mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
-                     "\"LIMIT ?\" not supported with server side prepare",
-                     "HY000");
-            mysql_stmt_close(imp_sth->stmt);
-            imp_sth->stmt= NULL;
-            return 0;
-          }
-          /* ... then we do not want to try server side prepare (use emulation) */
-          imp_sth->use_server_side_prepare = FALSE;
-          break;
-        }
-      }
-      else if (str_ptr < str_last_ptr - 6 &&
-          isspace(*(str_ptr + 0)) &&
-          tolower(*(str_ptr + 1)) == 'l' &&
-          tolower(*(str_ptr + 2)) == 'i' &&
-          tolower(*(str_ptr + 3)) == 'm' &&
-          tolower(*(str_ptr + 4)) == 'i' &&
-          tolower(*(str_ptr + 5)) == 't' &&
-          isspace(*(str_ptr + 6)))
-      {
-        if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "LIMIT set limit flag to 1\n");
-        limit_flag = TRUE;
-      }
-#endif
-      /*
-        Place holders not supported in CALL's
-      */
-      if (str_ptr < str_last_ptr - 4 &&
-           tolower(*(str_ptr + 0)) == 'c' &&
-           tolower(*(str_ptr + 1)) == 'a' &&
-           tolower(*(str_ptr + 2)) == 'l' &&
-           tolower(*(str_ptr + 3)) == 'l' &&
-           isspace(*(str_ptr + 4)))
-      {
-        if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Disable PS mode for CALL()\n");
-          if (imp_sth->disable_fallback_for_server_prepare)
-          {
-            mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
-                     "\"CALL()\" not supported with server side prepare",
-                     "HY000");
-            mysql_stmt_close(imp_sth->stmt);
-            imp_sth->stmt= NULL;
-            return 0;
-          }
-        imp_sth->use_server_side_prepare = FALSE;
-        break;
-      }
-    }
-  }
-#endif
-
   if (imp_sth->use_server_side_prepare)
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -3652,7 +3554,13 @@ mariadb_st_prepare_sv(
 
       /* For commands that are not supported by server side prepared statement
          mechanism lets try to pass them through regular API */
-      if (!imp_sth->disable_fallback_for_server_prepare && mysql_stmt_errno(imp_sth->stmt) == ER_UNSUPPORTED_PS)
+      if (!imp_sth->disable_fallback_for_server_prepare &&
+          (mysql_stmt_errno(imp_sth->stmt) == ER_UNSUPPORTED_PS ||
+          /* And also fallback when placeholder is used in unsupported
+           * construction with old server versions (e.g. LIMIT ?) */
+          (mysql_stmt_errno(imp_sth->stmt) == ER_PARSE_ERROR &&
+           mysql_get_server_version(imp_dbh->pmysql) < 50007 &&
+           strstr(mysql_stmt_error(imp_sth->stmt), "'?"))))
       {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),

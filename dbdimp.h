@@ -256,13 +256,6 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #endif
 
 
-/*
- * This is the version of MariaDB or MySQL wherer
- * the server will be used to process prepare
- * statements as opposed to emulation in the driver
-*/
-#define CALL_PLACEHOLDER_VERSION 50503
-#define LIMIT_PLACEHOLDER_VERSION 50007
 #define GEO_DATATYPE_VERSION 50007
 #define NEW_DATATYPE_VERSION 50003
 #define MYSQL_VERSION_5_0 50001
