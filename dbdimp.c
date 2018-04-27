@@ -2049,7 +2049,7 @@ MYSQL *mariadb_dr_connect(
                   SV *sv_attr_val = hv_iterval(attrs, entry);
                   STRLEN attr_val_len;
                   char *attr_val  = SvPVutf8(sv_attr_val, attr_val_len);
-                  if (strlen(attr_name) != attr_name_len || strlen(attr_val) != attr_val_len)
+                  if (strlen(attr_name) != (STRLEN)attr_name_len || strlen(attr_val) != attr_val_len)
                   {
                     sock->net.last_errno = CR_CONNECTION_ERROR;
                     strcpy(sock->net.sqlstate, "HY000");
