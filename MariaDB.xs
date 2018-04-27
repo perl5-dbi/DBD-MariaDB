@@ -97,26 +97,20 @@ do(dbh, statement, attr=Nullsv, ...)
   struct imp_sth_ph_st* params= NULL;
   MYSQL_RES* result= NULL;
   bool async= FALSE;
-#if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
   int next_result_rc;
-#endif
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   bool            has_been_bound = FALSE;
   bool            use_server_side_prepare = FALSE;
   bool            disable_fallback_for_server_prepare = FALSE;
   MYSQL_STMT      *stmt= NULL;
   MYSQL_BIND      *bind= NULL;
   STRLEN          blen;
-#endif
     ASYNC_CHECK_XS(dbh);
-#if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
     while (mysql_next_result(imp_dbh->pmysql)==0)
     {
       MYSQL_RES* res = mysql_use_result(imp_dbh->pmysql);
       if (res)
         mysql_free_result(res);
       }
-#endif
   if (SvMAGICAL(statement))
     mg_get(statement);
   for (i = 0; i < num_params; i++)
@@ -127,7 +121,6 @@ do(dbh, statement, attr=Nullsv, ...)
   }
   (void)hv_stores((HV*)SvRV(dbh), "Statement", SvREFCNT_inc(statement));
   str_ptr = SvPVutf8_nomg(statement, slen);
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   /*
    * Globally enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
@@ -136,7 +129,6 @@ do(dbh, statement, attr=Nullsv, ...)
    * $dbh->do($stmt, {mariadb_server_prepare=>1});
   */
   use_server_side_prepare = imp_dbh->use_server_side_prepare;
-#endif
   DBD_ATTRIBS_CHECK("do", dbh, attr);
   if (attr)
   {
@@ -146,7 +138,6 @@ do(dbh, statement, attr=Nullsv, ...)
     HV *processed;
     processed = newHV();
     sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
     (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare");
     use_server_side_prepare = (svp) ?
@@ -155,7 +146,6 @@ do(dbh, statement, attr=Nullsv, ...)
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare_disable_fallback");
     disable_fallback_for_server_prepare = (svp) ?
       SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
-#endif
     (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
     svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_async");
     async = (svp) ? SvTRUE(*svp) : FALSE;
@@ -172,18 +162,15 @@ do(dbh, statement, attr=Nullsv, ...)
       XSRETURN_UNDEF;
     }
   }
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_dbh),
                   "mysql.xs do() use_server_side_prepare %d\n",
                   use_server_side_prepare ? 1 : 0);
-#endif
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_dbh),
                   "mysql.xs do() async %d\n",
                   (async ? 1 : 0));
   if(async) {
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
     if (disable_fallback_for_server_prepare)
     {
       mariadb_dr_do_error(dbh, ER_UNSUPPORTED_PS,
@@ -191,10 +178,8 @@ do(dbh, statement, attr=Nullsv, ...)
       XSRETURN_UNDEF;
     }
     use_server_side_prepare = FALSE; /* for now */
-#endif
     imp_dbh->async_query_in_flight = imp_dbh;
   }
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
   if (use_server_side_prepare)
   {
     stmt= mysql_stmt_init(imp_dbh->pmysql);
@@ -276,7 +261,6 @@ do(dbh, statement, attr=Nullsv, ...)
 
   if (! use_server_side_prepare)
   {
-#endif
     if (items > 3)
     {
       /*  Handle binding supplied values to placeholders	   */
@@ -294,9 +278,7 @@ do(dbh, statement, attr=Nullsv, ...)
     }
     retval = mariadb_st_internal_execute(dbh, str_ptr, slen, attr, num_params,
                                        params, &result, imp_dbh->pmysql, FALSE);
-#if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
   }
-#endif
   if (params)
     Safefree(params);
 
@@ -305,7 +287,6 @@ do(dbh, statement, attr=Nullsv, ...)
     mysql_free_result(result);
     result = NULL;
   }
-#if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
   if (retval != (my_ulonglong)-1 && !async) /* -1 means error */
     {
       /* more results? -1 = no, >0 = error, 0 = yes (keep looping) */
@@ -329,7 +310,6 @@ do(dbh, statement, attr=Nullsv, ...)
               retval = (my_ulonglong)-1;
           }
     }
-#endif
 
   if (retval == 0)                      /* ok with no rows affected     */
     XSRETURN_PV("0E0");                 /* (true but zero)              */
@@ -461,13 +441,8 @@ more_results(sth)
     SV *	sth
     CODE:
 {
-#if (MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION)
   D_imp_sth(sth);
   RETVAL = mariadb_st_more_results(sth, imp_sth);
-#else
-  PERL_UNUSED_ARG(sth);
-  RETVAL = FALSE;
-#endif
 }
     OUTPUT:
       RETVAL

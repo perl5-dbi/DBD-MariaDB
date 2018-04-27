@@ -170,12 +170,11 @@ MSG
   }
 }
 
-if ($opt->{'embedded'} && !check_include_version($opt->{'cflags'}, 40003)) {
+if (!check_include_version($opt->{'cflags'}, 40103)) {
   die <<"MSG";
 
 WARNING: Wrong version or unable to check version of mariadb/mysql include files.
-To build embedded  version of DBD you ought to be sure that you use include
-files from MySQL server >= 4.0.3.
+To build DBD::MariaDB it is needed MariaDB or MySQL client >= 4.1.3.
 
 MSG
 }
@@ -779,15 +778,13 @@ sub check_include_version {
 
   my ($version_id) = ($headerfile =~ /MYSQL_VERSION_ID[\t\s]+(\d+)[\n\r]/);
 
-  if ($version_id < $ver)
-  {
-    print  <<"MSG";
+  print  <<"MSG";
 
 Version of MariaDB or MySQL include files in $dir - $1
+
 MSG
-    return 0;
-  }
-  return 1;
+
+  return ($version_id < $ver) ? 0 : 1;
 }
 
 sub replace

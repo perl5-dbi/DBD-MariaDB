@@ -18,12 +18,6 @@ if (!@ilwtenabled) {
 }
 
 my $have_innodb = 0;
-if (!MinimumVersion($dbh1, '4.1.2')) {
-  my $dummy;
-  ($dummy,$have_innodb)=
-    $dbh1->selectrow_array("SHOW VARIABLES LIKE 'have_innodb'")
-    or DbiError($dbh1->err, $dbh1->errstr);
-} else {
   my $engines = $dbh1->selectall_arrayref('SHOW ENGINES');
   if (!$engines) {
     DbiError($dbh1->err, $dbh1->errstr);
@@ -35,7 +29,6 @@ if (!MinimumVersion($dbh1, '4.1.2')) {
        $have_innodb = 1;
      }
   }
-}
 if (!$have_innodb) {
   plan skip_all => "Server doesn't support InnoDB, needed for testing innodb_lock_wait_timeout";
 }

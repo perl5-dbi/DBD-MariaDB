@@ -14,10 +14,6 @@ $test_dsn.= ";mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-if ($dbh->{mariadb_clientversion} < 40103 or $dbh->{mariadb_serverversion} < 40103) {
-    plan skip_all => "You must have MySQL version 4.1.3 and greater for this test to run";
-}
-
 plan tests => 31;
 
 ok(defined $dbh, "connecting");

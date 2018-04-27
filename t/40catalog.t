@@ -31,12 +31,6 @@ SKIP: {
     if !MinimumVersion($dbh, '5.0');
 
   my $have_innodb = 0;
-  if (!MinimumVersion($dbh, '4.1.2')) {
-    my $dummy;
-    ($dummy,$have_innodb)=
-      $dbh->selectrow_array("SHOW VARIABLES LIKE 'have_innodb'")
-      or DbiError($dbh->err, $dbh->errstr);
-  } else {
     my $engines = $dbh->selectall_arrayref('SHOW ENGINES');
     if (!$engines) {
       DbiError($dbh->err, $dbh->errstr);
@@ -48,7 +42,6 @@ SKIP: {
          $have_innodb = 1;
        }
     }
-  }
   skip "Server doesn't support InnoDB, needed for testing foreign keys", 16
     if !$have_innodb;
 
@@ -94,11 +87,8 @@ SKIP: {
 # These tests assume that no other tables name like 't_dbd_mysql_%' exist on
 # the server we are using for testing.
 #
-SKIP: {
-  skip "Server can't handle tricky table names", 33
-    if !MinimumVersion($dbh, '4.1');
 
-  my $sth = $dbh->table_info("%", undef, undef, undef);
+  $sth = $dbh->table_info("%", undef, undef, undef);
   is(scalar @{$sth->fetchall_arrayref()}, 0, "No catalogs expected");
 
   $sth = $dbh->table_info(undef, "%", undef, undef);
@@ -192,7 +182,6 @@ SKIP: {
                                       `t_dbd_mysql_a'b`,
                                       `t_dbd_mysql_a``b`}),
               "cleaning up");
-};
 
 #
 # view-related table_info tests

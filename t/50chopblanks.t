@@ -10,9 +10,6 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
-if ($dbh->{mariadb_serverversion} < 40103) {
-    plan skip_all => "You must have MySQL version 4.1.3 and greater for this test to run";
-}
 $dbh->disconnect;
 
 plan tests => (8 + ((5 + 8 + 8) * 4)) * 2;
