@@ -4912,6 +4912,9 @@ process:
             int_type= "LONGLONG INT";
             break;
 #endif
+          default:
+            NOT_REACHED;
+            break;
           }
 
           if (buffer->is_unsigned)
