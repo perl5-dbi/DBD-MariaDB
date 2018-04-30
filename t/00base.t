@@ -11,8 +11,22 @@ require 'lib.pl';
 
 # Base DBD Driver Test
 BEGIN {
-    use_ok('DBI') or BAIL_OUT "Unable to load DBI";
-    use_ok('DBD::MariaDB') or BAIL_OUT "Unable to load DBD::MariaDB";
+    my $tb = Test::More->builder;
+    my $fo = $tb->failure_output;
+    my $error = '';
+    $tb->failure_output(\$error);
+    use_ok('DBI') or do {
+        $error =~ s/^.*? Error:\s*//s;
+        $error =~ s/\n(?:# ?)?/ /g;
+        BAIL_OUT "Unable to load DBI: $error";
+    };
+    $error = '';
+    use_ok('DBD::MariaDB') or do {
+        $error =~ s/^.*? Error:\s*//s;
+        $error =~ s/\n(?:# ?)?/ /g;
+        BAIL_OUT "Unable to load DBD::MariaDB: $error";
+    };
+    $tb->failure_output($fo);
 }
 
 my $switch = DBI->internal;
