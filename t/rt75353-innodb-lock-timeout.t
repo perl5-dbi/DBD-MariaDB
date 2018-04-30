@@ -8,9 +8,9 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0 });
+my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 1 });
 
-my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0 });
+my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 1 });
 
 my @ilwtenabled = $dbh1->selectrow_array("SHOW VARIABLES LIKE 'innodb_lock_wait_timeout'");
 if (!@ilwtenabled) {
@@ -36,6 +36,9 @@ eval {
 
 ok $dbh1->do("DROP TABLE IF EXISTS dbd_mysql_rt75353_innodb_lock_timeout"), "drop table if exists dbd_mysql_rt75353_innodb_lock_timeout";
 ok $dbh1->do("CREATE TABLE dbd_mysql_rt75353_innodb_lock_timeout(id INT PRIMARY KEY) ENGINE=INNODB"), "create table dbd_mysql_rt75353_innodb_lock_timeout";
+
+ok $dbh1->begin_work(), "dbh1: start transaction";
+ok $dbh2->begin_work(), "dbh2: start transaction";
 
 ok $dbh1->do("INSERT INTO dbd_mysql_rt75353_innodb_lock_timeout VALUES(1)"), "dbh1: acquire a row lock on table dbd_mysql_rt75353_innodb_lock_timeout";
 
