@@ -8,34 +8,17 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0 });
+my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 1 });
 
-my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0 });
+my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 1 });
 
 my @ilwtenabled = $dbh1->selectrow_array("SHOW VARIABLES LIKE 'innodb_lock_wait_timeout'");
 if (!@ilwtenabled) {
   plan skip_all => 'innodb_lock_wait_timeout not available';
 }
 
-my $have_innodb = 0;
-if (!MinimumVersion($dbh1, '4.1.2')) {
-  my $dummy;
-  ($dummy,$have_innodb)=
-    $dbh1->selectrow_array("SHOW VARIABLES LIKE 'have_innodb'")
-    or DbiError($dbh1->err, $dbh1->errstr);
-} else {
-  my $engines = $dbh1->selectall_arrayref('SHOW ENGINES');
-  if (!$engines) {
-    DbiError($dbh1->err, $dbh1->errstr);
-  } else {
-     STORAGE_ENGINE:
-     for my $engine (@$engines) {
-       next STORAGE_ENGINE if lc $engine->[0] ne 'innodb';
-       next STORAGE_ENGINE if lc $engine->[1] eq 'no';
-       $have_innodb = 1;
-     }
-  }
-}
+my $engines = $dbh1->selectall_hashref('SHOW ENGINES', 'Engine');
+my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
 if (!$have_innodb) {
   plan skip_all => "Server doesn't support InnoDB, needed for testing innodb_lock_wait_timeout";
 }
@@ -53,6 +36,9 @@ eval {
 
 ok $dbh1->do("DROP TABLE IF EXISTS dbd_mysql_rt75353_innodb_lock_timeout"), "drop table if exists dbd_mysql_rt75353_innodb_lock_timeout";
 ok $dbh1->do("CREATE TABLE dbd_mysql_rt75353_innodb_lock_timeout(id INT PRIMARY KEY) ENGINE=INNODB"), "create table dbd_mysql_rt75353_innodb_lock_timeout";
+
+ok $dbh1->begin_work(), "dbh1: start transaction";
+ok $dbh2->begin_work(), "dbh2: start transaction";
 
 ok $dbh1->do("INSERT INTO dbd_mysql_rt75353_innodb_lock_timeout VALUES(1)"), "dbh1: acquire a row lock on table dbd_mysql_rt75353_innodb_lock_timeout";
 

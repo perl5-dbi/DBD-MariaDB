@@ -170,14 +170,23 @@ MSG
   }
 }
 
-if ($opt->{'embedded'} && !check_include_version($opt->{'cflags'}, 40003)) {
-  die <<"MSG";
-
-WARNING: Wrong version or unable to check version of mariadb/mysql include files.
-To build embedded  version of DBD you ought to be sure that you use include
-files from MySQL server >= 4.0.3.
-
-MSG
+# Separate libs and libdirs from ldflags
+# When linking libdirs must be specified before libs due to runtime linking problems
+my ($main_lib, @libs, @libdirs, @ldflags);
+for (split ' ', ($opt->{'embedded'} ? $opt->{'embedded'} : $opt->{libs})) {
+  if (not $main_lib and /^-l(.*mariadb.*|.*mysql.*)$/) {
+    $main_lib = $1;
+  } elsif (/^-l/) {
+    push @libs, $_;
+  } elsif (/^-L/) {
+    push @libdirs, $_;
+  } else {
+    push @ldflags, $_;
+  }
+}
+if (not $main_lib) {
+  $main_lib = shift @libs;
+  $main_lib =~ s/^-l//;
 }
 
 print <<"MSG";
@@ -210,11 +219,29 @@ To change these settings, see 'perl Makefile.PL --help' and
 
 MSG
 
-print "Checking if libs are available for compiling...\n";
+print "Checking if libs and header files are available for compiling...\n";
 
 assert_lib(
-  LIBS => ($opt->{'embedded'} ? $opt->{'embedded'} : $opt->{libs}),
+  LIBS => (join ' ', @libdirs, "-l$main_lib", @libs),
+  ccflags => $opt->{cflags},
+  ldflags => (join ' ', @ldflags),
+  header => 'mysql.h',
 );
+
+print "Checking if correct version of MariaDB or MySQL client is present...\n";
+
+check_lib(
+  lib => $main_lib,
+  ccflags => $opt->{cflags},
+  ldflags => (join ' ', @libdirs, @libs, @ldflags),
+  header => 'mysql.h',
+  function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (MYSQL_VERSION_ID >= 40103) ? 0 : 1;\n",
+) or die <<"MSG";
+
+ERROR: Wrong version or unable to check version of MariaDB/MySQL include files.
+To build DBD::MariaDB it is needed MariaDB or MySQL client >= 4.1.3.
+
+MSG
 
 print "Looks good.\n\n";
 
@@ -256,8 +283,8 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
           'C' => ["dbdimp.c", "MariaDB.c", "socket.c"],
           'XS' => {'MariaDB.xs' => 'MariaDB.c'},
 	  'OBJECT' => '$(O_FILES)',
-	  'LIBS' => $opt->{'libs'},
-	  $opt->{'ldflags'} ? ('LDFLAGS' => $opt->{'ldflags'}) : (),
+	  'LIBS' => (join ' ', @libdirs, "-l$main_lib", @libs),
+	  @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
 	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
 	);
 
@@ -756,38 +783,6 @@ sub SearchFor2 {
       }
     }
   }
-}
-
-
-sub check_include_version {
-
-  my ($dir, $ver) = @_;
-
-  my $headerfile;
-
-  $dir =~ s/-I//;
-  $dir =~ s/'//g;
-  $dir =~ s/\s.*//g;
-
-  open(HEADERFILE ,"<${dir}/mysql_version.h") or
-  (print "Unable to open header file ${dir}/mysql_version.h" && exit(0));
-  {
-    local undef $/;
-    $headerfile = <HEADERFILE>;
-  }
-  close(HEADERFILE);
-
-  my ($version_id) = ($headerfile =~ /MYSQL_VERSION_ID[\t\s]+(\d+)[\n\r]/);
-
-  if ($version_id < $ver)
-  {
-    print  <<"MSG";
-
-Version of MariaDB or MySQL include files in $dir - $1
-MSG
-    return 0;
-  }
-  return 1;
 }
 
 sub replace

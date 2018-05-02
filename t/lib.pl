@@ -54,8 +54,19 @@ if (-f ($file = "t/$mdriver.mtest")  ||
 }
 
 sub DbiTestConnect {
-    return (eval { DBI->connect(@_) } or do {
-        my $err;
+    my $err;
+    my $dbh = eval { DBI->connect(@_) };
+    if ( $dbh ) {
+        if ( $dbh->{mariadb_serverversion} < 40103 ) {
+            $err = "MariaDB or MySQL server version is older then 4.1.3";
+        } else {
+            my $current_charset = $dbh->selectrow_array('SELECT @@character_set_database');
+            my $expected_charset = $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'") ? 'utf8mb4' : 'utf8';
+            if ($current_charset ne $expected_charset) {
+                $err = "Database charset is not $expected_charset, but $current_charset";
+            }
+        }
+    } else {
         if ( $@ ) {
             $err = $@;
             $err =~ s/ at \S+ line \d+\.?\s*$//;
@@ -70,12 +81,15 @@ sub DbiTestConnect {
         }
         my ($func, $file, $line) = caller;
         $err .= " at $file line $line.";
+    }
+    if ( defined $err ) {
         if ( $ENV{CONNECTION_TESTING} ) {
             BAIL_OUT "no database connection: $err";
         } else {
             plan skip_all => "no database connection: $err";
         }
-    });
+    }
+    return $dbh;
 }
 
 

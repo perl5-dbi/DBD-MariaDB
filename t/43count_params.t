@@ -9,10 +9,6 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-if (!MinimumVersion($dbh, '4.1') ) {
-    plan skip_all =>
-        "SKIP TEST: You must have MySQL version 4.1 and greater for this test to run";
-}
 
 plan tests => 33*2+1;
 

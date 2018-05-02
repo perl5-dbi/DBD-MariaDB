@@ -12,10 +12,6 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0});
 
-if ($dbh->{mariadb_serverversion} < 40101) {
-    plan skip_all => "Servers < 4.1.1 do not report warnings";
-}
-
 my $expected_warnings = 2;
 if ($dbh->{mariadb_serverversion} >= 50000 && $dbh->{mariadb_serverversion} < 50500) {
     $expected_warnings = 1;

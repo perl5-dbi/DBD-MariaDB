@@ -256,25 +256,9 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #endif
 
 
-/*
- * This is the version of MariaDB or MySQL wherer
- * the server will be used to process prepare
- * statements as opposed to emulation in the driver
-*/
-#define SQL_STATE_VERSION 40101
-#define WARNING_COUNT_VERSION 40101
-#define FIELD_CHARSETNR_VERSION 40101 /* should equivalent to 4.1.0  */
-#define MULTIPLE_RESULT_SET_VERSION 40102
-#define SERVER_PREPARE_VERSION 40103
-#define CALL_PLACEHOLDER_VERSION 50503
-#define LIMIT_PLACEHOLDER_VERSION 50007
 #define GEO_DATATYPE_VERSION 50007
 #define NEW_DATATYPE_VERSION 50003
 #define MYSQL_VERSION_5_0 50001
-/* This is to avoid the ugly #ifdef mess in dbdimp.c */
-#if MYSQL_VERSION_ID < SQL_STATE_VERSION
-#define mysql_sqlstate(svsock) (NULL)
-#endif
 /*
  * This is the versions of libmysql that supports MySQL Fabric.
 */
@@ -285,14 +269,6 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define FABRIC_SUPPORT 1
 #else
 #define FABRIC_SUPPORT 0
-#endif
-
-#if MYSQL_VERSION_ID < WARNING_COUNT_VERSION
-#define mysql_warning_count(svsock) 0
-#endif
-
-#if MYSQL_VERSION_ID < WARNING_COUNT_VERSION
-#define mysql_warning_count(svsock) 0
 #endif
 
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80001
@@ -536,7 +512,6 @@ struct imp_sth_st {
     char *statement;
     STRLEN statement_len;
 
-#if (MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION)
     MYSQL_STMT       *stmt;
     MYSQL_BIND       *bind;
     MYSQL_BIND       *buffer;
@@ -545,7 +520,6 @@ struct imp_sth_st {
     bool             has_been_bound;
     bool use_server_side_prepare;  /* server side prepare statements? */
     bool disable_fallback_for_server_prepare;
-#endif
 
     MYSQL_RES* result;       /* result                                 */
     int currow;           /* number of current row                  */
@@ -624,18 +598,14 @@ my_ulonglong mariadb_st_internal_execute(SV *,
                                        MYSQL *,
                                        bool);
 
-#if MYSQL_VERSION_ID >= SERVER_PREPARE_VERSION
 my_ulonglong mariadb_st_internal_execute41(SV *,
                                          int,
                                          MYSQL_RES **,
                                          MYSQL_STMT *,
                                          MYSQL_BIND *,
                                          bool *);
-#endif
 
-#if MYSQL_VERSION_ID >= MULTIPLE_RESULT_SET_VERSION
 bool mariadb_st_more_results(SV*, imp_sth_t*);
-#endif
 
 AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
 SV* mariadb_db_quote(SV*, SV*, SV*);
