@@ -231,6 +231,10 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define sv_cmp_flags(a,b,c) sv_cmp(a,b) /* Sorry, there is no way to compare magic scalars properly prior to perl 5.13.6 */
 #endif
 
+#ifndef gv_stashpvs
+#define gv_stashpvs(str, flags) gv_stashpvn("" str "", sizeof((str))-1, (flags))
+#endif
+
 #ifndef newSVpvs
 #define newSVpvs(str) newSVpvn("" str "", sizeof((str)) - 1)
 #endif

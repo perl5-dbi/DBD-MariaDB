@@ -367,9 +367,6 @@ if ($opt->{'embedded'})
                        'dbdimp.h' => { filename => 'MariaDBEmb/dbdimp.h',
                                    makedir => 'MariaDBEmb'
                                  },
-                       'constants.h' => { filename => 'MariaDBEmb/constants.h',
-                                   makedir => 'MariaDBEmb'
-                                 },
                        'Makefile.PL.embedded' => { filename => 'MariaDBEmb/Makefile.PL',
                                    makedir => 'MariaDBEmb'
                                  },

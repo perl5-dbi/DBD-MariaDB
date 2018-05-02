@@ -15,7 +15,6 @@
 
 
 #include "dbdimp.h"
-#include "constants.h"
 
 #include <errno.h>
 #include <string.h>
@@ -36,15 +35,36 @@ INCLUDE: MariaDB.xsi
 
 MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 
-double
-constant(name, arg)
-    char* name
-    char* arg
-  CODE:
-    RETVAL = mariadb_constant(name, arg);
-  OUTPUT:
-    RETVAL
-
+BOOT:
+  HV *stash = gv_stashpvs("DBD::MariaDB", GV_ADD);
+#define newTypeSub(stash, type) newCONSTSUB((stash), #type + sizeof("MYSQL_")-1, newSViv(type))
+  newTypeSub(stash, MYSQL_TYPE_DECIMAL);
+  newTypeSub(stash, MYSQL_TYPE_TINY);
+  newTypeSub(stash, MYSQL_TYPE_SHORT);
+  newTypeSub(stash, MYSQL_TYPE_LONG);
+  newTypeSub(stash, MYSQL_TYPE_FLOAT);
+  newTypeSub(stash, MYSQL_TYPE_DOUBLE);
+  newTypeSub(stash, MYSQL_TYPE_NULL);
+  newTypeSub(stash, MYSQL_TYPE_TIMESTAMP);
+  newTypeSub(stash, MYSQL_TYPE_LONGLONG);
+  newTypeSub(stash, MYSQL_TYPE_INT24);
+  newTypeSub(stash, MYSQL_TYPE_DATE);
+  newTypeSub(stash, MYSQL_TYPE_TIME);
+  newTypeSub(stash, MYSQL_TYPE_DATETIME);
+  newTypeSub(stash, MYSQL_TYPE_YEAR);
+  newTypeSub(stash, MYSQL_TYPE_NEWDATE);
+  newTypeSub(stash, MYSQL_TYPE_VARCHAR);
+  newTypeSub(stash, MYSQL_TYPE_BIT);
+  newTypeSub(stash, MYSQL_TYPE_NEWDECIMAL);
+  newTypeSub(stash, MYSQL_TYPE_ENUM);
+  newTypeSub(stash, MYSQL_TYPE_SET);
+  newTypeSub(stash, MYSQL_TYPE_TINY_BLOB);
+  newTypeSub(stash, MYSQL_TYPE_MEDIUM_BLOB);
+  newTypeSub(stash, MYSQL_TYPE_LONG_BLOB);
+  newTypeSub(stash, MYSQL_TYPE_BLOB);
+  newTypeSub(stash, MYSQL_TYPE_VAR_STRING);
+  newTypeSub(stash, MYSQL_TYPE_STRING);
+#undef newTypeSub
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
