@@ -347,10 +347,10 @@ static enum perl_type mysql_to_perl_type(enum enum_field_types type)
 #endif
     return PERL_TYPE_NUMERIC;
 
-#if MYSQL_VERSION_ID > NEW_DATATYPE_VERSION
+#if MYSQL_VERSION_ID >= NEW_DATATYPE_VERSION
   case MYSQL_TYPE_BIT:
 #endif
-#if MYSQL_VERSION_ID > GEO_DATATYPE_VERSION
+#if MYSQL_VERSION_ID >= GEO_DATATYPE_VERSION
   case MYSQL_TYPE_GEOMETRY:
 #endif
   case MYSQL_TYPE_TINY_BLOB:
