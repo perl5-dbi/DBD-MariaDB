@@ -17,65 +17,61 @@ static double mariadb_constant(char* name, char* arg) {
       switch(*n) {
       case 'B':
 	if (strEQ(n, "BLOB"))
-	  return FIELD_TYPE_BLOB;
-	break;
-      case 'C':
-	if (strEQ(n, "CHAR"))
-	  return FIELD_TYPE_CHAR;
+	  return MYSQL_TYPE_BLOB;
 	break;
       case 'D':
 	if (strEQ(n, "DECIMAL"))
-	  return FIELD_TYPE_DECIMAL;
+	  return MYSQL_TYPE_DECIMAL;
 	if (strEQ(n, "DATE"))
-	  return FIELD_TYPE_DATE;
+	  return MYSQL_TYPE_DATE;
 	if (strEQ(n, "DATETIME"))
-	  return FIELD_TYPE_DATETIME;
+	  return MYSQL_TYPE_DATETIME;
 	if (strEQ(n, "DOUBLE"))
-	  return FIELD_TYPE_DOUBLE;
+	  return MYSQL_TYPE_DOUBLE;
 	break;
       case 'F':
 	if (strEQ(n, "FLOAT"))
-	  return FIELD_TYPE_FLOAT;
+	  return MYSQL_TYPE_FLOAT;
 	break;
       case 'I':
 	if (strEQ(n, "INT24"))
-	  return FIELD_TYPE_INT24;
+	  return MYSQL_TYPE_INT24;
 	break;
       case 'L':
 	if (strEQ(n, "LONGLONG"))
-	  return FIELD_TYPE_LONGLONG;
+	  return MYSQL_TYPE_LONGLONG;
 	if (strEQ(n, "LONG_BLOB"))
-	  return FIELD_TYPE_LONG_BLOB;
+	  return MYSQL_TYPE_LONG_BLOB;
 	if (strEQ(n, "LONG"))
-	  return FIELD_TYPE_LONG;
+	  return MYSQL_TYPE_LONG;
 	break;
       case 'M':
 	if (strEQ(n, "MEDIUM_BLOB"))
-	  return FIELD_TYPE_MEDIUM_BLOB;
+	  return MYSQL_TYPE_MEDIUM_BLOB;
 	break;
       case 'N':
 	if (strEQ(n, "NULL"))
-	  return FIELD_TYPE_NULL;
+	  return MYSQL_TYPE_NULL;
 	break;
       case 'S':
 	if (strEQ(n, "SHORT"))
-	  return FIELD_TYPE_SHORT;
+	  return MYSQL_TYPE_SHORT;
 	if (strEQ(n, "STRING"))
-	  return FIELD_TYPE_STRING;
+	  return MYSQL_TYPE_STRING;
 	break;
       case 'T':
 	if (strEQ(n, "TINY"))
-	  return FIELD_TYPE_TINY;
+	  return MYSQL_TYPE_TINY;
 	if (strEQ(n, "TINY_BLOB"))
-	  return FIELD_TYPE_TINY_BLOB;
+	  return MYSQL_TYPE_TINY_BLOB;
 	if (strEQ(n, "TIMESTAMP"))
-	  return FIELD_TYPE_TIMESTAMP;
+	  return MYSQL_TYPE_TIMESTAMP;
 	if (strEQ(n, "TIME"))
-	  return FIELD_TYPE_TIME;
+	  return MYSQL_TYPE_TIME;
 	break;
       case 'V':
 	if (strEQ(n, "VAR_STRING"))
-	  return FIELD_TYPE_VAR_STRING;
+	  return MYSQL_TYPE_VAR_STRING;
 	break;
       }
     }
