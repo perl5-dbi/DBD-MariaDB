@@ -26,6 +26,8 @@ if (!$have_pt_size) {
     plan skip_all => "module Proc::ProcessTable does not support size attribute on current platform\n";
 }
 
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
+
 plan tests => 3;
 
 sub size {
