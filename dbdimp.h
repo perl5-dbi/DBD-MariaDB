@@ -231,6 +231,10 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define sv_cmp_flags(a,b,c) sv_cmp(a,b) /* Sorry, there is no way to compare magic scalars properly prior to perl 5.13.6 */
 #endif
 
+#ifndef gv_stashpvs
+#define gv_stashpvs(str, flags) gv_stashpvn("" str "", sizeof((str))-1, (flags))
+#endif
+
 #ifndef newSVpvs
 #define newSVpvs(str) newSVpvn("" str "", sizeof((str)) - 1)
 #endif
@@ -259,6 +263,17 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define GEO_DATATYPE_VERSION 50007
 #define NEW_DATATYPE_VERSION 50003
 #define MYSQL_VERSION_5_0 50001
+
+#if MYSQL_VERSION_ID < NEW_DATATYPE_VERSION
+#define MYSQL_TYPE_VARCHAR 15
+#define MYSQL_TYPE_BIT 16
+#define MYSQL_TYPE_NEWDECIMAL 246
+#endif
+
+#if MYSQL_VERSION_ID < GEO_DATATYPE_VERSION
+#define MYSQL_TYPE_GEOMETRY 255
+#endif
+
 /*
  * This is the versions of libmysql that supports MySQL Fabric.
 */

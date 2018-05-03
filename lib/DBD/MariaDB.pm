@@ -99,17 +99,6 @@ sub _OdbcParseHost ($$) {
     ($hash->{'host'}, $hash->{'port'});
 }
 
-sub AUTOLOAD {
-    my ($meth) = $DBD::MariaDB::AUTOLOAD;
-    my ($smeth) = $meth;
-    $smeth =~ s/(.*)\:\://;
-
-    my $val = constant($smeth, @_ ? $_[0] : 0);
-    if ($! == 0) { eval "sub $meth { $val }"; return $val; }
-
-    Carp::croak "$meth: Not defined";
-}
-
 1;
 
 
@@ -1712,14 +1701,14 @@ A reference to an array of table names, useful in a I<JOIN> result.
 A reference to an array of column types. The engine's native column
 types are mapped to portable types like DBI::SQL_INTEGER() or
 DBI::SQL_VARCHAR(), as good as possible. Not all native types have
-a meaningful equivalent, for example DBD::MariaDB::FIELD_TYPE_INTERVAL
+a meaningful equivalent, for example DBD::MariaDB::TYPE_INTERVAL
 is mapped to DBI::SQL_VARCHAR().
 If you need the native column types, use I<mariadb_type>. See below.
 
 =item mariadb_type
 
 A reference to an array of MySQL's native column types, for example
-DBD::MariaDB::FIELD_TYPE_SHORT() or DBD::MariaDB::FIELD_TYPE_STRING().
+DBD::MariaDB::TYPE_SHORT() or DBD::MariaDB::TYPE_STRING().
 Use the I<TYPE> attribute, if you want portable types like
 DBI::SQL_SMALLINT() or DBI::SQL_VARCHAR().
 

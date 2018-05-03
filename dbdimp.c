@@ -347,12 +347,8 @@ static enum perl_type mysql_to_perl_type(enum enum_field_types type)
 #endif
     return PERL_TYPE_NUMERIC;
 
-#if MYSQL_VERSION_ID > NEW_DATATYPE_VERSION
   case MYSQL_TYPE_BIT:
-#endif
-#if MYSQL_VERSION_ID > GEO_DATATYPE_VERSION
   case MYSQL_TYPE_GEOMETRY:
-#endif
   case MYSQL_TYPE_TINY_BLOB:
   case MYSQL_TYPE_BLOB:
   case MYSQL_TYPE_MEDIUM_BLOB:
@@ -929,479 +925,284 @@ static const sql_type_info_t SQL_GET_TYPE_INFO_values[]= {
     1, 0, 3, 0, 0, 0, "variable length string",
     0, 0, 0,
     SQL_VARCHAR, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_VAR_STRING,  0,
-#else
     MYSQL_TYPE_STRING,  0,
-#endif
   },
   { "decimal",   SQL_DECIMAL,                      15, NULL, NULL, "precision,scale",
     1, 0, 3, 0, 0, 0, "double",
     0, 6, 2,
     SQL_DECIMAL, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DECIMAL,     1
-#else
     MYSQL_TYPE_DECIMAL,     1
-#endif
   },
   { "tinyint",   SQL_TINYINT,                       3, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "Tiny integer",
     0, 0, 10,
     SQL_TINYINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_TINY,        1
-#else
     MYSQL_TYPE_TINY,     1
-#endif
   },
   { "smallint",  SQL_SMALLINT,                      5, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "Short integer",
     0, 0, 10,
     SQL_SMALLINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_SHORT,       1
-#else
     MYSQL_TYPE_SHORT,     1
-#endif
   },
   { "integer",   SQL_INTEGER,                      10, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "integer",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONG,        1
-#else
     MYSQL_TYPE_LONG,     1
-#endif
   },
-  { "float",     SQL_REAL,                          7,  NULL, NULL, NULL,
+  { "float",     SQL_FLOAT,                         7, NULL, NULL, NULL,
     1, 0, 0, 0, 0, 0, "float",
     0, 2, 10,
     SQL_FLOAT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_FLOAT,       1
-#else
     MYSQL_TYPE_FLOAT,     1
-#endif
   },
-  { "double",    SQL_FLOAT,                       15,  NULL, NULL, NULL,
-    1, 0, 3, 0, 0, 0, "double",
-    0, 4, 2,
-    SQL_FLOAT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DOUBLE,      1
-#else
-    MYSQL_TYPE_DOUBLE,     1
-#endif
+  { "null",      SQL_CHAR,                          0, NULL, NULL, NULL,
+    1, 0, 0, 0, 0, 1, "null",
+    0, 0, 0,
+    SQL_CHAR, 0, 0,
+    MYSQL_TYPE_NULL,      1
   },
   { "double",    SQL_DOUBLE,                       15,  NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "double",
     0, 4, 10,
     SQL_DOUBLE, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DOUBLE,      1
-#else
     MYSQL_TYPE_DOUBLE,     1
-#endif
   },
-  /*
-    FIELD_TYPE_NULL ?
-  */
   { "timestamp", SQL_TIMESTAMP,                    14, "'", "'", NULL,
     0, 0, 3, 0, 0, 0, "timestamp",
     0, 0, 0,
     SQL_TIMESTAMP, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_TIMESTAMP,   0
-#else
     MYSQL_TYPE_TIMESTAMP,     0
-#endif
   },
   { "bigint",    SQL_BIGINT,                       19, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "Longlong integer",
     0, 0, 10,
     SQL_BIGINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONGLONG,    1
-#else
     MYSQL_TYPE_LONGLONG,     1
-#endif
   },
   { "mediumint", SQL_INTEGER,                       8, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "Medium integer",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_INT24,       1
-#else
     MYSQL_TYPE_INT24,     1
-#endif
   },
   { "date", SQL_DATE, 10, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "date",
     0, 0, 0,
     SQL_DATE, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DATE, 0
-#else
     MYSQL_TYPE_DATE, 0
-#endif
   },
   { "time", SQL_TIME, 6, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "time",
     0, 0, 0,
     SQL_TIME, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_TIME,        0
-#else
     MYSQL_TYPE_TIME,     0
-#endif
   },
   { "datetime",  SQL_TIMESTAMP, 21, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "datetime",
     0, 0, 0,
     SQL_TIMESTAMP, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DATETIME,    0
-#else
     MYSQL_TYPE_DATETIME,     0
-#endif
   },
   { "year", SQL_SMALLINT, 4, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "year",
     0, 0, 10,
     SQL_SMALLINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_YEAR,        1
-#else
     MYSQL_TYPE_YEAR,     1
-#endif
   },
   { "date", SQL_DATE, 10, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "date",
     0, 0, 0,
     SQL_DATE, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_NEWDATE,     0
-#else
     MYSQL_TYPE_NEWDATE,     0
-#endif
   },
   { "enum",      SQL_VARCHAR,                     255, "'",  "'",  NULL,
     1, 0, 1, 0, 0, 0, "enum(value1,value2,value3...)",
     0, 0, 0,
     0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_ENUM,        0
-#else
     MYSQL_TYPE_ENUM,     0
-#endif
   },
   { "set",       SQL_VARCHAR,                     255, "'",  "'",  NULL,
     1, 0, 1, 0, 0, 0, "set(value1,value2,value3...)",
     0, 0, 0,
     0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_SET,         0
-#else
     MYSQL_TYPE_SET,     0
-#endif
   },
   { "blob",       SQL_LONGVARBINARY,              65535, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "binary large object (0-65535)",
     0, 0, 0,
     SQL_LONGVARBINARY, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_BLOB,        0
-#else
     MYSQL_TYPE_BLOB,     0
-#endif
   },
   { "tinyblob",  SQL_VARBINARY,                 255, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "binary large object (0-255) ",
     0, 0, 0,
     SQL_VARBINARY, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_TINY_BLOB,   0
-#else
-    FIELD_TYPE_TINY_BLOB,        0
-#endif
+    MYSQL_TYPE_TINY_BLOB,        0
   },
   { "mediumblob", SQL_LONGVARBINARY,           16777215, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "binary large object",
     0, 0, 0,
     SQL_LONGVARBINARY, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0 
-    FIELD_TYPE_MEDIUM_BLOB, 0
-#else
     MYSQL_TYPE_MEDIUM_BLOB, 0
-#endif
   },
   { "longblob",   SQL_LONGVARBINARY,         2147483647, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "binary large object, use mediumblob instead",
     0, 0, 0,
     SQL_LONGVARBINARY, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0 
-    FIELD_TYPE_LONG_BLOB,   0
-#else
     MYSQL_TYPE_LONG_BLOB,   0
-#endif
   },
   { "char",       SQL_CHAR,                       255, "'",  "'",  "max length",
     1, 0, 3, 0, 0, 0, "string",
     0, 0, 0,
     SQL_CHAR, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0 
-    FIELD_TYPE_STRING,      0
-#else
     MYSQL_TYPE_STRING,   0
-#endif
   },
 
   { "decimal",            SQL_NUMERIC,            15,  NULL, NULL, "precision,scale",
     1, 0, 3, 0, 0, 0, "double",
     0, 6, 2,
     SQL_NUMERIC, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_DECIMAL,     1
-#else
     MYSQL_TYPE_DECIMAL,   1 
-#endif
   },
   { "tinyint unsigned",   SQL_TINYINT,              3, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "Tiny integer unsigned",
     0, 0, 10,
     SQL_TINYINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_TINY,        1
-#else
     MYSQL_TYPE_TINY,        1
-#endif
   },
   { "smallint unsigned",  SQL_SMALLINT,             5, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "Short integer unsigned",
     0, 0, 10,
     SQL_SMALLINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_SHORT,       1
-#else
     MYSQL_TYPE_SHORT,       1
-#endif
   },
   { "mediumint unsigned", SQL_INTEGER,              8, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "Medium integer unsigned",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_INT24,       1
-#else
     MYSQL_TYPE_INT24,       1
-#endif
   },
   { "int unsigned",       SQL_INTEGER,             10, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "integer unsigned",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONG,        1
-#else
     MYSQL_TYPE_LONG,        1
-#endif
   },
   { "int",                SQL_INTEGER,             10, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "integer",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONG,        1
-#else
     MYSQL_TYPE_LONG,        1
-#endif
   },
   { "integer unsigned",   SQL_INTEGER,             10, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "integer",
     0, 0, 10,
     SQL_INTEGER, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONG,        1
-#else
     MYSQL_TYPE_LONG,        1
-#endif
   },
   { "bigint unsigned",    SQL_BIGINT,              20, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "Longlong integer unsigned",
     0, 0, 10,
     SQL_BIGINT, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_LONGLONG,    1
-#else
     MYSQL_TYPE_LONGLONG,    1
-#endif
   },
   { "text",               SQL_LONGVARCHAR,      65535, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "large text object (0-65535)",
     0, 0, 0,
     SQL_LONGVARCHAR, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_BLOB,        0
-#else
     MYSQL_TYPE_BLOB,        0
-#endif
   },
   { "mediumtext",         SQL_LONGVARCHAR,   16777215, "'",  "'",  NULL,
     1, 0, 3, 0, 0, 0, "large text object",
     0, 0, 0,
     SQL_LONGVARCHAR, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    FIELD_TYPE_MEDIUM_BLOB, 0
-#else
     MYSQL_TYPE_MEDIUM_BLOB, 0
-#endif
   },
   { "mediumint unsigned auto_increment", SQL_INTEGER, 8, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "Medium integer unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_INT24, 1,
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_INT24, 1,
-#endif
   },
   { "tinyint unsigned auto_increment", SQL_TINYINT, 3, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "tinyint unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_TINYINT, 0, 0, FIELD_TYPE_TINY, 1
-#else
     SQL_TINYINT, 0, 0, MYSQL_TYPE_TINY, 1
-#endif
   },
 
   { "smallint auto_increment", SQL_SMALLINT, 5, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "smallint auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_SMALLINT, 0, 0, FIELD_TYPE_SHORT, 1
-#else
     SQL_SMALLINT, 0, 0, MYSQL_TYPE_SHORT, 1
-#endif
   },
 
   { "int unsigned auto_increment", SQL_INTEGER, 10, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "integer unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_LONG, 1
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_LONG, 1
-#endif
   },
 
   { "mediumint", SQL_INTEGER, 7, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "Medium integer", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_INT24, 1
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_INT24, 1
-#endif
   },
 
   { "bit", SQL_BIT, 1, NULL, NULL, NULL,
     1, 0, 3, 0, 0, 0, "bit", 0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_BIT, 0, 0, FIELD_TYPE_TINY, 0
-#elif MYSQL_VERSION_ID < NEW_DATATYPE_VERSION
-    SQL_BIT, 0, 0, MYSQL_TYPE_TINY, 0
+    SQL_BIT, 0, 0,
+#if MYSQL_VERSION_ID >= NEW_DATATYPE_VERSION
+    MYSQL_TYPE_BIT,
 #else
-    SQL_BIT, 0, 0, MYSQL_TYPE_BIT, 0
+    MYSQL_TYPE_TINY,
 #endif
+    0
   },
 
   { "numeric", SQL_NUMERIC, 19, NULL, NULL, "precision,scale",
     1, 0, 3, 0, 0, 0, "numeric", 0, 19, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_NUMERIC, 0, 0, FIELD_TYPE_DECIMAL, 1,
-#else
     SQL_NUMERIC, 0, 0, MYSQL_TYPE_DECIMAL, 1,
-#endif
   },
 
   { "integer unsigned auto_increment", SQL_INTEGER, 10, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "integer unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_LONG, 1,
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_LONG, 1,
-#endif
   },
 
   { "mediumint unsigned", SQL_INTEGER, 8, NULL, NULL, NULL,
     1, 0, 3, 1, 0, 0, "Medium integer unsigned", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_INT24, 1
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_INT24, 1
-#endif
   },
 
   { "smallint unsigned auto_increment", SQL_SMALLINT, 5, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "smallint unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_SMALLINT, 0, 0, FIELD_TYPE_SHORT, 1
-#else
     SQL_SMALLINT, 0, 0, MYSQL_TYPE_SHORT, 1
-#endif
   },
 
   { "int auto_increment", SQL_INTEGER, 10, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "integer auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_LONG, 1
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_LONG, 1
-#endif
   },
 
   { "long varbinary", SQL_LONGVARBINARY, 16777215, "0x", NULL, NULL,
     1, 0, 3, 0, 0, 0, "mediumblob", 0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_LONGVARBINARY, 0, 0, FIELD_TYPE_LONG_BLOB, 0
-#else
     SQL_LONGVARBINARY, 0, 0, MYSQL_TYPE_LONG_BLOB, 0
-#endif
   },
 
   { "double auto_increment", SQL_FLOAT, 15, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "double auto_increment", 0, 4, 2,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_FLOAT, 0, 0, FIELD_TYPE_DOUBLE, 1
-#else
     SQL_FLOAT, 0, 0, MYSQL_TYPE_DOUBLE, 1
-#endif
   },
 
   { "double auto_increment", SQL_DOUBLE, 15, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "double auto_increment", 0, 4, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_DOUBLE, 0, 0, FIELD_TYPE_DOUBLE, 1
-#else
     SQL_DOUBLE, 0, 0, MYSQL_TYPE_DOUBLE, 1
-#endif
   },
 
   { "integer auto_increment", SQL_INTEGER, 10, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "integer auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_LONG, 1,
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_LONG, 1,
-#endif
   },
 
   { "bigint auto_increment", SQL_BIGINT, 19, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "bigint auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_BIGINT, 0, 0, FIELD_TYPE_LONGLONG,
-#else
     SQL_BIGINT, 0, 0, MYSQL_TYPE_LONGLONG,
-#endif
 #if IVSIZE < 8
     0
 #else
@@ -1411,59 +1212,38 @@ static const sql_type_info_t SQL_GET_TYPE_INFO_values[]= {
 
   { "bit auto_increment", SQL_BIT, 1, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "bit auto_increment", 0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_BIT, 0, 0, FIELD_TYPE_TINY, 0
-#elif MYSQL_VERSION_ID < NEW_DATATYPE_VERSION
-    SQL_BIT, 0, 0, MYSQL_TYPE_TINY, 0
+    SQL_BIT, 0, 0,
+#if MYSQL_VERSION_ID >= NEW_DATATYPE_VERSION
+    MYSQL_TYPE_BIT,
 #else
-    SQL_BIT, 0, 0, MYSQL_TYPE_BIT, 0
+    MYSQL_TYPE_TINY,
 #endif
+    0
   },
 
   { "mediumint auto_increment", SQL_INTEGER, 7, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "Medium integer auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_INTEGER, 0, 0, FIELD_TYPE_INT24, 1
-#else
     SQL_INTEGER, 0, 0, MYSQL_TYPE_INT24, 1
-#endif
   },
 
   { "float auto_increment", SQL_REAL, 7, NULL, NULL, NULL,
     0, 0, 0, 0, 0, 1, "float auto_increment", 0, 2, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_FLOAT, 0, 0, FIELD_TYPE_FLOAT, 1
-#else
     SQL_FLOAT, 0, 0, MYSQL_TYPE_FLOAT, 1
-#endif
   },
 
   { "long varchar", SQL_LONGVARCHAR, 16777215, "'", "'", NULL,
     1, 0, 3, 0, 0, 0, "mediumtext", 0, 0, 0,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_LONGVARCHAR, 0, 0, FIELD_TYPE_MEDIUM_BLOB, 1
-#else
     SQL_LONGVARCHAR, 0, 0, MYSQL_TYPE_MEDIUM_BLOB, 1
-#endif
-
   },
 
   { "tinyint auto_increment", SQL_TINYINT, 3, NULL, NULL, NULL,
     0, 0, 3, 0, 0, 1, "tinyint auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_TINYINT, 0, 0, FIELD_TYPE_TINY, 1
-#else
     SQL_TINYINT, 0, 0, MYSQL_TYPE_TINY, 1
-#endif
   },
 
   { "bigint unsigned auto_increment", SQL_BIGINT, 20, NULL, NULL, NULL,
     0, 0, 3, 1, 0, 1, "bigint unsigned auto_increment", 0, 0, 10,
-#if MYSQL_VERSION_ID < MYSQL_VERSION_5_0
-    SQL_BIGINT, 0, 0, FIELD_TYPE_LONGLONG,
-#else
     SQL_BIGINT, 0, 0, MYSQL_TYPE_LONGLONG,
-#endif
 #if IVSIZE < 8
     0
 #else
@@ -1480,33 +1260,31 @@ static const sql_type_info_t SQL_GET_TYPE_INFO_values[]= {
 static const sql_type_info_t *native2sql(int t)
 {
   switch (t) {
-    case FIELD_TYPE_VAR_STRING:  return &SQL_GET_TYPE_INFO_values[0];
-    case FIELD_TYPE_DECIMAL:     return &SQL_GET_TYPE_INFO_values[1];
-#ifdef FIELD_TYPE_NEWDECIMAL
-    case FIELD_TYPE_NEWDECIMAL:  return &SQL_GET_TYPE_INFO_values[1];
-#endif
-    case FIELD_TYPE_TINY:        return &SQL_GET_TYPE_INFO_values[2];
-    case FIELD_TYPE_SHORT:       return &SQL_GET_TYPE_INFO_values[3];
-    case FIELD_TYPE_LONG:        return &SQL_GET_TYPE_INFO_values[4];
-    case FIELD_TYPE_FLOAT:       return &SQL_GET_TYPE_INFO_values[5];
-
-    /* 6  */
-    case FIELD_TYPE_DOUBLE:      return &SQL_GET_TYPE_INFO_values[7];
-    case FIELD_TYPE_TIMESTAMP:   return &SQL_GET_TYPE_INFO_values[8];
-    case FIELD_TYPE_LONGLONG:    return &SQL_GET_TYPE_INFO_values[9];
-    case FIELD_TYPE_INT24:       return &SQL_GET_TYPE_INFO_values[10];
-    case FIELD_TYPE_DATE:        return &SQL_GET_TYPE_INFO_values[11];
-    case FIELD_TYPE_TIME:        return &SQL_GET_TYPE_INFO_values[12];
-    case FIELD_TYPE_DATETIME:    return &SQL_GET_TYPE_INFO_values[13];
-    case FIELD_TYPE_YEAR:        return &SQL_GET_TYPE_INFO_values[14];
-    case FIELD_TYPE_NEWDATE:     return &SQL_GET_TYPE_INFO_values[15];
-    case FIELD_TYPE_ENUM:        return &SQL_GET_TYPE_INFO_values[16];
-    case FIELD_TYPE_SET:         return &SQL_GET_TYPE_INFO_values[17];
-    case FIELD_TYPE_BLOB:        return &SQL_GET_TYPE_INFO_values[18];
-    case FIELD_TYPE_TINY_BLOB:   return &SQL_GET_TYPE_INFO_values[19];
-    case FIELD_TYPE_MEDIUM_BLOB: return &SQL_GET_TYPE_INFO_values[20];
-    case FIELD_TYPE_LONG_BLOB:   return &SQL_GET_TYPE_INFO_values[21];
-    case FIELD_TYPE_STRING:      return &SQL_GET_TYPE_INFO_values[22];
+    case MYSQL_TYPE_VAR_STRING:  return &SQL_GET_TYPE_INFO_values[0];
+    case MYSQL_TYPE_DECIMAL:     return &SQL_GET_TYPE_INFO_values[1];
+    case MYSQL_TYPE_NEWDECIMAL:  return &SQL_GET_TYPE_INFO_values[1];
+    case MYSQL_TYPE_TINY:        return &SQL_GET_TYPE_INFO_values[2];
+    case MYSQL_TYPE_SHORT:       return &SQL_GET_TYPE_INFO_values[3];
+    case MYSQL_TYPE_LONG:        return &SQL_GET_TYPE_INFO_values[4];
+    case MYSQL_TYPE_FLOAT:       return &SQL_GET_TYPE_INFO_values[5];
+    case MYSQL_TYPE_NULL:        return &SQL_GET_TYPE_INFO_values[6];
+    case MYSQL_TYPE_DOUBLE:      return &SQL_GET_TYPE_INFO_values[7];
+    case MYSQL_TYPE_TIMESTAMP:   return &SQL_GET_TYPE_INFO_values[8];
+    case MYSQL_TYPE_LONGLONG:    return &SQL_GET_TYPE_INFO_values[9];
+    case MYSQL_TYPE_INT24:       return &SQL_GET_TYPE_INFO_values[10];
+    case MYSQL_TYPE_DATE:        return &SQL_GET_TYPE_INFO_values[11];
+    case MYSQL_TYPE_TIME:        return &SQL_GET_TYPE_INFO_values[12];
+    case MYSQL_TYPE_DATETIME:    return &SQL_GET_TYPE_INFO_values[13];
+    case MYSQL_TYPE_YEAR:        return &SQL_GET_TYPE_INFO_values[14];
+    case MYSQL_TYPE_NEWDATE:     return &SQL_GET_TYPE_INFO_values[15];
+    case MYSQL_TYPE_ENUM:        return &SQL_GET_TYPE_INFO_values[16];
+    case MYSQL_TYPE_SET:         return &SQL_GET_TYPE_INFO_values[17];
+    case MYSQL_TYPE_BLOB:        return &SQL_GET_TYPE_INFO_values[18];
+    case MYSQL_TYPE_TINY_BLOB:   return &SQL_GET_TYPE_INFO_values[19];
+    case MYSQL_TYPE_MEDIUM_BLOB: return &SQL_GET_TYPE_INFO_values[20];
+    case MYSQL_TYPE_LONG_BLOB:   return &SQL_GET_TYPE_INFO_values[21];
+    case MYSQL_TYPE_STRING:      return &SQL_GET_TYPE_INFO_values[22];
+    case MYSQL_TYPE_BIT:         return &SQL_GET_TYPE_INFO_values[38];
     default:                     return &SQL_GET_TYPE_INFO_values[0];
   }
 }
