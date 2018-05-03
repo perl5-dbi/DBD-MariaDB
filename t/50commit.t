@@ -91,7 +91,7 @@ EOT
 
   ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password));
 
-  ok $dbh, "connected";
+  ok $dbh, "connected" or die;
 
   $msg = num_rows($dbh, 'dbd_mysql_t50commit', 0);
   ok !$msg;
