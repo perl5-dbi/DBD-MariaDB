@@ -36,7 +36,7 @@ if (not eval { $dbh->do("select * from performance_schema.session_connect_attrs 
 }
 
 $dbh->disconnect();
-$dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
+$dbh = DBI->connect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 0,
                         AutoCommit => 0,
