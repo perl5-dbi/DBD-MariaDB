@@ -26,23 +26,26 @@ if ($pfenabled[1] ne 'ON') {
   plan skip_all => 'performance schema not enabled';
 }
 
-if ($dbh->{mariadb_clientversion} < 50606) {
-  plan skip_all => 'client version should be 5.6.6 or later';
-}
-
 if (not eval { $dbh->do("select * from performance_schema.session_connect_attrs where processlist_id=connection_id()") }) {
   $dbh->disconnect();
   plan skip_all => "no permission on performance_schema tables";
 }
 
 $dbh->disconnect();
-$dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
+$dbh = eval { DBI->connect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1,
                         PrintError => 0,
                         AutoCommit => 0,
                         mariadb_conn_attrs => { program_name => $0, foo => 'bar' },
-                        }
-                        );
+                      }) };
+
+if (not defined $dbh) {
+  if ($DBI::errstr =~ /mariadb_conn_attrs is not supported/) {
+    plan skip_all => $DBI::errstr;
+  } else {
+    die $DBI::errstr;
+  }
+}
 
 plan tests => 8;
 
