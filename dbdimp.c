@@ -4308,7 +4308,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
     if ((rc= mysql_stmt_fetch(imp_sth->stmt)))
     {
-#if MYSQL_VERSION_ID >= MYSQL_VERSION_5_0 
+#if MYSQL_VERSION_ID >= 50003
       if (rc == MYSQL_DATA_TRUNCATED) {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch data truncated\n");
