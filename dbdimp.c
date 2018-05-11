@@ -1802,8 +1802,10 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_conn_attrs", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_conn_attrs", FALSE)) && *svp)
         {
-        /* 60000 is identifier for MySQL Connector/C versions 6.0.x which do not support MYSQL_OPT_CONNECT_ATTR_ADD */
-        #if (MYSQL_VERSION_ID >= 50606 && MYSQL_VERSION_ID != 60000)
+        /* mysql_options4 with MYSQL_OPT_CONNECT_ATTR_ADD is supported by libraries:
+         * MariaDB 10.0.5+ and any MariaDB Connector/C; MySQL 5.6.6+ except MySQL Connector/C 6.0.0
+         */
+        #if (defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID >= 100005 || defined(MARIADB_PACKAGE_VERSION))) || (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50606 && MYSQL_VERSION_ID != 60000)
               HV* attrs = (HV*) SvRV(*svp);
               HE* entry = NULL;
               I32 num_entries = hv_iterinit(attrs);
