@@ -2354,9 +2354,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* mysql_socket;
   D_imp_xxh(dbh);
 
-  /* TODO- resolve this so that it is set only if DBI is 1.607 */
-#define TAKE_IMP_DATA_VERSION 1
-#if TAKE_IMP_DATA_VERSION
   if (DBIc_has(imp_dbh, DBIcf_IMPSET))
   { /* eg from take_imp_data() */
     if (DBIc_has(imp_dbh, DBIcf_ACTIVE))
@@ -2371,7 +2368,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                     "mariadb_db_my_login IMPSET but not ACTIVE so connect not skipped\n");
   }
-#endif
 
   sv = DBIc_IMP_DATA(imp_dbh);
 
@@ -3586,7 +3582,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     if (imp_sth->result == NULL)
     {
       /* No "real" rowset*/
-      DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
 			               sv_2mortal(newSViv(0)));
       return TRUE;
@@ -3619,7 +3614,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       (void)hv_deletes((HV*)SvRV(sth), "mariadb_warning_count", G_DISCARD);
 
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
-      DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
           sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
