@@ -105,7 +105,6 @@ sub _OdbcParseHost ($$) {
 package DBD::MariaDB::dr; # ====== DRIVER ======
 use strict;
 use DBI qw(:sql_types);
-use DBI::Const::GetInfoType;
 
 sub connect {
     my($drh, $dsn, $username, $password, $attrhash) = @_;
@@ -596,9 +595,7 @@ sub foreign_key_info {
     return unless $dbh->func('_async_check');
 
     # INFORMATION_SCHEMA.KEY_COLUMN_USAGE was added in 5.0.6
-    # no one is going to be running 5.0.6, taking out the check for $point > .6
-    my ($maj, $min, $point) = _version($dbh);
-    return if $maj < 5 ;
+    return if $dbh->FETCH('mariadb_serverversion') < 50006;
 
     my $sql = <<'EOF';
 SELECT NULL AS PKTABLE_CAT,
@@ -680,9 +677,7 @@ sub statistics_info {
     return unless $dbh->func('_async_check');
 
     # INFORMATION_SCHEMA.KEY_COLUMN_USAGE was added in 5.0.6
-    # no one is going to be running 5.0.6, taking out the check for $point > .6
-    my ($maj, $min, $point) = _version($dbh);
-    return if $maj < 5 ;
+    return if $dbh->FETCH('mariadb_serverversion') < 50006;
 
     my $sql = <<'EOF';
 SELECT TABLE_CATALOG AS TABLE_CAT,
@@ -733,15 +728,6 @@ EOF
 
     return $sth;
 }
-
-sub _version {
-    my $dbh = shift;
-
-    return
-        $dbh->get_info($DBI::Const::GetInfoType::GetInfoType{SQL_DBMS_VER})
-            =~ /(\d+)\.(\d+)\.(\d+)/;
-}
-
 
 ####################
 # get_info()
