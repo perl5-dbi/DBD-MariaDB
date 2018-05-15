@@ -2461,7 +2461,6 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->stats.auto_reconnects_failed= 0;
   imp_dbh->bind_type_guessing= FALSE;
   imp_dbh->bind_comment_placeholders= FALSE;
-  imp_dbh->has_transactions= TRUE;
  /* Safer we flip this to TRUE perl side if we detect a mod_perl env. */
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
@@ -2513,18 +2512,13 @@ mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 
   ASYNC_CHECK_RETURN(dbh, 0);
 
-  if (imp_dbh->has_transactions)
-  {
     if (mysql_commit(imp_dbh->pmysql))
     {
       mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql)
                ,mysql_sqlstate(imp_dbh->pmysql));
       return 0;
     }
-  }
-  else
-    mariadb_dr_do_warn(dbh, JW_ERR_NOT_IMPLEMENTED,
-            "Commit ineffective because transactions are not available");
+
   return 1;
 }
 
@@ -2539,18 +2533,13 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 
   ASYNC_CHECK_RETURN(dbh, 0);
 
-  if (imp_dbh->has_transactions)
-  {
       if (mysql_rollback(imp_dbh->pmysql))
       {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
         return 0;
       }
-  }
-  else
-    mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
-             "Rollback ineffective because transactions are not available" ,NULL);
+
   return 1;
 }
 
@@ -2692,12 +2681,9 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
      */
   if (DBIc_ACTIVE(imp_dbh))
   {
-    if (imp_dbh->has_transactions)
-    {
       if (!DBIc_has(imp_dbh, DBIcf_AutoCommit))
         if (mysql_rollback(imp_dbh->pmysql))
             mariadb_dr_do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
-    }
     mariadb_db_disconnect(dbh, imp_dbh);
   }
   mysql_close(imp_dbh->pmysql);
@@ -2738,8 +2724,6 @@ mariadb_db_STORE_attrib(
 
   if (memEQs(key, kl, "AutoCommit"))
   {
-    if (imp_dbh->has_transactions)
-    {
       bool oldval = DBIc_has(imp_dbh, DBIcf_AutoCommit) ? TRUE : FALSE;
 
       if (bool_value == oldval)
@@ -2761,20 +2745,6 @@ mariadb_db_STORE_attrib(
         }
       }
       DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
-    }
-    else
-    {
-      /*
-       *  We do support neither transactions nor "AutoCommit".
-       *  But we stub it. :-)
-      */
-      if (!bool_value)
-      {
-        mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
-                 "Transactions not supported by database" ,NULL);
-        return 0;
-      }
-    }
   }
   else if (strBEGINs(key, "mariadb_"))
   {
@@ -2958,12 +2928,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   switch (*key) {
     case 'A':
       if (memEQs(key, kl, "AutoCommit"))
-      {
-        if (imp_dbh->has_transactions)
           return sv_2mortal(boolSV(DBIc_has(imp_dbh,DBIcf_AutoCommit)));
-        /* Default */
-        return &PL_sv_yes;
-      }
       break;
   }
 

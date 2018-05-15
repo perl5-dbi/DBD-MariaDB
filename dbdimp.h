@@ -435,9 +435,6 @@ struct imp_dbh_st {
 
     MYSQL *pmysql;
     bool connected;          /* Set to true after DBI->connect finished */
-    bool has_transactions;   /*  boolean indicating support for
-			     *  transactions, currently always  TRUE for MySQL
-			     */
     bool auto_reconnect;
     bool bind_type_guessing;
     bool bind_comment_placeholders;
