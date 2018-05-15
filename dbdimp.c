@@ -2438,7 +2438,6 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->stats.auto_reconnects_failed= 0;
   imp_dbh->bind_type_guessing= FALSE;
   imp_dbh->bind_comment_placeholders= FALSE;
- /* Safer we flip this to TRUE perl side if we detect a mod_perl env. */
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
 
