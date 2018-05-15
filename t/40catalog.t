@@ -28,7 +28,7 @@ my $sth;
 #
 SKIP: {
   skip "Server is too old to support INFORMATION_SCHEMA for foreign keys", 16
-    if !MinimumVersion($dbh, '5.0');
+    if $dbh->{mariadb_serverversion} < 50006;
 
   my $engines = $dbh->selectall_hashref('SHOW ENGINES', 'Engine');
   my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
@@ -178,7 +178,7 @@ SKIP: {
 #
 SKIP: {
   skip "Server is too old to support views", 19
-  if !MinimumVersion($dbh, '5.0');
+    if $dbh->{mariadb_serverversion} < 50001;
 
   #
   # Bug #26603: (one part) support views in table_info()

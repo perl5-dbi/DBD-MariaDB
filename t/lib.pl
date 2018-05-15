@@ -2,7 +2,6 @@ use strict;
 use warnings;
 
 use Test::More;
-use DBI::Const::GetInfoType;
 use vars qw($mdriver $dbdriver $childPid $test_dsn $test_user $test_password);
 
 $| = 1; # flush stdout asap to keep in sync with stderr
@@ -148,38 +147,5 @@ sub CheckRoutinePerms {
 
     return 1;
 };
-
-=item MinimumVersion()
-
-Check to see if the database where the test run against is
-of a certain minimum version
-
-    if (!MinimumVersion($dbh, '5.0')) {
-        plan skip_all =>
-            "You must have MySQL version 5.0 and greater for this test to run";
-    }
-
-=cut
-
-sub MinimumVersion {
-    my $dbh = shift @_;
-    my $version = shift @_;
-
-    my ($major, $minor) = split (/\./, $version);
-
-    if ( $dbh->get_info($GetInfoType{SQL_DBMS_VER}) =~ /(^\d+)\.(\d+)\./ ) {
-
-        # major version higher than requested
-        return 1 if $1 > $major;
-
-        # major version too low
-        return if $1 < $major;
-
-        # check minor version
-        return 1 if $2 >= $minor;
-    }
-
-    return;
-}
 
 1;

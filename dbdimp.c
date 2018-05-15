@@ -1431,7 +1431,7 @@ unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
  *
  **************************************************************************/
 
-MYSQL *mariadb_dr_connect(
+static MYSQL *mariadb_dr_connect(
                         SV* dbh,
                         MYSQL* sock,
                         char* mysql_socket,
@@ -1448,6 +1448,11 @@ MYSQL *mariadb_dr_connect(
   MYSQL* result;
   dTHX;
   D_imp_xxh(dbh);
+  SV *sv = DBIc_IMP_DATA(imp_dbh);
+
+#if defined(DBD_MYSQL_EMBEDDED)
+  D_imp_drh_from_dbh;
+#endif
 
 #ifdef MARIADB_PACKAGE_VERSION
   bool broken_timeouts;
@@ -1474,14 +1479,7 @@ MYSQL *mariadb_dr_connect(
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****");
 
-  {
-
 #if defined(DBD_MYSQL_EMBEDDED)
-    if (imp_dbh)
-    {
-      D_imp_drh_from_dbh;
-      SV* sv = DBIc_IMP_DATA(imp_dbh);
-
       if (sv  &&  SvROK(sv))
       {
         SV** svp;
@@ -1584,7 +1582,6 @@ MYSQL *mariadb_dr_connect(
           }
         }
       }
-    }
 #endif
 
     client_flag = CLIENT_FOUND_ROWS;
@@ -1625,11 +1622,8 @@ MYSQL *mariadb_dr_connect(
     }
 #endif
 
-    if (imp_dbh)
-    {
-      SV* sv = DBIc_IMP_DATA(imp_dbh);
-
       DBIc_set(imp_dbh, DBIcf_AutoCommit, TRUE);
+
       if (sv  &&  SvROK(sv))
       {
         HV* hv = (HV*) SvRV(sv);
@@ -2160,7 +2154,7 @@ MYSQL *mariadb_dr_connect(
           return NULL;
         }
       }
-    }
+
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: client_flags = %d\n",
 		    client_flag);
@@ -2252,29 +2246,12 @@ MYSQL *mariadb_dr_connect(
 #endif
 
       /* connection succeeded. */
-      /* imp_dbh == NULL when mariadb_dr_connect() is called from mysql.xs
-         functions (_admin_internal(),_ListDBs()). */
-      if (!(result->client_flag & CLIENT_PROTOCOL_41) && imp_dbh)
+      if (!(result->client_flag & CLIENT_PROTOCOL_41))
         imp_dbh->use_server_side_prepare = FALSE;
 
-      if(imp_dbh) {
           imp_dbh->async_query_in_flight = NULL;
-      }
-    }
-    else {
-      /* 
-         sock was allocated with mysql_init() 
-         fixes: https://rt.cpan.org/Ticket/Display.html?id=86153
-
-      Safefree(sock);
-
-         rurban: No, we still need this handle later in mysql_dr_error().
-         RT #97625. It will be freed as imp_dbh->pmysql in mariadb_db_destroy(),
-         which is called by the DESTROY handler.
-      */
     }
     return result;
-  }
 }
 
 /*
@@ -2354,9 +2331,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* mysql_socket;
   D_imp_xxh(dbh);
 
-  /* TODO- resolve this so that it is set only if DBI is 1.607 */
-#define TAKE_IMP_DATA_VERSION 1
-#if TAKE_IMP_DATA_VERSION
   if (DBIc_has(imp_dbh, DBIcf_IMPSET))
   { /* eg from take_imp_data() */
     if (DBIc_has(imp_dbh, DBIcf_ACTIVE))
@@ -2371,7 +2345,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                     "mariadb_db_my_login IMPSET but not ACTIVE so connect not skipped\n");
   }
-#endif
 
   sv = DBIc_IMP_DATA(imp_dbh);
 
@@ -2446,9 +2419,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
 int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *password, SV *attribs)
 {
-#ifdef dTHR
-  dTHR;
-#endif
   dTHX; 
   D_imp_xxh(dbh);
   PERL_UNUSED_ARG(attribs);
@@ -2468,7 +2438,6 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->stats.auto_reconnects_failed= 0;
   imp_dbh->bind_type_guessing= FALSE;
   imp_dbh->bind_comment_placeholders= FALSE;
-  imp_dbh->has_transactions= TRUE;
  /* Safer we flip this to TRUE perl side if we detect a mod_perl env. */
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
@@ -2520,18 +2489,13 @@ mariadb_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 
   ASYNC_CHECK_RETURN(dbh, 0);
 
-  if (imp_dbh->has_transactions)
-  {
     if (mysql_commit(imp_dbh->pmysql))
     {
       mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql)
                ,mysql_sqlstate(imp_dbh->pmysql));
       return 0;
     }
-  }
-  else
-    mariadb_dr_do_warn(dbh, JW_ERR_NOT_IMPLEMENTED,
-            "Commit ineffective because transactions are not available");
+
   return 1;
 }
 
@@ -2546,18 +2510,13 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 
   ASYNC_CHECK_RETURN(dbh, 0);
 
-  if (imp_dbh->has_transactions)
-  {
       if (mysql_rollback(imp_dbh->pmysql))
       {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql) ,mysql_sqlstate(imp_dbh->pmysql));
         return 0;
       }
-  }
-  else
-    mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
-             "Rollback ineffective because transactions are not available" ,NULL);
+
   return 1;
 }
 
@@ -2577,9 +2536,6 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 
 int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-#ifdef dTHR
-  dTHR;
-#endif
   dTHX;
   D_imp_xxh(dbh);
   const void *methods;
@@ -2636,9 +2592,6 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
  **************************************************************************/
 
 int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
-#if defined(dTHR)
-  dTHR;
-#endif
   dTHX;
 #if defined(DBD_MYSQL_EMBEDDED)
   D_imp_xxh(drh);
@@ -2705,12 +2658,9 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
      */
   if (DBIc_ACTIVE(imp_dbh))
   {
-    if (imp_dbh->has_transactions)
-    {
       if (!DBIc_has(imp_dbh, DBIcf_AutoCommit))
         if (mysql_rollback(imp_dbh->pmysql))
             mariadb_dr_do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
-    }
     mariadb_db_disconnect(dbh, imp_dbh);
   }
   mysql_close(imp_dbh->pmysql);
@@ -2751,8 +2701,6 @@ mariadb_db_STORE_attrib(
 
   if (memEQs(key, kl, "AutoCommit"))
   {
-    if (imp_dbh->has_transactions)
-    {
       bool oldval = DBIc_has(imp_dbh, DBIcf_AutoCommit) ? TRUE : FALSE;
 
       if (bool_value == oldval)
@@ -2774,20 +2722,6 @@ mariadb_db_STORE_attrib(
         }
       }
       DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
-    }
-    else
-    {
-      /*
-       *  We do support neither transactions nor "AutoCommit".
-       *  But we stub it. :-)
-      */
-      if (!bool_value)
-      {
-        mariadb_dr_do_error(dbh, JW_ERR_NOT_IMPLEMENTED,
-                 "Transactions not supported by database" ,NULL);
-        return 0;
-      }
-    }
   }
   else if (strBEGINs(key, "mariadb_"))
   {
@@ -2971,12 +2905,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   switch (*key) {
     case 'A':
       if (memEQs(key, kl, "AutoCommit"))
-      {
-        if (imp_dbh->has_transactions)
           return sv_2mortal(boolSV(DBIc_has(imp_dbh,DBIcf_AutoCommit)));
-        /* Default */
-        return &PL_sv_yes;
-      }
       break;
   }
 
@@ -3586,7 +3515,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     if (imp_sth->result == NULL)
     {
       /* No "real" rowset*/
-      DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
 			               sv_2mortal(newSViv(0)));
       return TRUE;
@@ -3619,7 +3547,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       (void)hv_deletes((HV*)SvRV(sth), "mariadb_warning_count", G_DISCARD);
 
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
-      DBIc_NUM_FIELDS(imp_sth)= 0; /* for DBI <= 1.53 */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
           sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
@@ -3931,9 +3858,6 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
   unsigned int num_fields;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
-#if defined (dTHR)
-  dTHR;
-#endif
   bool use_server_side_prepare = imp_sth->use_server_side_prepare;
   bool disable_fallback_for_server_prepare = imp_sth->disable_fallback_for_server_prepare;
 
@@ -4720,10 +4644,6 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
-#if defined (dTHR)
-  dTHR;
-#endif
-
   if(imp_dbh->async_query_in_flight) {
     mariadb_db_async_result(sth, &imp_sth->result);
   }
@@ -4784,10 +4704,6 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
 void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   dTHX;
   D_imp_xxh(sth);
-
-#if defined (dTHR)
-  dTHR;
-#endif
 
   int i;
 

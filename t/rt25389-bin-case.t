@@ -12,7 +12,7 @@ use Test::More;
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
 
-if (!MinimumVersion($dbh, '5.1')) {
+if ($dbh->{mariadb_serverversion} < 50100) {
     plan skip_all =>
         "You must have MySQL version 5.1 or greater for this test"
 }
