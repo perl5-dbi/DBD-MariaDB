@@ -91,14 +91,6 @@ sub _OdbcParse($$$) {
     }
 }
 
-sub _OdbcParseHost ($$) {
-    my($class, $dsn) = @_;
-    my($hash) = {};
-    return (undef, undef) unless defined $dsn;
-    $class->_OdbcParse($dsn, $hash, ['host', 'port']);
-    ($hash->{'host'}, $hash->{'port'});
-}
-
 1;
 
 
