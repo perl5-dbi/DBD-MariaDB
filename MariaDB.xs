@@ -84,14 +84,6 @@ type_info_all(dbh)
   SV* dbh
   PPCODE:
 {
-  /* 	static AV* types = NULL; */
-  /* 	if (!types) { */
-  /* 	    D_imp_dbh(dbh); */
-  /* 	    if (!(types = dbd_db_type_info_all(dbh, imp_dbh))) { */
-  /* 	        croak("Cannot create types array (out of memory?)"); */
-  /* 	    } */
-  /* 	} */
-  /* 	ST(0) = sv_2mortal(newRV_inc((SV*) types)); */
   D_imp_dbh(dbh);
   ASYNC_CHECK_XS(dbh);
   ST(0) = sv_2mortal(newRV_noinc((SV*) mariadb_db_type_info_all(dbh,
