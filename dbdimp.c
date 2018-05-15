@@ -1894,7 +1894,7 @@ MYSQL *mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_use_fabric", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_use_fabric", FALSE)) && *svp && SvTRUE(*svp))
         {
-#if FABRIC_SUPPORT
+#ifdef HAVE_FABRIC
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->use_fabric: Enabling use of" \
@@ -2805,7 +2805,7 @@ mariadb_db_STORE_attrib(
       imp_dbh->bind_type_guessing = bool_value;
     else if (memEQs(key, kl, "mariadb_bind_comment_placeholders"))
       imp_dbh->bind_comment_placeholders = bool_value;
-  #if FABRIC_SUPPORT
+  #ifdef HAVE_FABRIC
     else if (memEQs(key, kl, "mariadb_fabric_opt_group"))
     {
       STRLEN len;
@@ -4308,7 +4308,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
     if ((rc= mysql_stmt_fetch(imp_sth->stmt)))
     {
-#if MYSQL_VERSION_ID >= MYSQL_VERSION_5_0 
+#if MYSQL_VERSION_ID >= 50003
       if (rc == MYSQL_DATA_TRUNCATED) {
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch data truncated\n");
