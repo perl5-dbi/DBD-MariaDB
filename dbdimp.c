@@ -2442,9 +2442,6 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
 int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *password, SV *attribs)
 {
-#ifdef dTHR
-  dTHR;
-#endif
   dTHX; 
   D_imp_xxh(dbh);
   PERL_UNUSED_ARG(attribs);
@@ -2573,9 +2570,6 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 
 int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-#ifdef dTHR
-  dTHR;
-#endif
   dTHX;
   D_imp_xxh(dbh);
   const void *methods;
@@ -2632,9 +2626,6 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
  **************************************************************************/
 
 int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
-#if defined(dTHR)
-  dTHR;
-#endif
   dTHX;
 #if defined(DBD_MYSQL_EMBEDDED)
   D_imp_xxh(drh);
@@ -3925,9 +3916,6 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
   unsigned int num_fields;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
-#if defined (dTHR)
-  dTHR;
-#endif
   bool use_server_side_prepare = imp_sth->use_server_side_prepare;
   bool disable_fallback_for_server_prepare = imp_sth->disable_fallback_for_server_prepare;
 
@@ -4714,10 +4702,6 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
-#if defined (dTHR)
-  dTHR;
-#endif
-
   if(imp_dbh->async_query_in_flight) {
     mariadb_db_async_result(sth, &imp_sth->result);
   }
@@ -4778,10 +4762,6 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
 void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   dTHX;
   D_imp_xxh(sth);
-
-#if defined (dTHR)
-  dTHR;
-#endif
 
   int i;
 
