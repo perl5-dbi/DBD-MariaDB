@@ -618,8 +618,6 @@ bool mariadb_st_more_results(SV*, imp_sth_t*);
 
 AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
 SV* mariadb_db_quote(SV*, SV*, SV*);
-MYSQL* mariadb_dr_connect(SV*, MYSQL*, char*, char*, char*, char*, char*,
-			       char*, imp_dbh_t*);
 
 bool mariadb_db_reconnect(SV*);
 

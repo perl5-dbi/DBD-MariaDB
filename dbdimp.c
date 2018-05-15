@@ -1431,7 +1431,7 @@ unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
  *
  **************************************************************************/
 
-MYSQL *mariadb_dr_connect(
+static MYSQL *mariadb_dr_connect(
                         SV* dbh,
                         MYSQL* sock,
                         char* mysql_socket,
@@ -1448,6 +1448,11 @@ MYSQL *mariadb_dr_connect(
   MYSQL* result;
   dTHX;
   D_imp_xxh(dbh);
+  SV *sv = DBIc_IMP_DATA(imp_dbh);
+
+#if defined(DBD_MYSQL_EMBEDDED)
+  D_imp_drh_from_dbh;
+#endif
 
 #ifdef MARIADB_PACKAGE_VERSION
   bool broken_timeouts;
@@ -1474,14 +1479,7 @@ MYSQL *mariadb_dr_connect(
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****");
 
-  {
-
 #if defined(DBD_MYSQL_EMBEDDED)
-    if (imp_dbh)
-    {
-      D_imp_drh_from_dbh;
-      SV* sv = DBIc_IMP_DATA(imp_dbh);
-
       if (sv  &&  SvROK(sv))
       {
         SV** svp;
@@ -1584,7 +1582,6 @@ MYSQL *mariadb_dr_connect(
           }
         }
       }
-    }
 #endif
 
     client_flag = CLIENT_FOUND_ROWS;
@@ -1625,11 +1622,8 @@ MYSQL *mariadb_dr_connect(
     }
 #endif
 
-    if (imp_dbh)
-    {
-      SV* sv = DBIc_IMP_DATA(imp_dbh);
-
       DBIc_set(imp_dbh, DBIcf_AutoCommit, TRUE);
+
       if (sv  &&  SvROK(sv))
       {
         HV* hv = (HV*) SvRV(sv);
@@ -2160,7 +2154,7 @@ MYSQL *mariadb_dr_connect(
           return NULL;
         }
       }
-    }
+
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: client_flags = %d\n",
 		    client_flag);
@@ -2252,29 +2246,12 @@ MYSQL *mariadb_dr_connect(
 #endif
 
       /* connection succeeded. */
-      /* imp_dbh == NULL when mariadb_dr_connect() is called from mysql.xs
-         functions (_admin_internal(),_ListDBs()). */
-      if (!(result->client_flag & CLIENT_PROTOCOL_41) && imp_dbh)
+      if (!(result->client_flag & CLIENT_PROTOCOL_41))
         imp_dbh->use_server_side_prepare = FALSE;
 
-      if(imp_dbh) {
           imp_dbh->async_query_in_flight = NULL;
-      }
-    }
-    else {
-      /* 
-         sock was allocated with mysql_init() 
-         fixes: https://rt.cpan.org/Ticket/Display.html?id=86153
-
-      Safefree(sock);
-
-         rurban: No, we still need this handle later in mysql_dr_error().
-         RT #97625. It will be freed as imp_dbh->pmysql in mariadb_db_destroy(),
-         which is called by the DESTROY handler.
-      */
     }
     return result;
-  }
 }
 
 /*
