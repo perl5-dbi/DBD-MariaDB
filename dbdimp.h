@@ -608,10 +608,13 @@ my_ulonglong mariadb_st_internal_execute(SV *,
                                        bool);
 
 my_ulonglong mariadb_st_internal_execute41(SV *,
+                                         char *,
+                                         STRLEN,
                                          int,
                                          MYSQL_RES **,
-                                         MYSQL_STMT *,
+                                         MYSQL_STMT **,
                                          MYSQL_BIND *,
+                                         MYSQL *,
                                          bool *);
 
 bool mariadb_st_more_results(SV*, imp_sth_t*);

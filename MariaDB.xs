@@ -249,10 +249,13 @@ do(dbh, statement, attr=Nullsv, ...)
         }
       }
       retval = mariadb_st_internal_execute41(dbh,
+                                           str_ptr,
+                                           slen,
                                            num_params,
                                            &result,
-                                           stmt,
+                                           &stmt,
                                            bind,
+                                           imp_dbh->pmysql,
                                            &has_been_bound);
       if (bind)
         Safefree(bind);
