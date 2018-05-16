@@ -42,6 +42,11 @@
 #define MY_CS_PRIMARY 32
 #endif
 
+/* Macro is not defined in older MySQL versions */
+#ifndef CR_STMT_CLOSED
+#define CR_STMT_CLOSED 2056
+#endif
+
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
 #endif
@@ -622,7 +627,7 @@ bool mariadb_st_more_results(SV*, imp_sth_t*);
 AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
 SV* mariadb_db_quote(SV*, SV*, SV*);
 
-bool mariadb_db_reconnect(SV*);
+bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt);
 
 my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);

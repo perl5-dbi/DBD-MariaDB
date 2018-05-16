@@ -3033,7 +3033,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   sv_2mortal((SV *)av);
 
   res = mysql_list_dbs(imp_dbh->pmysql, NULL);
-  if (!res && mariadb_db_reconnect(dbh))
+  if (!res && mariadb_db_reconnect(dbh, NULL))
     res = mysql_list_dbs(imp_dbh->pmysql, NULL);
   if (!res)
   {
@@ -3242,7 +3242,7 @@ mariadb_st_prepare_sv(
                                        statement,
                                        statement_len);
 
-    if (prepare_retval && mariadb_db_reconnect(sth))
+    if (prepare_retval && mariadb_db_reconnect(sth, imp_sth->stmt))
         prepare_retval= mysql_stmt_prepare(imp_sth->stmt,
                                            statement,
                                            statement_len);
@@ -3657,7 +3657,7 @@ my_ulonglong mariadb_st_internal_execute(
 
   if(async) {
     if((mysql_send_query(svsock, sbuf, slen)) &&
-       (!mariadb_db_reconnect(h) ||
+       (!mariadb_db_reconnect(h, NULL) ||
         (mysql_send_query(svsock, sbuf, slen))))
     {
         rows = -1;
@@ -3666,7 +3666,7 @@ my_ulonglong mariadb_st_internal_execute(
     }
   } else {
       if ((mysql_real_query(svsock, sbuf, slen))  &&
-          (!mariadb_db_reconnect(h)  ||
+          (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(svsock, sbuf, slen))))
       {
         rows = -1;
@@ -3761,7 +3761,7 @@ my_ulonglong mariadb_st_internal_execute41(
     }
     else
     {
-      if (!mariadb_db_reconnect(sth))
+      if (!mariadb_db_reconnect(sth, stmt))
         goto error;
       reconnected = TRUE;
     }
@@ -3775,7 +3775,7 @@ my_ulonglong mariadb_st_internal_execute41(
   if (!reconnected)
   {
     execute_retval = mysql_stmt_execute(stmt);
-    if (execute_retval && mariadb_db_reconnect(sth))
+    if (execute_retval && mariadb_db_reconnect(sth, stmt))
       reconnected = TRUE;
   }
   if (reconnected)
@@ -5482,12 +5482,13 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
  *  Purpose: If the server has disconnected, try to reconnect.
  *
  *  Input:   h - database or statement handle
+ *           stmt - MYSQL statement pointer (or NULL)
  *
  *  Returns: TRUE for success, FALSE otherwise
  *
  **************************************************************************/
 
-bool mariadb_db_reconnect(SV* h)
+bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
 {
   dTHX;
   D_imp_xxh(h);
@@ -5503,9 +5504,14 @@ bool mariadb_db_reconnect(SV* h)
     imp_dbh= (imp_dbh_t*) imp_xxh;
 
   if (mysql_errno(imp_dbh->pmysql) != CR_SERVER_GONE_ERROR &&
-          mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST)
+      mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST &&
+      (!stmt || (mysql_stmt_errno(stmt) != CR_SERVER_GONE_ERROR &&
+                 mysql_stmt_errno(stmt) != CR_SERVER_LOST &&
+                 mysql_stmt_errno(stmt) != CR_STMT_CLOSED)))
+  {
     /* Other error */
     return FALSE;
+  }
 
   if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) || !imp_dbh->auto_reconnect)
   {

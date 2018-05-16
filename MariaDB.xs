@@ -197,7 +197,7 @@ do(dbh, statement, attr=Nullsv, ...)
     stmt= mysql_stmt_init(imp_dbh->pmysql);
 
     if ((mysql_stmt_prepare(stmt, str_ptr, slen))  &&
-        (!mariadb_db_reconnect(dbh) ||
+        (!mariadb_db_reconnect(dbh, stmt) ||
          (mysql_stmt_prepare(stmt, str_ptr, slen))))
     {
       /*
@@ -363,7 +363,7 @@ ping(dbh)
       RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       if (!RETVAL)
       {
-        if (mariadb_db_reconnect(dbh))
+        if (mariadb_db_reconnect(dbh, NULL))
           RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       }
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
