@@ -3243,9 +3243,18 @@ mariadb_st_prepare_sv(
                                        statement_len);
 
     if (prepare_retval && mariadb_db_reconnect(sth, imp_sth->stmt))
+    {
+        mysql_stmt_close(imp_sth->stmt);
+        imp_sth->stmt = mysql_stmt_init(imp_dbh->pmysql);
+        if (!imp_sth->stmt)
+        {
+          mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+          return 0;
+        }
         prepare_retval= mysql_stmt_prepare(imp_sth->stmt,
                                            statement,
                                            statement_len);
+    }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh),
