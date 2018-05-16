@@ -5529,7 +5529,6 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
    */
   save_socket= *(imp_dbh->pmysql);
   memcpy (&save_socket, imp_dbh->pmysql,sizeof(save_socket));
-  memset (imp_dbh->pmysql,0,sizeof(*(imp_dbh->pmysql)));
 
   /* we should disconnect the db handle before reconnecting, this will
    * prevent mariadb_db_my_login from thinking it's adopting an active child which
