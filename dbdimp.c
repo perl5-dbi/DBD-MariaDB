@@ -1932,6 +1932,14 @@ static MYSQL *mariadb_dr_connect(
                         "imp_dbh->use_server_side_prepare: %d\n",
                         imp_dbh->use_server_side_prepare ? 1 : 0);
 
+        if (imp_dbh->bind_type_guessing && imp_dbh->use_server_side_prepare)
+        {
+          sock->net.last_errno = CR_CONNECTION_ERROR;
+          strcpy(sock->net.sqlstate, "HY000");
+          strcpy(sock->net.last_error, "Connection error: mariadb_bind_type_guessing and mariadb_server_prepare cannot be enabled together");
+          return NULL;
+        }
+
         (void)hv_stores(processed, "mariadb_server_prepare_disable_fallback", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_server_prepare_disable_fallback", FALSE)) && *svp)
           imp_dbh->disable_fallback_for_server_prepare = SvTRUE(*svp);
@@ -2729,13 +2737,27 @@ mariadb_db_STORE_attrib(
     else if (memEQs(key, kl, "mariadb_auto_reconnect"))
       imp_dbh->auto_reconnect = bool_value;
     else if (memEQs(key, kl, "mariadb_server_prepare"))
+    {
+      if (bool_value && imp_dbh->bind_type_guessing)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_bind_type_guessing and mariadb_server_prepare cannot be enabled together", "HY000");
+        return 0;
+      }
       imp_dbh->use_server_side_prepare = bool_value;
+    }
     else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
       imp_dbh->disable_fallback_for_server_prepare = bool_value;
     else if (memEQs(key, kl, "mariadb_no_autocommit_cmd"))
       imp_dbh->no_autocommit_cmd = bool_value;
     else if (memEQs(key, kl, "mariadb_bind_type_guessing"))
+    {
+      if (bool_value && imp_dbh->use_server_side_prepare)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_bind_type_guessing and mariadb_server_prepare cannot be enabled together", "HY000");
+        return 0;
+      }
       imp_dbh->bind_type_guessing = bool_value;
+    }
     else if (memEQs(key, kl, "mariadb_bind_comment_placeholders"))
       imp_dbh->bind_comment_placeholders = bool_value;
   #ifdef HAVE_FABRIC
