@@ -32,7 +32,7 @@ my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                                             { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 $dbh->disconnect;
-plan tests => 27 * 2;
+plan tests => 30 * 2;
 
 sub size {
     my($p, $pt);
@@ -101,6 +101,46 @@ $dbh2->disconnect;
 
 ok $ok, "\$ok $ok";
 ok !$not_ok, "\$not_ok $not_ok";
+cmp_ok $ok, '>', $not_ok, "\$ok $ok \$not_ok $not_ok";
+
+note "Testing memory leaks in auto_reconnect\n";
+$msg = "Possible memory leak in auto_reconnect";
+
+$ok = 0;
+$not_ok = 0;
+undef $prev_size;
+
+$dbh2 = DBI->connect($test_dsn, $test_user, $test_password,
+                     { RaiseError => 1,
+                       PrintError => 1,
+                       AutoCommit => 1,
+                       mariadb_server_prepare => $mariadb_server_prepare,
+                       mariadb_auto_reconnect => 1,
+                     });
+for (my $i = 0; $i < $COUNT_CONNECT; $i++) {
+    $dbh2->disconnect;
+    $dbh2->do("SELECT 1");
+    if ($i % 100 == 99) {
+        $size = size();
+        if (defined($prev_size)) {
+            if ($size == $prev_size) {
+                $ok++;
+            }
+            else {
+                $not_ok++;
+            }
+        }
+        else {
+            $prev_size = $size;
+            $size = size();
+        }
+        $prev_size = $size;
+    }
+}
+$dbh2->disconnect;
+
+ok $ok;
+ok !$not_ok, "\$ok $ok \$not_ok $not_ok";
 cmp_ok $ok, '>', $not_ok, "\$ok $ok \$not_ok $not_ok";
 
 note "Testing memory leaks in prepare/execute/finish\n";

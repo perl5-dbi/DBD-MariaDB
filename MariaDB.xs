@@ -110,6 +110,7 @@ do(dbh, statement, attr=Nullsv, ...)
   MYSQL_RES* result= NULL;
   bool async= FALSE;
   int next_result_rc;
+  bool failed = FALSE;
   bool            has_been_bound = FALSE;
   bool            use_server_side_prepare = FALSE;
   bool            disable_fallback_for_server_prepare = FALSE;
@@ -196,9 +197,27 @@ do(dbh, statement, attr=Nullsv, ...)
   {
     stmt= mysql_stmt_init(imp_dbh->pmysql);
 
-    if ((mysql_stmt_prepare(stmt, str_ptr, slen))  &&
-        (!mariadb_db_reconnect(dbh) ||
-         (mysql_stmt_prepare(stmt, str_ptr, slen))))
+    if (stmt && mysql_stmt_prepare(stmt, str_ptr, slen))
+    {
+      if (mariadb_db_reconnect(dbh, stmt))
+      {
+        mysql_stmt_close(stmt);
+        stmt = mysql_stmt_init(imp_dbh->pmysql);
+        if (stmt && mysql_stmt_prepare(stmt, str_ptr, slen))
+          failed = TRUE;
+      }
+      else
+      {
+        failed = TRUE;
+      }
+    }
+
+    if (!stmt)
+    {
+      mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      retval = (my_ulonglong)-1;
+    }
+    else if (failed)
     {
       /*
         For commands that are not supported by server side prepared
@@ -249,10 +268,13 @@ do(dbh, statement, attr=Nullsv, ...)
         }
       }
       retval = mariadb_st_internal_execute41(dbh,
+                                           str_ptr,
+                                           slen,
                                            num_params,
                                            &result,
-                                           stmt,
+                                           &stmt,
                                            bind,
+                                           imp_dbh->pmysql,
                                            &has_been_bound);
       if (bind)
         Safefree(bind);
@@ -360,7 +382,7 @@ ping(dbh)
       RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       if (!RETVAL)
       {
-        if (mariadb_db_reconnect(dbh))
+        if (mariadb_db_reconnect(dbh, NULL))
           RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       }
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718

@@ -129,9 +129,6 @@ sub connect {
     DBD::MariaDB::db::_login($this, $dsn, $username, $password)
 	  or $this = undef;
 
-    if ($this && ($ENV{MOD_PERL} || $ENV{GATEWAY_INTERFACE})) {
-        $this->{mariadb_auto_reconnect} = 1;
-    }
     $this;
 }
 
@@ -1410,9 +1407,8 @@ handles (read/write):
 =item mariadb_auto_reconnect
 
 This attribute determines whether DBD::MariaDB will automatically reconnect
-to MariaDB or MySQL server if the connection be lost. This feature defaults to off; however,
-if either the GATEWAY_INTERFACE or MOD_PERL environment variable is set,
-DBD::MariaDB will turn mariadb_auto_reconnect on.  Setting mariadb_auto_reconnect
+to MariaDB or MySQL server if the connection be lost. This feature defaults to off.
+Setting mariadb_auto_reconnect
 to on is not advised if 'lock tables' is used because if DBD::MariaDB reconnect
 to MariaDB or MySQL server all table locks will be lost.  This attribute is ignored when
 AutoCommit is turned off, and when AutoCommit is turned off, DBD::MariaDB will

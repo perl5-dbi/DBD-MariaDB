@@ -2438,7 +2438,6 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->stats.auto_reconnects_failed= 0;
   imp_dbh->bind_type_guessing= FALSE;
   imp_dbh->bind_comment_placeholders= FALSE;
- /* Safer we flip this to TRUE perl side if we detect a mod_perl env. */
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
 
@@ -3034,7 +3033,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   sv_2mortal((SV *)av);
 
   res = mysql_list_dbs(imp_dbh->pmysql, NULL);
-  if (!res && mariadb_db_reconnect(dbh))
+  if (!res && mariadb_db_reconnect(dbh, NULL))
     res = mysql_list_dbs(imp_dbh->pmysql, NULL);
   if (!res)
   {
@@ -3243,10 +3242,19 @@ mariadb_st_prepare_sv(
                                        statement,
                                        statement_len);
 
-    if (prepare_retval && mariadb_db_reconnect(sth))
+    if (prepare_retval && mariadb_db_reconnect(sth, imp_sth->stmt))
+    {
+        mysql_stmt_close(imp_sth->stmt);
+        imp_sth->stmt = mysql_stmt_init(imp_dbh->pmysql);
+        if (!imp_sth->stmt)
+        {
+          mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+          return 0;
+        }
         prepare_retval= mysql_stmt_prepare(imp_sth->stmt,
                                            statement,
                                            statement_len);
+    }
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -3658,7 +3666,7 @@ my_ulonglong mariadb_st_internal_execute(
 
   if(async) {
     if((mysql_send_query(svsock, sbuf, slen)) &&
-       (!mariadb_db_reconnect(h) ||
+       (!mariadb_db_reconnect(h, NULL) ||
         (mysql_send_query(svsock, sbuf, slen))))
     {
         rows = -1;
@@ -3667,7 +3675,7 @@ my_ulonglong mariadb_st_internal_execute(
     }
   } else {
       if ((mysql_real_query(svsock, sbuf, slen))  &&
-          (!mariadb_db_reconnect(h)  ||
+          (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(svsock, sbuf, slen))))
       {
         rows = -1;
@@ -3720,17 +3728,22 @@ my_ulonglong mariadb_st_internal_execute(
 
 my_ulonglong mariadb_st_internal_execute41(
                                          SV *sth,
+                                         char *sbuf,
+                                         STRLEN slen,
                                          int num_params,
                                          MYSQL_RES **result,
-                                         MYSQL_STMT *stmt,
+                                         MYSQL_STMT **stmt_ptr,
                                          MYSQL_BIND *bind,
+                                         MYSQL *svsock,
                                          bool *has_been_bound
                                         )
 {
   dTHX;
   int execute_retval;
   unsigned int i, num_fields;
+  MYSQL_STMT *stmt = *stmt_ptr;
   my_ulonglong rows=0;
+  bool reconnected = FALSE;
   D_imp_xxh(sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -3751,10 +3764,16 @@ my_ulonglong mariadb_st_internal_execute41(
 
   if (num_params > 0 && !(*has_been_bound))
   {
-    if (mysql_stmt_bind_param(stmt,bind))
-      goto error;
-
-    *has_been_bound = TRUE;
+    if (mysql_stmt_bind_param(stmt,bind) == 0)
+    {
+      *has_been_bound = TRUE;
+    }
+    else
+    {
+      if (!mariadb_db_reconnect(sth, stmt))
+        goto error;
+      reconnected = TRUE;
+    }
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -3762,9 +3781,33 @@ my_ulonglong mariadb_st_internal_execute41(
                   "\t\tmariadb_st_internal_execute41 calling mysql_execute with %d num_params\n",
                   num_params);
 
-  execute_retval= mysql_stmt_execute(stmt);
-  if (execute_retval && mariadb_db_reconnect(sth))
+  if (!reconnected)
+  {
+    execute_retval = mysql_stmt_execute(stmt);
+    if (execute_retval && mariadb_db_reconnect(sth, stmt))
+      reconnected = TRUE;
+  }
+  if (reconnected)
+  {
+    *has_been_bound = FALSE;
+    stmt = mysql_stmt_init(svsock);
+    if (!stmt)
+    {
+      mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock), mysql_sqlstate(svsock));
+      return -1;
+    }
+    mysql_stmt_close(*stmt_ptr);
+    *stmt_ptr = stmt;
+    if (mysql_stmt_prepare(stmt, sbuf, slen))
+      goto error;
+    if (num_params > 0)
+    {
+      if (mysql_stmt_bind_param(stmt,bind))
+        goto error;
+      *has_been_bound = TRUE;
+    }
     execute_retval= mysql_stmt_execute(stmt);
+  }
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "\t\tmysql_stmt_execute returned %d\n",
@@ -3912,10 +3955,13 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
     {
       imp_sth->row_num= mariadb_st_internal_execute41(
                                                     sth,
+                                                    imp_sth->statement,
+                                                    imp_sth->statement_len,
                                                     DBIc_NUM_PARAMS(imp_sth),
                                                     &imp_sth->result,
-                                                    imp_sth->stmt,
+                                                    &imp_sth->stmt,
                                                     imp_sth->bind,
+                                                    imp_dbh->pmysql,
                                                     &imp_sth->has_been_bound
                                                    );
       if (imp_sth->row_num == (my_ulonglong)-1) /* -1 means error */
@@ -5445,12 +5491,13 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
  *  Purpose: If the server has disconnected, try to reconnect.
  *
  *  Input:   h - database or statement handle
+ *           stmt - MYSQL statement pointer (or NULL)
  *
  *  Returns: TRUE for success, FALSE otherwise
  *
  **************************************************************************/
 
-bool mariadb_db_reconnect(SV* h)
+bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
 {
   dTHX;
   D_imp_xxh(h);
@@ -5466,9 +5513,14 @@ bool mariadb_db_reconnect(SV* h)
     imp_dbh= (imp_dbh_t*) imp_xxh;
 
   if (mysql_errno(imp_dbh->pmysql) != CR_SERVER_GONE_ERROR &&
-          mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST)
+      mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST &&
+      (!stmt || (mysql_stmt_errno(stmt) != CR_SERVER_GONE_ERROR &&
+                 mysql_stmt_errno(stmt) != CR_SERVER_LOST &&
+                 mysql_stmt_errno(stmt) != CR_STMT_CLOSED)))
+  {
     /* Other error */
     return FALSE;
+  }
 
   if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) || !imp_dbh->auto_reconnect)
   {
@@ -5486,7 +5538,6 @@ bool mariadb_db_reconnect(SV* h)
    */
   save_socket= *(imp_dbh->pmysql);
   memcpy (&save_socket, imp_dbh->pmysql,sizeof(save_socket));
-  memset (imp_dbh->pmysql,0,sizeof(*(imp_dbh->pmysql)));
 
   /* we should disconnect the db handle before reconnecting, this will
    * prevent mariadb_db_my_login from thinking it's adopting an active child which
