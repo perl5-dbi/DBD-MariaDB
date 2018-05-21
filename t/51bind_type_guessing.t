@@ -11,7 +11,7 @@ use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
-plan tests => 26; 
+plan tests => 32;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t51bind_type_guessing"), "drop table if exists dbd_mysql_t51bind_type_guessing";
 
@@ -69,11 +69,19 @@ ok $sth3= $dbh->prepare("insert into dbd_mysql_t51bind_type_guessing (str, num) 
 ok $rows= $sth3->execute(52.3, 44);
 ok $rows= $sth3->execute('', '     77');
 ok $rows= $sth3->execute(undef, undef);
+ok $rows= $sth3->execute('.', 100);
+ok $rows= $sth3->execute('+', 101);
+ok $rows= $sth3->execute('-', 102);
+ok $rows= $sth3->execute('+10e+100', 103);
+ok $rows= $sth3->execute('-12.E-100', 104);
 
 ok $sth3= $dbh->prepare("select * from dbd_mysql_t51bind_type_guessing limit ?");
 ok $rows= $sth3->execute(1);
 ok $rows= $sth3->execute('   1');
 $sth3->finish();
+
+my $ref = $dbh->selectall_arrayref(q(SELECT * FROM dbd_mysql_t51bind_type_guessing WHERE str IN ('', '.', '+', '-')));
+is_deeply($ref, [ [ '', 77 ], [ '.', 100 ], [ '+', 101 ], [ '-', 102 ] ] );
 
 ok $dbh->do("DROP TABLE dbd_mysql_t51bind_type_guessing");
 ok $dbh->disconnect;
