@@ -1449,7 +1449,7 @@ static MYSQL *mariadb_dr_connect(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-		  "imp_dbh->mariadb_dr_connect: host = |%s|, port = %d," \
+		  "imp_dbh->mariadb_dr_connect: host = |%s|, port = %d,"
 		  " uid = %s, pwd = %s\n",
 		  host ? host : "NULL", portNr,
 		  user ? user : "NULL",
@@ -1637,7 +1637,7 @@ static MYSQL *mariadb_dr_connect(
           }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                           "imp_dbh->mariadb_dr_connect: Setting" \
+                           "imp_dbh->mariadb_dr_connect: Setting"
                            " init command (%s).\n", df);
           mysql_options(sock, MYSQL_INIT_COMMAND, df);
         }
@@ -1647,7 +1647,7 @@ static MYSQL *mariadb_dr_connect(
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Enabling" \
+                          "imp_dbh->mariadb_dr_connect: Enabling"
                           " compression.\n");
           mysql_options(sock, MYSQL_OPT_COMPRESS, NULL);
         }
@@ -1659,7 +1659,7 @@ static MYSQL *mariadb_dr_connect(
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting"
                           " connect timeout (%u).\n", to);
           mysql_options(sock, MYSQL_OPT_CONNECT_TIMEOUT,
                         (const char *)&to);
@@ -1672,7 +1672,7 @@ static MYSQL *mariadb_dr_connect(
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting"
                           " write timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
@@ -1694,7 +1694,7 @@ static MYSQL *mariadb_dr_connect(
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Setting" \
+                          "imp_dbh->mariadb_dr_connect: Setting"
                           " read timeout (%u).\n", to);
 #ifdef MARIADB_PACKAGE_VERSION
           if (broken_timeouts)
@@ -1717,7 +1717,7 @@ static MYSQL *mariadb_dr_connect(
           my_bool secauth = FALSE;
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Skipping" \
+                          "imp_dbh->mariadb_dr_connect: Skipping"
                           " secure auth\n");
           error = mysql_options(sock, MYSQL_SECURE_AUTH, &secauth);
 #endif
@@ -1744,7 +1744,7 @@ static MYSQL *mariadb_dr_connect(
           }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->mariadb_dr_connect: Reading" \
+                          "imp_dbh->mariadb_dr_connect: Reading"
                           " default file %s.\n", df);
           mysql_options(sock, MYSQL_READ_DEFAULT_FILE, df);
         }
@@ -1763,7 +1763,7 @@ static MYSQL *mariadb_dr_connect(
           }
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "imp_dbh->mariadb_dr_connect: Using" \
+                    "imp_dbh->mariadb_dr_connect: Using"
                     " default group %s.\n", gr);
 
           mysql_options(sock, MYSQL_READ_DEFAULT_GROUP, gr);
@@ -1867,7 +1867,7 @@ static MYSQL *mariadb_dr_connect(
 #ifdef HAVE_FABRIC
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                          "imp_dbh->use_fabric: Enabling use of" \
+                          "imp_dbh->use_fabric: Enabling use of"
                           " MySQL Fabric.\n");
           mysql_options(sock, MYSQL_OPT_USE_FABRIC, NULL);
 #else
@@ -2114,7 +2114,7 @@ static MYSQL *mariadb_dr_connect(
 	  unsigned int flag = SvTRUE(*svp);
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
 	    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-        "imp_dbh->mariadb_dr_connect: Using" \
+        "imp_dbh->mariadb_dr_connect: Using"
         " local infile %u.\n", flag);
 	  mysql_options(sock, MYSQL_OPT_LOCAL_INFILE, (const char *) &flag);
 	}
@@ -2365,7 +2365,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-		  "imp_dbh->mariadb_db_my_login : dbname = %s, uid = %s, pwd = %s," \
+		  "imp_dbh->mariadb_db_my_login : dbname = %s, uid = %s, pwd = %s,"
 		  "host = %s, port = %s\n",
 		  dbname ? dbname : "NULL",
 		  user ? user : "NULL",
