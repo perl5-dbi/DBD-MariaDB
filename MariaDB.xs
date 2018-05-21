@@ -97,7 +97,6 @@ do(dbh, statement, attr=Nullsv, ...)
   SV *        dbh
   SV *	statement
   SV *        attr
-  PROTOTYPE: $$;$@
   CODE:
 {
   D_imp_dbh(dbh);
@@ -359,7 +358,6 @@ do(dbh, statement, attr=Nullsv, ...)
 bool
 ping(dbh)
     SV* dbh;
-  PROTOTYPE: $
   CODE:
     {
 /* MySQL 5.7 below 5.7.18 is affected by Bug #78778.
@@ -399,7 +397,6 @@ quote(dbh, str, type=NULL)
     SV* dbh
     SV* str
     SV* type
-  PROTOTYPE: $$;$
   PPCODE:
     {
         SV* quoted;
