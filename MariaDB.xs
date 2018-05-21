@@ -309,7 +309,7 @@ do(dbh, statement, attr=Nullsv, ...)
         params[i].type= SQL_VARCHAR;
       }
     }
-    retval = mariadb_st_internal_execute(dbh, str_ptr, slen, attr, num_params,
+    retval = mariadb_st_internal_execute(dbh, str_ptr, slen, num_params,
                                        params, &result, imp_dbh->pmysql, FALSE);
   }
   if (params)
