@@ -1525,8 +1525,8 @@ static MYSQL *mariadb_dr_connect(
           }
           if (mysql_server_init(server_args_cnt, server_args, server_groups))
           {
-            mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED, "Embedded server was not started. \
-                    Could not initialize environment.");
+            mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED, "Embedded server was not started. "
+                    "Could not initialize environment.");
             return NULL;
           }
           imp_drh->embedded.state=1;
@@ -1552,8 +1552,8 @@ static MYSQL *mariadb_dr_connect(
           if (rc)
           {
             mariadb_dr_do_warn(dbh, AS_ERR_EMBEDDED,
-                    "Embedded server was already started. You cannot pass init\
-                    parameters to embedded server once");
+                    "Embedded server was already started. You cannot pass init "
+                    "parameters to embedded server once");
             return NULL;
           }
         }
@@ -3221,8 +3221,8 @@ mariadb_st_prepare_sv(
     /* do we really need this? If we do, we should return, not just continue */
     if (imp_sth->stmt)
       fprintf(stderr,
-              "ERROR: Trying to prepare new stmt while we have \
-              already not closed one \n");
+              "ERROR: Trying to prepare new stmt while we have "
+              "already not closed one \n");
 
     imp_sth->stmt= mysql_stmt_init(imp_dbh->pmysql);
 
@@ -3230,8 +3230,8 @@ mariadb_st_prepare_sv(
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                      "\t\tERROR: Unable to return MYSQL_STMT structure \
-                      from mysql_stmt_init(): ERROR NO: %d ERROR MSG:%s\n",
+                      "\t\tERROR: Unable to return MYSQL_STMT structure "
+                      "from mysql_stmt_init(): ERROR NO: %d ERROR MSG:%s\n",
                       mysql_errno(imp_dbh->pmysql),
                       mysql_error(imp_dbh->pmysql));
     }
