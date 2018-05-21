@@ -21,7 +21,7 @@
       return (value);\
   }
 
-static bool parse_number(char *string, STRLEN len, char **end);
+static bool is_mysql_number(char *string, STRLEN len);
 
 DBISTATE_DECLARE;
 
@@ -651,7 +651,6 @@ static char *parse_params(
   bool comment_end = FALSE;
   char *salloc, *statement_ptr;
   char *statement_ptr_end, *ptr;
-  char *cp, *end;
   int i;
   STRLEN alen;
   STRLEN slen = *slen_ptr;
@@ -679,24 +678,7 @@ static char *parse_params(
     if (!ph->value)
       alen+= 3;  /* Erase '?', insert 'NULL' */
     else
-    {
       alen+= 2+ph->len+1;
-      /* this will most likely not happen since line 214 */
-      /* of mysql.xs hardcodes all types to SQL_VARCHAR */
-      if (!ph->type)
-      {
-        if (bind_type_guessing)
-        {
-          ph->type= SQL_INTEGER;
-          if (!parse_number(ph->value, ph->len, &end))
-          {
-              ph->type= SQL_VARCHAR;
-          }
-        }
-        else
-          ph->type= SQL_VARCHAR;
-      }
-    }
   }
 
   /* Allocate memory, why *2, well, because we have ptr and statement_ptr */
@@ -838,39 +820,33 @@ static char *parse_params(
         }
         else
         {
-          bool is_num = FALSE;
+          bool quote_value, is_value_num;
 
-          if (ph->value)
+          is_value_num = is_mysql_number(ph->value, ph->len);
+
+          if (limit_flag && is_value_num)
+            /* After a LIMIT clause must be unquoted numeric value */
+            quote_value = FALSE;
+          else if (bind_type_guessing && !ph->type)
+            /* If SQL type was not specified and bind_type_guessing is enabled, then quote only if needed */
+            quote_value = !is_value_num;
+          else if (sql_type_is_numeric(ph->type))
+            /* If SQL type is numeric then quote only in case value is not numeric */
+            quote_value = !is_value_num;
+          else
+            /* Otherwise always quote */
+            quote_value = TRUE;
+
+          if (quote_value)
           {
-            is_num = sql_type_is_numeric(ph->type);
-
-            /* (note this sets *end, which we use if is_num) */
-            if (!parse_number(ph->value, ph->len, &end) && is_num)
-            {
-              if (bind_type_guessing) {
-                /* .. not a number, so apparently we guessed wrong */
-                is_num = FALSE;
-                ph->type = SQL_VARCHAR;
-              }
-            }
-
-
-            /* we're at the end of the query, so any placeholders if */
-            /* after a LIMIT clause will be numbers and should not be quoted */
-            if (limit_flag)
-              is_num = TRUE;
-
-            if (!is_num)
-            {
-              *ptr++ = '\'';
-              ptr += mysql_real_escape_string(sock, ptr, ph->value, ph->len);
-              *ptr++ = '\'';
-            }
-            else
-            {
-              for (cp= ph->value; cp < end; cp++)
-                  *ptr++= *cp;
-            }
+            *ptr++ = '\'';
+            ptr += mysql_real_escape_string(sock, ptr, ph->value, ph->len);
+            *ptr++ = '\'';
+          }
+          else
+          {
+            memcpy(ptr, ph->value, ph->len);
+            ptr += ph->len;
           }
         }
         break;
@@ -5937,80 +5913,69 @@ int mariadb_db_async_ready(SV* h)
   }
 }
 
-static bool parse_number(char *string, STRLEN len, char **end)
+static bool is_mysql_number(char *string, STRLEN len)
 {
-    int seen_neg = 0;
-    bool seen_dec = FALSE;
-    bool seen_e = FALSE;
-    bool seen_plus = FALSE;
-    char *cp;
+    char *cp = string;
+    bool number_found = FALSE;
 
-    if (len <= 0) {
-        len= strlen(string);
-    }
-
-    cp= string;
-
-    /* Skip leading whitespace */
-    while (*cp && isspace(*cp))
+    /* Skip leading MySQL utf8mb4 whitespaces */
+    while (*cp == ' ' || (*cp >= 9 && *cp <= 13))
       cp++;
 
-    for ( ; *cp; cp++)
+    /* Optional '+' or '-' */
+    if (*cp == '-' || *cp == '+')
+      cp++;
+
+    /* Number before '.' */
+    while (*cp >= '0' && *cp <= '9')
     {
-      if ('-' == *cp)
+      cp++;
+      number_found = TRUE;
+    }
+
+    /* Optional '.' */
+    if (*cp == '.')
+    {
+      cp++;
+
+      /* Number after '.' */
+      while (*cp >= '0' && *cp <= '9')
       {
-        if (seen_neg >= 2)
-        {
-          /*
-            third '-'. number can contains two '-'.
-            because -1e-10 is valid number */
-          break;
-        }
-        seen_neg += 1;
-      }
-      else if ('.' == *cp)
-      {
-        if (seen_dec)
-        {
-          /* second '.' */
-          break;
-        }
-        seen_dec = TRUE;
-      }
-      else if ('e' == *cp)
-      {
-        if (seen_e)
-        {
-          /* second 'e' */
-          break;
-        }
-        seen_e = TRUE;
-      }
-      else if ('+' == *cp)
-      {
-        if (seen_plus)
-        {
-          /* second '+' */
-          break;
-        }
-        seen_plus = TRUE;
-      }
-      else if (!isdigit(*cp))
-      {
-        /* Not sure why this was changed */
-        /* seen_digit= 1; */
-        break;
+        cp++;
+        number_found = TRUE;
       }
     }
 
-    *end= cp;
-
-    /* length 0 -> not a number */
-    /* Need to revisit this */
-    /*if (len == 0 || string + len < cp || seen_digit == 0) {*/
-    if (len == 0 || string + len > cp) {
+    /* No number found - error */
+    if (!number_found)
         return FALSE;
+
+    /* Optional exponent */
+    if (*cp == 'e' || *cp == 'E')
+    {
+      cp++;
+      /* Search for number also in exponent */
+      number_found = FALSE;
+
+      /* Optional '+' or '-' in exponent */
+      if (*cp == '-' || *cp == '+')
+        cp++;
+
+      /* Exponent number */
+      while (*cp >= '0' && *cp <= '9')
+      {
+        cp++;
+        number_found = TRUE;
+      }
     }
 
-    return TRUE;
+    /* Skip trailing MySQL utf8mb4 whitespaces */
+    while (*cp == ' ' || (*cp >= 9 && *cp <= 13))
+      cp++;
+
+    /* Check that we processed all characters */
+    if (string + len != cp)
+        return FALSE;
+
+    return number_found;
 }
