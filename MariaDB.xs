@@ -546,21 +546,10 @@ void _async_check(sth)
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::GetInfo
 
 # This probably should be grabed out of some ODBC types header file
-#define SQL_CATALOG_NAME_SEPARATOR 41
-#define SQL_CATALOG_TERM 42
 #define SQL_DBMS_VER 18
-#define SQL_IDENTIFIER_QUOTE_CHAR 29
 #define SQL_MAXIMUM_STATEMENT_LENGTH 105
 #define SQL_MAXIMUM_TABLES_IN_SELECT 106
-#define SQL_MAX_TABLE_NAME_LEN 35
 #define SQL_SERVER_NAME 13
-#define SQL_ASYNC_MODE 10021
-#define SQL_MAX_ASYNC_CONCURRENT_STATEMENTS 10022
-
-#define SQL_AM_NONE       0
-#define SQL_AM_CONNECTION 1
-#define SQL_AM_STATEMENT  2
-
 
 #  dbd_mariadb_get_info()
 #  Return ODBC get_info() information that must needs be accessed from C
@@ -588,20 +577,9 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     }
     
     switch(type) {
-    	case SQL_CATALOG_NAME_SEPARATOR:
-	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvs(".");
-	    break;
-	case SQL_CATALOG_TERM:
-	    /* (dbc->flag & FLAG_NO_CATALOG) ? WTF is in flag ? */
-	    retsv = newSVpvs("database");
-	    break;
 	case SQL_DBMS_VER:
 	    retsv = newSVpv(mysql_get_server_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
-	    break;
-	case SQL_IDENTIFIER_QUOTE_CHAR:
-	    retsv = newSVpvs("`");
 	    break;
 	case SQL_MAXIMUM_STATEMENT_LENGTH:
 	{
@@ -621,19 +599,10 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	case SQL_MAXIMUM_TABLES_IN_SELECT:
 	    retsv = newSViv(mysql_get_server_version(imp_dbh->pmysql) >= 50000 ? 63 : 31);
 	    break;
-	case SQL_MAX_TABLE_NAME_LEN:
-	    retsv= newSViv(NAME_LEN);
-	    break;
 	case SQL_SERVER_NAME:
 	    retsv = newSVpv(mysql_get_host_info(imp_dbh->pmysql), 0);
 	    sv_utf8_decode(retsv);
 	    break;
-        case SQL_ASYNC_MODE:
-            retsv = newSViv(SQL_AM_STATEMENT);
-            break;
-        case SQL_MAX_ASYNC_CONCURRENT_STATEMENTS:
-            retsv = newSViv(1);
-            break;
     	default:
 	    mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown SQL Info type %" IVdf, type))), "HY000");
 	    XSRETURN_UNDEF;
