@@ -619,8 +619,7 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	    break;
 	}
 	case SQL_MAXIMUM_TABLES_IN_SELECT:
-	    /* newSViv((sizeof(int) > 32) ? sizeof(int)-1 : 31 ); in general? */
-	    retsv= newSViv((sizeof(int) == 64 ) ? 63 : 31 );
+	    retsv = newSViv(mysql_get_server_version(imp_dbh->pmysql) >= 50000 ? 63 : 31);
 	    break;
 	case SQL_MAX_TABLE_NAME_LEN:
 	    retsv= newSViv(NAME_LEN);
