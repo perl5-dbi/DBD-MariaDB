@@ -577,14 +577,14 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 	{
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
 	    /* mysql_get_option() was added in mysql 5.7.3 */
-	    /* MYSQL_OPT_NET_BUFFER_LENGTH was added in mysql 5.7.9 */
-	    /* MYSQL_OPT_NET_BUFFER_LENGTH was added in MariaDB 10.2.2 */
+	    /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
+	    /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
 	    unsigned long buffer_len;
-	    mysql_get_option(NULL, MYSQL_OPT_NET_BUFFER_LENGTH, &buffer_len);
+	    mysql_get_option(NULL, MYSQL_OPT_MAX_ALLOWED_PACKET, &buffer_len);
 	    retsv = newSVuv(buffer_len);
 #else
-	    /* before MySQL 5.7.9 and MariaDB 10.2.2 use net_buffer_length macro */
-	    retsv = newSVuv(net_buffer_length);
+	    /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
+	    retsv = newSVuv(max_allowed_packet);
 #endif
 	    break;
 	}
