@@ -55,7 +55,7 @@ sub CLONE {
   undef $drh;
 }
 
-sub _OdbcParse($$$) {
+sub _OdbcParse {
     my($class, $dsn, $hash, $args) = @_;
     my($var, $val);
     if (!defined($dsn)) {
@@ -217,7 +217,7 @@ sub ANSI2db {
     return $DBD::MariaDB::db::ANSI2db{"$type"};
 }
 
-sub table_info ($) {
+sub table_info {
   my ($dbh, $catalog, $schema, $table, $type, $attr) = @_;
   local $dbh->{mariadb_server_prepare} = 0;
   my @names = qw(TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS);

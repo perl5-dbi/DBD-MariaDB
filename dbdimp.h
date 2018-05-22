@@ -605,7 +605,6 @@ void    mariadb_dr_do_error (SV* h, int rc, const char *what, const char *sqlsta
 my_ulonglong mariadb_st_internal_execute(SV *,
                                        char *,
                                        STRLEN,
-                                       SV *,
                                        int,
                                        imp_sth_ph_t *,
                                        MYSQL_RES **,

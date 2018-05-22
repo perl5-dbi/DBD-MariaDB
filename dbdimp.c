@@ -3588,7 +3588,6 @@ my_ulonglong mariadb_st_internal_execute(
                                        SV *h, /* could be sth or dbh */
                                        char *sbuf,
                                        STRLEN slen,
-                                       SV *attribs,
                                        int num_params,
                                        imp_sth_ph_t *params,
                                        MYSQL_RES **result,
@@ -3605,7 +3604,6 @@ my_ulonglong mariadb_st_internal_execute(
   my_ulonglong rows= 0;
   /* thank you DBI.c for this info! */
   D_imp_xxh(h);
-  attribs= attribs;
 
   htype= DBIc_TYPE(imp_xxh);
   /*
@@ -3696,12 +3694,9 @@ my_ulonglong mariadb_st_internal_execute(
     Safefree(salloc);
 
   if (rows == (my_ulonglong)-1)
-  {
     mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock), 
              mysql_sqlstate(svsock));
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "IGNORING ERROR errno %d\n", mysql_errno(svsock));
-  }
+
   return(rows);
 }
 
@@ -3979,7 +3974,6 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                 sth,
                                                 imp_sth->statement,
                                                 imp_sth->statement_len,
-                                                NULL,
                                                 DBIc_NUM_PARAMS(imp_sth),
                                                 imp_sth->params,
                                                 &imp_sth->result,
