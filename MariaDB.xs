@@ -546,10 +546,7 @@ void _async_check(sth)
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::GetInfo
 
 # This probably should be grabed out of some ODBC types header file
-#define SQL_DBMS_VER 18
 #define SQL_MAXIMUM_STATEMENT_LENGTH 105
-#define SQL_MAXIMUM_TABLES_IN_SELECT 106
-#define SQL_SERVER_NAME 13
 
 #  dbd_mariadb_get_info()
 #  Return ODBC get_info() information that must needs be accessed from C
@@ -561,7 +558,6 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     SV* dbh
     SV* sql_info_type
   CODE:
-    D_imp_dbh(dbh);
     IV type = 0;
     SV* retsv=NULL;
 
@@ -577,10 +573,6 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     }
     
     switch(type) {
-	case SQL_DBMS_VER:
-	    retsv = newSVpv(mysql_get_server_info(imp_dbh->pmysql), 0);
-	    sv_utf8_decode(retsv);
-	    break;
 	case SQL_MAXIMUM_STATEMENT_LENGTH:
 	{
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
@@ -596,13 +588,6 @@ dbd_mariadb_get_info(dbh, sql_info_type)
 #endif
 	    break;
 	}
-	case SQL_MAXIMUM_TABLES_IN_SELECT:
-	    retsv = newSViv(mysql_get_server_version(imp_dbh->pmysql) >= 50000 ? 63 : 31);
-	    break;
-	case SQL_SERVER_NAME:
-	    retsv = newSVpv(mysql_get_host_info(imp_dbh->pmysql), 0);
-	    sv_utf8_decode(retsv);
-	    break;
     	default:
 	    mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown SQL Info type %" IVdf, type))), "HY000");
 	    XSRETURN_UNDEF;

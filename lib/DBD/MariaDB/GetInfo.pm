@@ -67,6 +67,20 @@ sub sql_user_name {
     return $dbh->{CURRENT_USER};
 }
 
+sub sql_dbms_ver {
+    my ($dbh) = @_;
+    return $dbh->FETCH('mariadb_serverinfo');
+}
+
+sub sql_max_tables_in_select {
+    my ($dbh) = @_;
+    return $dbh->FETCH('mariadb_serverversion') >= 50000 ? 63 : 31;
+}
+
+sub sql_server_name {
+    my ($dbh) = @_;
+    return $dbh->FETCH('mariadb_hostinfo');
+}
 
 ####################
 # makefunc()
@@ -145,7 +159,7 @@ our %info = (
      25 => 'N',                           # SQL_DATA_SOURCE_READ_ONLY
     119 => 7,                             # SQL_DATETIME_LITERALS
      17 => 'MySQL',                       # SQL_DBMS_NAME
-     18 => makefunk 18,                   # SQL_DBMS_VER
+     18 => \&sql_dbms_ver,                # SQL_DBMS_VER
     170 => 3,                             # SQL_DDL_INDEX
      26 => 2,                             # SQL_DEFAULT_TRANSACTION_ISOLATION
      26 => 2,                             # SQL_DEFAULT_TXN_ISOLATION
@@ -206,7 +220,7 @@ our %info = (
 # 20000 => undef,                         # SQL_MAXIMUM_STMT_OCTETS
 # 20001 => undef,                         # SQL_MAXIMUM_STMT_OCTETS_DATA
 # 20002 => undef,                         # SQL_MAXIMUM_STMT_OCTETS_SCHEMA
-    106 => makefunk 106,                  # SQL_MAXIMUM_TABLES_IN_SELECT
+    106 => \&sql_max_tables_in_select,    # SQL_MAXIMUM_TABLES_IN_SELECT
      35 => 64,                            # SQL_MAXIMUM_TABLE_NAME_LENGTH
     107 => 16,                            # SQL_MAXIMUM_USER_NAME_LENGTH
   10022 => 1,                             # SQL_MAX_ASYNC_CONCURRENT_STATEMENTS
@@ -231,7 +245,7 @@ our %info = (
     103 => 'Y',                           # SQL_MAX_ROW_SIZE_INCLUDES_LONG
      32 => 0,                             # SQL_MAX_SCHEMA_NAME_LEN
     105 => 8192,                          # SQL_MAX_STATEMENT_LEN
-    106 => 31,                            # SQL_MAX_TABLES_IN_SELECT
+    106 => \&sql_max_tables_in_select,    # SQL_MAX_TABLES_IN_SELECT
      35 => 64,                            # SQL_MAX_TABLE_NAME_LEN
     107 => 16,                            # SQL_MAX_USER_NAME_LEN
      37 => 'Y',                           # SQL_MULTIPLE_ACTIVE_TXN
@@ -269,7 +283,7 @@ our %info = (
      43 => 7,                             # SQL_SCROLL_CONCURRENCY
      44 => 17,                            # SQL_SCROLL_OPTIONS
      14 => '\\',                          # SQL_SEARCH_PATTERN_ESCAPE
-     13 => makefunk 13,                   # SQL_SERVER_NAME
+     13 => \&sql_server_name,             # SQL_SERVER_NAME
      94 => ' !"#%&\'()*+,-.:;<=>?@[\]^`{|}~', # SQL_SPECIAL_CHARACTERS
     155 => 7,                             # SQL_SQL92_DATETIME_FUNCTIONS
     156 => 0,                             # SQL_SQL92_FOREIGN_KEY_DELETE_RULE
