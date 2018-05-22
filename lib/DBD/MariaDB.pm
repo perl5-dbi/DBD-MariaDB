@@ -218,6 +218,9 @@ sub ANSI2db {
 
 sub table_info {
   my ($dbh, $catalog, $schema, $table, $type, $attr) = @_;
+
+  return unless $dbh->func('_async_check');
+
   local $dbh->{mariadb_server_prepare} = 0;
   my @names = qw(TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS);
   my @rows;
