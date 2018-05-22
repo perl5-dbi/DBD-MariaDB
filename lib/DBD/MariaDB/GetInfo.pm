@@ -93,19 +93,6 @@ sub sql_max_statement_len {
     return $dbh->FETCH('mariadb_max_allowed_packet');
 }
 
-####################
-# makefunc()
-# returns a ref to a sub that calls into  XS to get
-# values for info types that must needs be coded in C
-
-sub makefunk ($) {
-     my $type = shift;
-     return sub {dbd_mariadb_get_info(shift, $type)}
-}
-
-
-
-
 our %info = (
      20 => 'N',                           # SQL_ACCESSIBLE_PROCEDURES
      19 => 'Y',                           # SQL_ACCESSIBLE_TABLES
@@ -202,7 +189,6 @@ our %info = (
      81 => 11,                            # SQL_GETDATA_EXTENSIONS
      88 => 3,                             # SQL_GROUP_BY
      28 => 4,                             # SQL_IDENTIFIER_CASE
-     #29 => sub {dbd_mariadb_get_info(shift,$GetInfoType {SQL_IDENTIFIER_QUOTE_CHAR})},
      29 => '`',                           # SQL_IDENTIFIER_QUOTE_CHAR
     148 => 0,                             # SQL_INDEX_KEYWORDS
     149 => 0,                             # SQL_INFO_SCHEMA_VIEWS
