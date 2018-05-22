@@ -67,6 +67,11 @@ sub sql_user_name {
     return $dbh->{CURRENT_USER};
 }
 
+sub sql_dbms_name {
+    my ($dbh) = @_;
+    return ($dbh->FETCH('mariadb_serverinfo') =~ /MariaDB|-maria-/) ? 'MariaDB' : 'MySQL';
+}
+
 sub sql_dbms_ver {
     my ($dbh) = @_;
     return $dbh->FETCH('mariadb_serverinfo');
@@ -158,7 +163,7 @@ our %info = (
       2 => \&sql_data_source_name,        # SQL_DATA_SOURCE_NAME
      25 => 'N',                           # SQL_DATA_SOURCE_READ_ONLY
     119 => 7,                             # SQL_DATETIME_LITERALS
-     17 => 'MySQL',                       # SQL_DBMS_NAME
+     17 => \&sql_dbms_name,               # SQL_DBMS_NAME
      18 => \&sql_dbms_ver,                # SQL_DBMS_VER
     170 => 3,                             # SQL_DDL_INDEX
      26 => 2,                             # SQL_DEFAULT_TRANSACTION_ISOLATION
