@@ -303,11 +303,6 @@ if ($opt->{'embedded'})
                                                     '=> \'MariaDB\'' => '=> \'MariaDBEmb\''},
                                                makedir => 'MariaDBEmb/lib/DBD'
                                              },
-                       'lib/DBD/MariaDB/GetInfo.pm' => { filename => 'MariaDBEmb/lib/DBD/MariaDBEmb/GetInfo.pm',
-                                                       replace => {':MariaDB'   => ':MariaDBEmb',
-                                                    '\'MariaDB\'' => '\'MariaDBEmb\''},
-                                                       makedir => 'MariaDBEmb/lib/DBD/MariaDBEmb'
-                                                     },
                        't/MariaDB.dbtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.dbtest',
                                              makedir => 'MariaDBEmb/t'
                                            },
