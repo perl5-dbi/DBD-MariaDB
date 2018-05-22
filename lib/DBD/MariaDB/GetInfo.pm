@@ -18,10 +18,10 @@ use DBD::MariaDB;
 
 my $sql_driver = 'MariaDB';
 
-# SQL_DRIVER_VER should be formatted as dd.dd.dddd
+# SQL_DRIVER_VER should be formatted as ##.##.####
 my $dbdversion = $DBD::MariaDB::VERSION;
 $dbdversion .= '_00' if $dbdversion =~ /^\d+\.\d+$/;
-my $sql_driver_ver = sprintf("%02d.%02d.%04d", split(/[\._]/,$dbdversion));
+my $sql_driver_ver = sprintf("%02u.%02u.%04u", split(/[\._]/,$dbdversion));
 
 
 my @Keywords = qw(

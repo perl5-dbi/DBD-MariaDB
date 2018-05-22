@@ -11,7 +11,6 @@ use DynaLoader();
 our @ISA = qw(DynaLoader);
 
 # please make sure the sub-version does not increase above '099'
-# SQL_DRIVER_VER is formatted as dd.dd.dddd
 # for version 5.x please switch to 5.00(_00) version numbering
 our $VERSION = '4.042_01';
 

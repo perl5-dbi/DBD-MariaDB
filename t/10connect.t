@@ -45,7 +45,7 @@ my $driver_ver = $dbh->get_info($GetInfoType{SQL_DRIVER_VER});
 like(
   $driver_ver,
   qr/^\d{2}\.\d{2}\.\d{4}$/,
-  'get_info SQL_DRIVER_VER like dd.dd.dddd'
+  'get_info SQL_DRIVER_VER like ##.##.####'
 );
 
 like($driver_ver, qr/^04\./, 'SQL_DRIVER_VER starts with "04." (update for 5.x)');
