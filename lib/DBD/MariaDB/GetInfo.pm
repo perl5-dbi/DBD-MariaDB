@@ -270,7 +270,7 @@ our %info = (
      44 => 17,                            # SQL_SCROLL_OPTIONS
      14 => '\\',                          # SQL_SEARCH_PATTERN_ESCAPE
      13 => makefunk 13,                   # SQL_SERVER_NAME
-     94 => 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜáíóúñÑ', # SQL_SPECIAL_CHARACTERS
+     94 => ' !"#%&\'()*+,-.:;<=>?@[\]^`{|}~', # SQL_SPECIAL_CHARACTERS
     155 => 7,                             # SQL_SQL92_DATETIME_FUNCTIONS
     156 => 0,                             # SQL_SQL92_FOREIGN_KEY_DELETE_RULE
     157 => 0,                             # SQL_SQL92_FOREIGN_KEY_UPDATE_RULE
