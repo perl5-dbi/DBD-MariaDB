@@ -88,6 +88,11 @@ sub sql_server_name {
     return $dbh->FETCH('mariadb_hostinfo');
 }
 
+sub sql_max_statement_len {
+    my ($dbh) = @_;
+    return $dbh->FETCH('mariadb_max_allowed_packet');
+}
+
 ####################
 # makefunc()
 # returns a ref to a sub that calls into  XS to get
@@ -222,7 +227,7 @@ our %info = (
     102 => 500,                           # SQL_MAXIMUM_INDEX_SIZE
     104 => 0,                             # SQL_MAXIMUM_ROW_SIZE
      32 => 0,                             # SQL_MAXIMUM_SCHEMA_NAME_LENGTH
-    105 => makefunk 105,                  # SQL_MAXIMUM_STATEMENT_LENGTH
+    105 => \&sql_max_statement_len,       # SQL_MAXIMUM_STATEMENT_LENGTH
 # 20000 => undef,                         # SQL_MAXIMUM_STMT_OCTETS
 # 20001 => undef,                         # SQL_MAXIMUM_STMT_OCTETS_DATA
 # 20002 => undef,                         # SQL_MAXIMUM_STMT_OCTETS_SCHEMA
@@ -250,7 +255,7 @@ our %info = (
     104 => 0,                             # SQL_MAX_ROW_SIZE
     103 => 'Y',                           # SQL_MAX_ROW_SIZE_INCLUDES_LONG
      32 => 0,                             # SQL_MAX_SCHEMA_NAME_LEN
-    105 => 8192,                          # SQL_MAX_STATEMENT_LEN
+    105 => \&sql_max_statement_len,       # SQL_MAX_STATEMENT_LEN
     106 => \&sql_max_tables_in_select,    # SQL_MAX_TABLES_IN_SELECT
      35 => 64,                            # SQL_MAX_TABLE_NAME_LEN
     107 => 16,                            # SQL_MAX_USER_NAME_LEN

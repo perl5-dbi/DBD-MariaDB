@@ -573,21 +573,6 @@ dbd_mariadb_get_info(dbh, sql_info_type)
     }
     
     switch(type) {
-	case SQL_MAXIMUM_STATEMENT_LENGTH:
-	{
-#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
-	    /* mysql_get_option() was added in mysql 5.7.3 */
-	    /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
-	    /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
-	    unsigned long buffer_len;
-	    mysql_get_option(NULL, MYSQL_OPT_MAX_ALLOWED_PACKET, &buffer_len);
-	    retsv = newSVuv(buffer_len);
-#else
-	    /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
-	    retsv = newSVuv(max_allowed_packet);
-#endif
-	    break;
-	}
     	default:
 	    mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown SQL Info type %" IVdf, type))), "HY000");
 	    XSRETURN_UNDEF;
