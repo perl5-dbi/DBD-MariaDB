@@ -2966,6 +2966,11 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_serverinfo"))
     {
       const char* serverinfo = mysql_get_server_info(imp_dbh->pmysql);
+#ifndef MARIADB_BASE_VERSION
+      /* serverinfo for MariaDB server from MySQL client is prefixed by string 5.5.5- */
+      if (strBEGINs(serverinfo, "5.5.5-"))
+          serverinfo += sizeof("5.5.5-")-1;
+#endif
       result = serverinfo ? sv_2mortal(newSVpv(serverinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     } 
@@ -2978,7 +2983,23 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
 #endif
     else if (memEQs(key, kl, "mariadb_serverversion"))
-      result= sv_2mortal(newSVuv(mysql_get_server_version(imp_dbh->pmysql)));
+    {
+#ifndef MARIADB_BASE_VERSION
+      unsigned int major, minor, patch;
+      const char *serverinfo = mysql_get_server_info(imp_dbh->pmysql);
+      /* serverinfo for MariaDB server from MySQL client is prefixed by string 5.5.5- */
+      if (strBEGINs(serverinfo, "5.5.5-"))
+      {
+        /* And in this case mysql_get_server_version() returns just 50505 and not correct
+         * MariaDB server version. So parse serverversion manually from serverinfo. */
+        serverinfo += sizeof("5.5.5-")-1;
+        if (sscanf(serverinfo, "%u.%u.%u", &major, &minor, &patch) == 3)
+          result = sv_2mortal(newSVuv(10000UL * major + 100UL * minor + patch));
+      }
+#endif
+      if (!result)
+        result = sv_2mortal(newSVuv(mysql_get_server_version(imp_dbh->pmysql)));
+    }
     else if (memEQs(key, kl, "mariadb_sock"))
       result= sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "mariadb_sockfd"))
