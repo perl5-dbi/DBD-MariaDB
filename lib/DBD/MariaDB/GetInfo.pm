@@ -74,7 +74,8 @@ sub sql_dbms_name {
 
 sub sql_dbms_ver {
     my ($dbh) = @_;
-    return $dbh->FETCH('mariadb_serverinfo');
+    my $ver = $dbh->FETCH('mariadb_serverversion');
+    return sprintf("%02u.%02u.%02u00", $ver/10000, ($ver%10000)/100, $ver%100);
 }
 
 sub sql_max_tables_in_select {
