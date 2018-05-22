@@ -945,7 +945,7 @@ sub get_info {
 }
 
 BEGIN {
-    my @needs_async_check = qw/quote_identifier begin_work/;
+    my @needs_async_check = qw/begin_work/;
 
     foreach my $method (@needs_async_check) {
         no strict 'refs';
