@@ -1537,6 +1537,14 @@ or using an existing database handle:
 
   $dbh->{mariadb_no_autocommit_cmd} = 1;
 
+=item mariadb_max_allowed_packet
+
+This attribute controls the maximum size of one packet, any generated or
+intermediate string and any bind parameter. Default value depends on client
+MariaDB/MySQL library and should be 1GB.
+
+  $dbh->{mariadb_max_allowed_packet} = 32*1024*1024; # limit max size to 32MB
+
 =item ping
 
 This can be used to send a ping to the server.

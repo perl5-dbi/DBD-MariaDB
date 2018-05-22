@@ -1709,6 +1709,21 @@ static MYSQL *mariadb_dr_connect(
                         (const char *)&to);
         }
 
+        (void)hv_stores(processed, "mariadb_max_allowed_packet", &PL_sv_yes);
+        if ((svp = hv_fetchs(hv, "mariadb_max_allowed_packet", FALSE)) && *svp && SvTRUE(*svp))
+        {
+          UV uv = SvUV_nomg(*svp);
+          unsigned long packet_size = (uv <= ULONG_MAX ? uv : ULONG_MAX);
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+          /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
+          /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+          mysql_options(sock, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
+#else
+          /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
+          max_allowed_packet = packet_size;
+#endif
+        }
+
         (void)hv_stores(processed, "mariadb_skip_secure_auth", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_skip_secure_auth", FALSE)) && *svp && SvTRUE(*svp))
         {
@@ -2782,6 +2797,21 @@ mariadb_db_STORE_attrib(
       return 0;
     }
   #endif
+    else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
+    {
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+      UV uv = SvUV_nomg(valuesv);
+      unsigned long packet_size = (uv <= ULONG_MAX ? uv : ULONG_MAX);
+      mysql_options(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
+#else
+      /* before MySQL 5.7.9 and MariaDB 10.2.2 it is not possible to change max_allowed_packet after connection was established */
+      if (imp_dbh->connected)
+        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Changing mariadb_max_allowed_packet is not supported after connection was established", "HY000");
+      return 0;
+#endif
+    }
     else
     {
       if (imp_dbh->connected) /* Ignore unknown attributes passed by DBI->connect, they are handled in mariadb_dr_connect() */
@@ -2958,6 +2988,20 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     {
       /* We cannot return an IV, because the insertid is a long. */
       result= sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
+    }
+    else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
+    {
+      unsigned long packet_size;
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+      /* mysql_get_option() was added in mysql 5.7.3 */
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+      mysql_get_option(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
+#else
+      /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
+      packet_size = max_allowed_packet;
+#endif
+      result = sv_2mortal(newSVuv(packet_size));
     }
     else if (memEQs(key, kl, "mariadb_no_autocommit_cmd"))
       result = boolSV(imp_dbh->no_autocommit_cmd);
