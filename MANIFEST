@@ -2,7 +2,6 @@ Changes
 dbdimp.c
 dbdimp.h
 lib/DBD/MariaDB.pm
-lib/DBD/MariaDB/GetInfo.pm
 lib/DBD/MariaDB/INSTALL.pod
 LICENSE
 Makefile.PL
@@ -67,6 +66,7 @@ t/70takeimp.t
 t/71impdata.t
 t/75supported_sql.t
 t/76multi_statement.t
+t/77max_allowed_packet.t
 t/80procs.t
 t/81procs.t
 t/85init_command.t

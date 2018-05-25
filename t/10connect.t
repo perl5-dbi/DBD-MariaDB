@@ -37,16 +37,25 @@ for my $attribute ( qw(
   diag "$attribute is: ". $dbh->{$attribute};
 }
 
+my $sql_dbms_name = $dbh->get_info($GetInfoType{SQL_DBMS_NAME});
+like($sql_dbms_name, qr/^MariaDB$|^MySQL$/, 'get_info SQL_DBMS_NAME is MariaDB or MySQL');
+diag "SQL_DBMS_NAME is $sql_dbms_name";
+
 my $sql_dbms_ver = $dbh->get_info($GetInfoType{SQL_DBMS_VER});
-ok($sql_dbms_ver, 'get_info SQL_DBMS_VER');
+like($sql_dbms_ver, qr/^\d{2}\.\d{2}\.\d{4}$/, 'get_info SQL_DBMS_VER like ##.##.####');
 diag "SQL_DBMS_VER is $sql_dbms_ver";
+
+my $sql_server_name = $dbh->get_info($GetInfoType{SQL_SERVER_NAME});
+ok(defined $sql_server_name, 'get_info SQL_SERVER_NAME');
+diag "SQL_SERVER_NAME is $sql_server_name";
 
 my $driver_ver = $dbh->get_info($GetInfoType{SQL_DRIVER_VER});
 like(
   $driver_ver,
   qr/^\d{2}\.\d{2}\.\d{4}$/,
-  'get_info SQL_DRIVER_VER like dd.dd.dddd'
+  'get_info SQL_DRIVER_VER like ##.##.####'
 );
+diag "SQL_DRIVER_VER is $driver_ver";
 
 like($driver_ver, qr/^04\./, 'SQL_DRIVER_VER starts with "04." (update for 5.x)');
 
