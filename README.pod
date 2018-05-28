@@ -1,5 +1,7 @@
 =head1 DBD::MariaDB - database driver for Perl
 
+=for html <a href="https://travis-ci.org/gooddata/DBD-MariaDB"><img src="https://travis-ci.org/gooddata/DBD-MariaDB.svg?branch=master"></a>
+
 This is the Perl L<DBI> driver for access to MariaDB and MySQL databases.
 
 The goal of our effort was to fix MariaDB compatibility, Perl Unicode support
