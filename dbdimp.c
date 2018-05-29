@@ -4965,6 +4965,7 @@ static SV* mariadb_st_fetch_internal(
   D_imp_sth(sth);
   AV *av= Nullav;
   MYSQL_FIELD *curField;
+  unsigned int length;
 
   /* Are we asking for a legal value? */
   if (what < 0 ||  what >= AV_ATTRIB_LAST)
@@ -4989,13 +4990,27 @@ static SV* mariadb_st_fetch_internal(
 
       switch(what) {
       case AV_ATTRIB_NAME:
-        sv= newSVpvn(curField->name, curField->name_length);
+        length = curField->name_length;
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
+         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+        if (imp_sth->stmt)
+          length = strlen(curField->name);
+#endif
+        sv= newSVpvn(curField->name, length);
         if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
 
       case AV_ATTRIB_TABLE:
-        sv= newSVpvn(curField->table, curField->table_length);
+        length = curField->table_length;
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
+         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+        if (imp_sth->stmt)
+          length = strlen(curField->table);
+#endif
+        sv= newSVpvn(curField->table, length);
         if (mysql_field_is_utf8(curField))
           sv_utf8_decode(sv);
         break;
