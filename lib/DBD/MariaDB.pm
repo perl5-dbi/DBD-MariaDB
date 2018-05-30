@@ -1286,10 +1286,6 @@ at least mariadb_ssl_ca_file or mariadb_ssl_ca_path.
 
 This means that your communication with the server will be encrypted.
 
-Please note that this can only work if you enabled SSL when compiling
-DBD::MariaDB; this is the default starting version 4.034.
-See L<DBD::MariaDB::INSTALL> for more details.
-
 =item mariadb_ssl_ca_file
 
 The path to a file in PEM format that contains a list of trusted SSL

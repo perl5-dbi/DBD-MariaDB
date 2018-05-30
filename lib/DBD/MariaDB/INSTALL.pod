@@ -516,16 +516,6 @@ you may also try to link without gzip libraries.
 
 =back
 
-=head1 ENCRYPTED CONNECTIONS via SSL
-
-Connecting to your servers over an encrypted connection (SSL) is only possible
-if you enabled this setting at build time. Since version 4.034, this is the
-default.
-
-Attempting to connect to a server that requires an encrypted connection without
-first having L<DBD::MariaDB> compiled with the C<--ssl> option will result in
-an error that makes things appear as if your password is incorrect.
-
 
 =head1 MARIADB NATIVE CLIENT INSTALLATION
 
