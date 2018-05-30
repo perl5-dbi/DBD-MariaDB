@@ -306,18 +306,18 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define HAVE_SSL_VERIFY
 #endif
 
-/* Use mysql_options with MYSQL_OPT_SSL_ENFORCE */
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50703 && MYSQL_VERSION_ID < 80000 && MYSQL_VERSION_ID != 60000
+/* Use mysql_options with MYSQL_OPT_SSL_ENFORCE (CVE-2015-3152, fix for MySQL) */
+#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && MYSQL_VERSION_ID >= 50703 && MYSQL_VERSION_ID < 80000 && MYSQL_VERSION_ID != 60000
 #define HAVE_SSL_ENFORCE
 #endif
 
-/* Use mysql_options with MYSQL_OPT_SSL_MODE */
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50711 && MYSQL_VERSION_ID != 60000
+/* Use mysql_options with MYSQL_OPT_SSL_MODE (CVE-2015-3152, fix for MySQL) */
+#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && MYSQL_VERSION_ID >= 50711 && MYSQL_VERSION_ID != 60000
 #define HAVE_SSL_MODE
 #endif
 
-/* Use mysql_options with MYSQL_OPT_SSL_MODE, but only SSL_MODE_REQUIRED is supported */
-#if !defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 50636 && MYSQL_VERSION_ID < 50700) || (MYSQL_VERSION_ID >= 50555 && MYSQL_VERSION_ID < 50600))
+/* Use mysql_options with MYSQL_OPT_SSL_MODE, but only SSL_MODE_REQUIRED is supported (CVE-2017-3305, fix for MySQL) */
+#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && ((MYSQL_VERSION_ID >= 50636 && MYSQL_VERSION_ID < 50700) || (MYSQL_VERSION_ID >= 50555 && MYSQL_VERSION_ID < 50600))
 #define HAVE_SSL_MODE_ONLY_REQUIRED
 #endif
 
@@ -325,11 +325,15 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
  * Check which SSL settings are supported by API at runtime
  */
 
-/* MYSQL_OPT_SSL_VERIFY_SERVER_CERT automatically enforce SSL mode */
+/* MYSQL_OPT_SSL_VERIFY_SERVER_CERT automatically enforce SSL mode (CVE-2015-3152 and CVE-2017-3305 and CVE-2018-2767, fix for MariaDB) */
 PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 #ifdef MARIADB_BASE_VERSION
 	unsigned long version = mysql_get_client_version();
-	return ((version >= 50544 && version < 50600) || (version >= 100020 && version < 100100) || version >= 100106);
+ #ifdef DBD_MYSQL_EMBEDDED
+	return ((version >= 50560 && version < 50600) || (version >= 100035 && version < 100100) || (version >= 100133 && version < 100200) || (version >= 100215 && version < 100300) || version >= 100307);
+ #else
+	return ((version >= 50556 && version < 50600) || (version >= 100031 && version < 100100) || (version >= 100123 && version < 100200) || (version >= 100206 && version < 100300) || version >= 100301);
+ #endif
 #else
 	return FALSE;
 #endif
