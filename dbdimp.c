@@ -3346,6 +3346,8 @@ mariadb_st_prepare_sv(
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                     "\t\tSETTING imp_sth->use_server_side_prepare to FALSE\n");
+        mysql_stmt_close(imp_sth->stmt);
+        imp_sth->stmt = NULL;
         imp_sth->use_server_side_prepare = FALSE;
       }
       else
@@ -3855,10 +3857,14 @@ my_ulonglong mariadb_st_internal_execute41(
       mariadb_dr_do_error(sth, mysql_errno(svsock), mysql_error(svsock), mysql_sqlstate(svsock));
       return -1;
     }
+    if (mysql_stmt_prepare(stmt, sbuf, slen))
+    {
+      mariadb_dr_do_error(sth, mysql_stmt_errno(stmt), mysql_stmt_error(stmt), mysql_stmt_sqlstate(stmt));
+      mysql_stmt_close(stmt);
+      return -1;
+    }
     mysql_stmt_close(*stmt_ptr);
     *stmt_ptr = stmt;
-    if (mysql_stmt_prepare(stmt, sbuf, slen))
-      goto error;
     if (num_params > 0)
     {
       if (mysql_stmt_bind_param(stmt,bind))
