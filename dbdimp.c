@@ -3294,12 +3294,8 @@ mariadb_st_prepare_sv(
 
     if (! imp_sth->stmt)
     {
-      if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                      "\t\tERROR: Unable to return MYSQL_STMT structure "
-                      "from mysql_stmt_init(): ERROR NO: %d ERROR MSG:%s\n",
-                      mysql_errno(imp_dbh->pmysql),
-                      mysql_error(imp_dbh->pmysql));
+      mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      return 0;
     }
 
     prepare_retval= mysql_stmt_prepare(imp_sth->stmt,
