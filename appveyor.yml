@@ -37,5 +37,4 @@ build_script:
 
 test_script:
   - set CONNECTION_TESTING=1
-  - set SKIP_CRASH_TESTING=1
   - perl -MConfig -e "system({$Config{make}} $Config{make}, @ARGV); exit((($? >> 8) | ($? & 127)) & 255)" test

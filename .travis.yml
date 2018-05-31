@@ -371,7 +371,6 @@ before_script:
   - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
   - export CONNECTION_TESTING=1
-  - export SKIP_CRASH_TESTING=1
 
 script:
   - make realclean || true
