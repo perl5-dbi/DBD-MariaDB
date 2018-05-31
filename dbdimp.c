@@ -3140,6 +3140,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
 
     memcpy(SvPVX(sv), prefix, prefix_len);
     memcpy(SvPVX(sv)+prefix_len, row[0], lengths[0]);
+    *(SvPVX(sv)+prefix_len+lengths[0]) = '\0';
 
     SvPOK_on(sv);
     SvCUR_set(sv, prefix_len + lengths[0]);
