@@ -3199,6 +3199,12 @@ mariadb_st_prepare_sv(
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
+  if (imp_sth->statement)
+  {
+    mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Statement is already prepared", "HY000");
+    return 0;
+  }
+
   statement = SvPVutf8_nomg(statement_sv, statement_len);
   imp_sth->statement = savepvn(statement, statement_len);
   imp_sth->statement_len = statement_len;
@@ -3284,11 +3290,6 @@ mariadb_st_prepare_sv(
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                     "\t\tuse_server_side_prepare set\n");
-    /* do we really need this? If we do, we should return, not just continue */
-    if (imp_sth->stmt)
-      fprintf(stderr,
-              "ERROR: Trying to prepare new stmt while we have "
-              "already not closed one \n");
 
     imp_sth->stmt= mysql_stmt_init(imp_dbh->pmysql);
 
