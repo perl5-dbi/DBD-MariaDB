@@ -162,11 +162,10 @@ matrix:
 #      env: DB=MariaDB VERSION=10.2.2
 #    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.3
-# Incompatible, client library crash for unknown reason
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.2.4
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.2.5
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.4
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.5
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.6
     - perl: "5.22"
@@ -183,9 +182,8 @@ matrix:
       env: DB=MariaDB VERSION=10.2.12
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.13
-# Incompatible, client library crash for unknown reason
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.3.0
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.0
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.1
     - perl: "5.22"
