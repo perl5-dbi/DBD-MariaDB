@@ -297,6 +297,11 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define HAVE_SECURE_AUTH
 #endif
 
+/* mysql_error(NULL) returns last error message, needs MySQL 5.0.60+ or 5.1.24+; does not work with MariaDB Connector/C yet */
+#if ((MYSQL_VERSION_ID >= 50060 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50124) && !defined(MARIADB_PACKAGE_VERSION)
+#define HAVE_LAST_ERROR
+#endif
+
 /*
  * Check which SSL settings are supported by API at compile time
  */
@@ -307,17 +312,17 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #endif
 
 /* Use mysql_options with MYSQL_OPT_SSL_ENFORCE (CVE-2015-3152, fix for MySQL) */
-#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && MYSQL_VERSION_ID >= 50703 && MYSQL_VERSION_ID < 80000 && MYSQL_VERSION_ID != 60000
+#if !defined(MARIADB_BASE_VERSION) && !defined(HAVE_EMBEDDED) && MYSQL_VERSION_ID >= 50703 && MYSQL_VERSION_ID < 80000 && MYSQL_VERSION_ID != 60000
 #define HAVE_SSL_ENFORCE
 #endif
 
 /* Use mysql_options with MYSQL_OPT_SSL_MODE (CVE-2015-3152, fix for MySQL) */
-#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && MYSQL_VERSION_ID >= 50711 && MYSQL_VERSION_ID != 60000
+#if !defined(MARIADB_BASE_VERSION) && !defined(HAVE_EMBEDDED) && MYSQL_VERSION_ID >= 50711 && MYSQL_VERSION_ID != 60000
 #define HAVE_SSL_MODE
 #endif
 
 /* Use mysql_options with MYSQL_OPT_SSL_MODE, but only SSL_MODE_REQUIRED is supported (CVE-2017-3305, fix for MySQL) */
-#if !defined(MARIADB_BASE_VERSION) && !defined(DBD_MYSQL_EMBEDDED) && ((MYSQL_VERSION_ID >= 50636 && MYSQL_VERSION_ID < 50700) || (MYSQL_VERSION_ID >= 50555 && MYSQL_VERSION_ID < 50600))
+#if !defined(MARIADB_BASE_VERSION) && !defined(HAVE_EMBEDDED) && ((MYSQL_VERSION_ID >= 50636 && MYSQL_VERSION_ID < 50700) || (MYSQL_VERSION_ID >= 50555 && MYSQL_VERSION_ID < 50600))
 #define HAVE_SSL_MODE_ONLY_REQUIRED
 #endif
 
@@ -329,7 +334,7 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 PERL_STATIC_INLINE bool ssl_verify_also_enforce_ssl(void) {
 #ifdef MARIADB_BASE_VERSION
 	unsigned long version = mysql_get_client_version();
- #ifdef DBD_MYSQL_EMBEDDED
+ #ifdef HAVE_EMBEDDED
 	return ((version >= 50560 && version < 50600) || (version >= 100035 && version < 100100) || (version >= 100133 && version < 100200) || (version >= 100215 && version < 100300) || version >= 100307);
  #else
 	return ((version >= 50556 && version < 50600) || (version >= 100031 && version < 100100) || (version >= 100123 && version < 100200) || (version >= 100206 && version < 100300) || version >= 100301);
@@ -415,17 +420,13 @@ enum av_attribs {
  *  This declares a variable called "imp_drh" of type
  *  "struct imp_drh_st *".
  */
-typedef struct imp_drh_embedded_st {
-    int state;
-    SV * args;
-    SV * groups;
-} imp_drh_embedded_t;
-
 struct imp_drh_st {
     dbih_drc_t com;         /* MUST be first element in structure   */
-#if defined(DBD_MYSQL_EMBEDDED)
-    imp_drh_embedded_t embedded;     /* */
-#endif
+    unsigned long int instances;
+    bool non_embedded_started;
+    bool embedded_started;
+    SV *embedded_args;
+    SV *embedded_groups;
 };
 
 
@@ -612,7 +613,7 @@ my_ulonglong mariadb_st_internal_execute(SV *,
                                        int,
                                        imp_sth_ph_t *,
                                        MYSQL_RES **,
-                                       MYSQL *,
+                                       MYSQL **,
                                        bool);
 
 my_ulonglong mariadb_st_internal_execute41(SV *,
@@ -622,7 +623,7 @@ my_ulonglong mariadb_st_internal_execute41(SV *,
                                          MYSQL_RES **,
                                          MYSQL_STMT **,
                                          MYSQL_BIND *,
-                                         MYSQL *,
+                                         MYSQL **,
                                          bool *);
 
 bool mariadb_st_more_results(SV*, imp_sth_t*);

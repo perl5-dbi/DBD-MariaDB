@@ -5,7 +5,6 @@ lib/DBD/MariaDB.pm
 lib/DBD/MariaDB/INSTALL.pod
 LICENSE
 Makefile.PL
-Makefile.PL.embedded
 MANIFEST			This list of files
 MANIFEST.SKIP
 MariaDB.xs
@@ -16,6 +15,7 @@ t/00base.t
 t/05dbcreate.t
 t/10connect.t
 t/11data_sources.t
+t/12embedded.t
 t/15reconnect.t
 t/16dbi-get_info.t
 t/20createdrop.t

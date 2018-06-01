@@ -1413,7 +1413,7 @@ options to embedded server.
 Example:
 
   use DBI;
-  $testdsn="DBI:MariaDBEmb:database=test;mariadb_embedded_options=--help,--verbose";
+  $testdsn="DBI:MariaDB:host=embedded;database=test;mariadb_embedded_options=--help,--verbose";
   $dbh = DBI->connect($testdsn,"a","b");
 
 This would cause the command line help to the embedded MariaDB or MySQL server library
@@ -1428,7 +1428,7 @@ If not specified [server] and [embedded] groups will be used.
 
 Example:
 
-  $testdsn="DBI:MariaDBEmb:database=test;mariadb_embedded_groups=embedded_server,common";
+  $testdsn="DBI:MariaDB:host=embedded;database=test;mariadb_embedded_groups=embedded_server,common";
 
 =item mariadb_conn_attrs
 
