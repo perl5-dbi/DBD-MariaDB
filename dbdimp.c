@@ -3938,7 +3938,8 @@ my_ulonglong mariadb_st_internal_execute41(
     num_fields = mysql_stmt_field_count(stmt);
     for (i = 0; i < num_fields; ++i)
     {
-      if (mysql_field_needs_allocated_buffer(&stmt->fields[i]))
+      MYSQL_FIELD *field = mysql_fetch_field_direct(*result, i);
+      if (field && mysql_field_needs_allocated_buffer(field))
       {
         /* mysql_stmt_store_result to update MYSQL_FIELD->max_length */
         my_bool on = TRUE;
