@@ -5574,21 +5574,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                       "   SCALAR sql_type %"IVdf" IS A NULL VALUE", sql_type);
     }
 
-    /* Type of column was changed. Force to rebind */
-    if (imp_sth->bind[idx].buffer_type != buffer_type || imp_sth->bind[idx].is_unsigned != buffer_is_unsigned) {
-      if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-          PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                        "   FORCE REBIND: buffer type changed from %d to %d, sql-type=%"IVdf"\n",
-                        (int) imp_sth->bind[idx].buffer_type, buffer_type, sql_type);
-      imp_sth->has_been_bound = FALSE;
-    }
-
-    /* prepare has been called */
-    if (imp_sth->has_been_bound)
-    {
-      imp_sth->stmt->params[idx].buffer= buffer;
-      imp_sth->stmt->params[idx].buffer_length= buffer_length;
-    }
+    /* Column was changed, force rebind */
+    imp_sth->has_been_bound = FALSE;
 
     imp_sth->bind[idx].buffer_type= buffer_type;
     imp_sth->bind[idx].buffer= buffer;
