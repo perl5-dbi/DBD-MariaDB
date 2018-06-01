@@ -77,12 +77,6 @@ ok $sth->finish();
 
 ok $dbh->do("SELECT 1 FROM t WHERE i = ?" . (" OR i = ?" x 10000), {}, (1) x (10001));
 
-if ($ENV{SKIP_CRASH_TESTING}) {
-  ok $dbh->disconnect();
-  Test::More->builder->skip("\$ENV{SKIP_CRASH_TESTING} is set") for (1..5);
-  exit;
-}
-
 # $sth2 is statement that cannot be executed as mysql server side prepared statement, so fallback must be allowed
 ok my $dbname = $dbh->selectrow_arrayref("SELECT DATABASE()")->[0];
 ok my $sth2 = $dbh->prepare("USE $dbname", { mariadb_server_prepare_disable_fallback => 0 });
@@ -99,5 +93,5 @@ $dbh = undef;
 # other - danging pointer exported
 my $sock1 = $sth->{mariadb_sock};
 my $sock2 = $sth2->{mariadb_sock};
-ok defined $sock1 && !$sock1 or diag "Your libmysqlclient.so is vulnerable to CVE 2017-3302 and can crash perl";
-ok defined $sock2 && !$sock2 or diag "Your libmysqlclient.so is vulnerable to CVE 2017-3302 and can crash perl";
+ok defined $sock1 && !$sock1 or diag "CVE 2017-3302 vulnerability detected, it can crash perl";
+ok defined $sock2 && !$sock2 or diag "CVE 2017-3302 vulnerability detected, it can crash perl";
