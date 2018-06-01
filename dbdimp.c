@@ -4322,6 +4322,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
   IV int_val;
   const char *int_type;
   MYSQL_FIELD *fields;
+  bool rebind_result;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> mariadb_st_fetch\n");
@@ -4418,6 +4419,7 @@ process:
                     "\t\tmariadb_st_fetch called mysql_fetch, rc %d num_fields %u\n",
                     rc, num_fields);
 
+    rebind_result = FALSE;
     for (
          buffer= imp_sth->buffer,
          fbh= imp_sth->fbh,
@@ -4428,21 +4430,11 @@ process:
          buffer++
         )
     {
-      SV *sv= AvARRAY(av)[i]; /* Note: we (re)use the SV in the AV	*/
-      STRLEN len;
-
-      /* This is wrong, null is not being set correctly
-       * This is not the way to determine length (this would break blobs!)
-       */
-      if (fbh->is_null)
-        (void) SvOK_off(sv);  /*  Field is NULL, return undef  */
-      else
-      {
-        /* In case of BLOB/TEXT fields we allocate only 8192 bytes
+        /* In case of BLOB/TEXT fields we allocate only few bytes
            in mariadb_st_describe() for data. Here we know real size of field
            so we should increase buffer size and refetch column value
         */
-        if (mysql_type_needs_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
+        if (!fbh->is_null && mysql_type_needs_allocated_buffer(buffer->buffer_type) && (fbh->length > buffer->buffer_length || fbh->error))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4452,8 +4444,12 @@ process:
           Renew(fbh->data, fbh->length, char);
           buffer->buffer_length= fbh->length;
           buffer->buffer= (char *) fbh->data;
-          imp_sth->stmt->bind[i].buffer_length = fbh->length;
-          imp_sth->stmt->bind[i].buffer = (char *)fbh->data;
+
+          /* We invalidated fbh->data, therefore we must call mysql_stmt_bind_result()
+           * prior exiting this function. But we cannot call mysql_stmt_bind_result()
+           * before all remaining mysql_stmt_fetch_column() calls because we would get
+           * again truncated data. */
+          rebind_result = TRUE;
 
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2) {
             char *ptr = (char*)buffer->buffer;
@@ -4474,6 +4470,7 @@ process:
             mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt),
                      mysql_stmt_error(imp_sth->stmt),
                      mysql_stmt_sqlstate(imp_sth->stmt));
+            mysql_stmt_bind_result(imp_sth->stmt, imp_sth->buffer);
             return Nullav;
           }
 
@@ -4490,7 +4487,34 @@ process:
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),"\n");
           }
         }
+    }
 
+    if (rebind_result)
+    {
+      if (mysql_stmt_bind_result(imp_sth->stmt, imp_sth->buffer))
+      {
+        mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt), mysql_stmt_error(imp_sth->stmt), mysql_stmt_sqlstate(imp_sth->stmt));
+        return Nullav;
+      }
+    }
+
+    for (
+         buffer= imp_sth->buffer,
+         fbh= imp_sth->fbh,
+         i= 0;
+         i < num_fields;
+         i++,
+         fbh++,
+         buffer++
+        )
+    {
+      SV *sv= AvARRAY(av)[i]; /* Note: we (re)use the SV in the AV	*/
+      STRLEN len;
+
+      if (fbh->is_null)
+        (void) SvOK_off(sv);  /*  Field is NULL, return undef  */
+      else
+      {
         switch (buffer->buffer_type) {
         case MYSQL_TYPE_TINY:
         case MYSQL_TYPE_SHORT:
