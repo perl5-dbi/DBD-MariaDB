@@ -65,6 +65,7 @@ BOOT:
   newTypeSub(stash, MYSQL_TYPE_VAR_STRING);
   newTypeSub(stash, MYSQL_TYPE_STRING);
 #undef newTypeSub
+  mysql_thread_init();
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
