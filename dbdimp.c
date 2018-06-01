@@ -2538,6 +2538,13 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
 int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
   dTHX;
+  AV *av;
+  I32 i;
+  MAGIC *mg;
+  SV **svp;
+  SV *sv;
+  SV *sth;
+  imp_sth_t *imp_sth;
   D_imp_xxh(dbh);
   D_imp_drh_from_dbh;
 
@@ -2553,6 +2560,41 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
     mysql_close(imp_dbh->pmysql);
     imp_dbh->pmysql = NULL;
     imp_drh->instances--;
+    svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
+    if (svp && *svp)
+    {
+      SvGETMAGIC(*svp);
+      if (SvROK(*svp) && SvTYPE(SvRV(*svp)) == SVt_PVAV)
+      {
+        av = (AV *)SvRV(*svp);
+        for (i = AvFILL(av); i >= 0; --i)
+        {
+          svp = av_fetch(av, i, FALSE);
+          if (!svp || !*svp || !sv_isobject(*svp) || SvTYPE(SvRV(*svp)) != SVt_PVHV)
+            continue;
+          sv = SvRV(*svp);
+          /* get inner DBI handle (sth) from outer DBI handle (sv) */
+          if (!SvMAGICAL(sv))
+            continue;
+          mg = mg_find(sv, 'P');
+          if (!mg)
+            continue;
+          sth = mg->mg_obj;
+          imp_sth = (imp_sth_t *)DBIh_COM(sth);
+          if (DBIc_TYPE(imp_sth) != DBIt_ST)
+            continue;
+          /* mysql_close() should properly invalidates MYSQL* pointers in
+           * MYSQL_STMT structures. But MariaDB and MySQL clients affected by
+           * CVE 2017-3302 do not do it. So do it manually to prevent crash. */
+          if (imp_sth->stmt && imp_sth->stmt->mysql)
+          {
+            if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+              PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Applying CVE 2017-3302 workaround for sth=0x%p\n", imp_sth);
+            imp_sth->stmt->mysql = NULL;
+          }
+        }
+      }
+    }
   }
   if (imp_drh->instances == 0)
   {
