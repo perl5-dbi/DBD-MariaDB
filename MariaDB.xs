@@ -36,6 +36,7 @@ INCLUDE: MariaDB.xsi
 MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 
 BOOT:
+{
   HV *stash = gv_stashpvs("DBD::MariaDB", GV_ADD);
 #define newTypeSub(stash, type) newCONSTSUB((stash), #type + sizeof("MYSQL_")-1, newSViv(type))
   newTypeSub(stash, MYSQL_TYPE_DECIMAL);
@@ -66,6 +67,7 @@ BOOT:
   newTypeSub(stash, MYSQL_TYPE_STRING);
 #undef newTypeSub
   mysql_thread_init();
+}
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
