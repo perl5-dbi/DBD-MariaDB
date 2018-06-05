@@ -1433,6 +1433,12 @@ static bool mariadb_dr_connect(
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****");
 
+  if (imp_drh->non_embedded_finished)
+  {
+    mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: Method disconnect_all() was already called and library functions unloaded", "HY000");
+    return FALSE;
+  }
+
   if (host && strcmp(host, "embedded") == 0)
   {
 #ifndef HAVE_EMBEDDED
@@ -2636,28 +2642,60 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
  *  Input:   dbh - database handle being disconnected
  *           imp_dbh - drivers private database handle data
  *
- *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error has already
- *           been called in the latter case
+ *  Returns: 1 for success, 0 otherwise
  *
  **************************************************************************/
 
 int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
   dTHX;
+  dSP;
+  int ret;
+  SV **svp;
+  AV *av;
+  I32 i;
+  PERL_UNUSED_ARG(drh);
 
-  /* The disconnect_all concept is flawed and needs more work */
-  if (!PL_dirty && !SvTRUE(get_sv("DBI::PERL_ENDING",0))) {
-    sv_setiv(DBIc_ERR(imp_drh), 1);
-    sv_setpv(DBIc_ERRSTR(imp_drh),
-             (char*)"disconnect_all not implemented");
-    /* NO EFFECT DBIh_EVENT2(drh, ERROR_event,
-      DBIc_ERR(imp_drh), DBIc_ERRSTR(imp_drh)); */
-    return 0;
+  svp = hv_fetchs((HV*)DBIc_MY_H(imp_drh), "ChildHandles", FALSE);
+  if (svp && *svp)
+  {
+    SvGETMAGIC(*svp);
+    if (SvROK(*svp) && SvTYPE(SvRV(*svp)) == SVt_PVAV)
+    {
+      av = (AV *)SvRV(*svp);
+      for (i = AvFILL(av); i >= 0; --i)
+      {
+        svp = av_fetch(av, i, FALSE);
+        if (!svp || !*svp || !sv_isobject(*svp))
+          continue;
+
+        ENTER;
+        SAVETMPS;
+
+        PUSHMARK(SP);
+        EXTEND(SP, 1);
+        PUSHs(sv_2mortal(newSVsv(*svp)));
+        PUTBACK;
+
+        call_method("disconnect", G_VOID|G_DISCARD|G_EVAL|G_KEEPERR);
+
+        FREETMPS;
+        LEAVE;
+      }
+    }
+  }
+
+  ret = 1;
+
+  if (imp_drh->instances)
+  {
+    warn("DBD::MariaDB disconnect_all: %lu database handlers were not released (possible bug in driver)", imp_drh->instances);
+    ret = 0;
   }
 
   if (imp_drh->embedded_started)
   {
-    mysql_server_end();
-    imp_drh->embedded_started = FALSE;
+    warn("DBD::MariaDB disconnect_all: Embedded server was not properly stopped (possible bug in driver)");
+    ret = 0;
   }
 
   /* Some MariaDB and MySQL clients with Embedded server support have a bug which cause segfault
@@ -2668,23 +2706,23 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
   {
     mysql_server_end();
     imp_drh->non_embedded_started = FALSE;
+    imp_drh->non_embedded_finished = TRUE;
   }
 #endif
 
   if (imp_drh->embedded_args)
   {
-    (void)SvREFCNT_dec(imp_drh->embedded_args);
-    imp_drh->embedded_args = NULL;
+    warn("DBD::MariaDB disconnect_all: mariadb_embedded_options was not released (possible bug in driver)");
+    ret = 0;
   }
 
   if (imp_drh->embedded_groups)
   {
-    (void)SvREFCNT_dec(imp_drh->embedded_groups);
-    imp_drh->embedded_groups = NULL;
+    warn("DBD::MariaDB disconnect_all: mariadb_embedded_groups was not released (possible bug in driver)");
+    ret = 0;
   }
 
-  PL_perl_destruct_level = 0;
-  return 1;
+  return ret;
 }
 
 
