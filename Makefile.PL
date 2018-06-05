@@ -9,10 +9,7 @@ use Config;
 use Getopt::Long;
 use ExtUtils::MakeMaker;
 use Data::Dumper;
-use Devel::CheckLib;
-use File::Path;
-use File::Copy;
-use File::Basename;
+use Devel::CheckLib 1.12;
 use File::Spec;
 require DBI;
 require DBI::DBD;
@@ -22,15 +19,14 @@ my $TESTDB = "test";
 our $opt = { "help" => \&Usage, };
 
 {
-local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_force_embedded, $::test_mysql_config, $::test_cflags, $::test_libs);
-eval { require "./t/MariaDB.mtest" } || eval { require "../t/MariaDB.mtest" } and do {
+local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
+eval { require "./t/MariaDB.mtest" } and do {
 $opt->{'testhost'} = $::test_host;
 $opt->{'testport'} = $::test_port;
 $opt->{'testuser'} = $::test_user;
 $opt->{'testsocket'} = $::test_socket;
 $opt->{'testpassword'} = $::test_password;
 $opt->{'testdb'} = $::test_db;
-$opt->{'force-embedded'} = $::test_force_embedded if $::test_force_embedded;
 $opt->{'mysql_config'} = $::test_mysql_config;
 $opt->{'cflags'} = $::test_cflags;
 $opt->{'libs'} = $::test_libs;
@@ -48,10 +44,8 @@ Getopt::Long::GetOptions(
     "testsocket=s",
     "cflags=s",
     "libs=s",
-    "embedded=s",
     "mysql_config=s",
     "mariadb_config=s",
-    "force-embedded",
     ) || die Usage();
 
 $opt->{mysql_config} = delete $opt->{mariadb_config} if exists $opt->{mariadb_config};
@@ -103,9 +97,7 @@ MSG
     }
   }
 
-for my $key (qw/testdb testhost testuser testpassword testsocket testport
-                    cflags embedded libs
-                    force-embedded/)
+for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags libs))
 {
   Configure($opt, $source, $key);
 }
@@ -116,64 +108,10 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
   $source->{testhost} = 'guessed';
 }
 
-#We have to rename/move Makefile.PL in MariaDBEmb directory
-#since MakeMaker will find it and will try to execute it.
-if (-f "MariaDBEmb/Makefile.PL")
-{
-  move ("MariaDBEmb/Makefile.PL", "MariaDBEmb/Makefile.PL.old");
-}
-
-#Disable of building of DBD::MariaDBEmb driver by default
-if (!$opt->{'force-embedded'})
-{
-  $opt->{'embedded'} = '';
-  $source->{ldflags} = 'guessed';
-}
-
-if ($opt->{'embedded'})
-{
-  if ($source->{'embedded'} eq 'mysql_config')
-  {
-    #We have to use libmygcc to resolve linking problem
-    # this causes problems for cygwin
-    #$opt->{'embedded'} .= " -lmygcc";
-    # Under Cygwin (at least) we have to use libstdc++ to resolve linking
-    # problem because libmysqld is built using g++ rather than gcc.
-    $opt->{'embedded'} .= " -lstdc++";
-  }
-
-  my @files = ($^O =~ /mswin32/i) ? qw(mysqlclient.lib) :
-               qw(libmysqld.a);
-
-  my @dirs = $opt->{'embedded'} =~ /-L(.*?)(?:\s|$)/g;
-
-  if( !(SearchFor('lib', @files)) && !(SearchFor2(\@files,\@dirs)) )
-  {
-     warn <<"MSG";
-
-You intended to build DBD::MariaDBEmb driver by using option:
---embedded=$opt->{'embedded'}.
-But we failed to determine directory of @files. Building of DBD::MariaDBEmb
-driver was disabled.
-
-Please use
-
-  perl Makefile.PL --embedded="-L<dir> <flags>"
-
-to set correct directory. For details see DBD::MariaDB::INSTALL,
-section "Linker flags" or type
-
-  perl Makefile.PL --help
-MSG
-     $source->{'embedded'} = "guessed";
-     $opt->{'embedded'}="";
-  }
-}
-
 # Separate libs and libdirs from ldflags
 # When linking libdirs must be specified before libs due to runtime linking problems
 my ($main_lib, @libs, @libdirs, @ldflags);
-for (split ' ', ($opt->{'embedded'} ? $opt->{'embedded'} : $opt->{libs})) {
+for (split ' ', $opt->{libs}) {
   if (not $main_lib and /^-l(.*mariadb.*|.*mysql.*)$/) {
     $main_lib = $1;
   } elsif (/^-l/) {
@@ -224,8 +162,9 @@ print "Checking if libs and header files are available for compiling...\n";
 assert_lib(
   LIBS => (join ' ', @libdirs, "-l$main_lib", @libs),
   ccflags => $opt->{cflags},
-  ldflags => (join ' ', @ldflags),
+  ldflags => (join ' ', @ldflags, ($Config{usedl} ? $Config{lddlflags} : ())),
   header => 'mysql.h',
+  not_execute => 1,
 );
 
 print "Checking if correct version of MariaDB or MySQL client is present...\n";
@@ -245,6 +184,16 @@ MSG
 
 print "Looks good.\n\n";
 
+my $have_embedded = check_lib(
+  lib => $main_lib,
+  ccflags => $opt->{cflags},
+  ldflags => (join ' ', @libdirs, @libs, @ldflags),
+  header => 'mysql.h',
+  function => 'return mysql_embedded() ? 0 : 1;',
+);
+
+print "Embedded server: " . ($have_embedded ? "supported" : "not supported by client library") . "\n\n";
+
 my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
  (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
@@ -259,7 +208,6 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
-	      "\$::test_force_embedded = \$opt->{'force-embedded'} if \$opt->{'force-embedded'};\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
 	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
 	      "\$::test_libs = \$opt->{'libs'} if \$source->{'libs'} eq 'User\\'s choice';\n" .
@@ -268,11 +216,8 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 
 
 my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
-if ($^O eq 'VMS') {
-  $cflags = "\$(DBI_INSTARCH_DIR),$opt->{'cflags'}";
-}
 $cflags .= " -DHAVE_DBI_1_634" if eval { DBI->VERSION(1.634) };
-$cflags .= " -g ";
+$cflags .= " -DHAVE_EMBEDDED" if $have_embedded;
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
 	  'dist'         => { 'SUFFIX'       => ".gz",
@@ -287,109 +232,6 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
 	  @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
 	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
 	);
-
-my %embedded_files=();
-
-if ($opt->{'embedded'})
-{
-
- %embedded_files = ( 'MariaDB.xs' => { filename  => 'MariaDBEmb/MariaDBEmb.xs',
-                                       replace   => { ':MariaDB'    => ':MariaDBEmb',
-                                                      'MariaDB.xsi' => 'MariaDBEmb.xsi'},
-                                       makedir => 'MariaDBEmb'
-                                     },
-                       'lib/DBD/MariaDB.pm' => { filename => 'MariaDBEmb/lib/DBD/MariaDBEmb.pm',
-                                               replace  => { ':MariaDB'   => ':MariaDBEmb',
-                                                    '=> \'MariaDB\'' => '=> \'MariaDBEmb\''},
-                                               makedir => 'MariaDBEmb/lib/DBD'
-                                             },
-                       't/MariaDB.dbtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.dbtest',
-                                             makedir => 'MariaDBEmb/t'
-                                           },
-                       't/MariaDB.mtest' => { filename => 'MariaDBEmb/t/MariaDBEmb.mtest',
-                                             makedir => 'MariaDBEmb/t',
-                                             replace =>  { 'DBI:MariaDB'=> 'DBI:MariaDBEmb',
-                                                            'test_db";' => 'test_db;mariadb_embedded_options=--datadir=./t,--skip-innodb";'
-                                                         }
-                                           },
-                       't/lib.pl' => { filename => 'MariaDBEmb/t/lib.pl',
-                                       replace =>  { '\$mdriver =.*' => "\$mdriver =\'MariaDBEmb\';"},
-                                       makedir => 'MariaDBEmb/t'
-                                    },
-                       't/20createdrop.t' => { filename => 'MariaDBEmb/t/20createdrop.t',
-                                               makedir => 'MariaDBEmb/t'
-                                             },
-                       't/30insertfetch.t' => { filename => 'MariaDBEmb/t/30insertfetch.t',
-                                                makedir => 'MariaDBEmb/t'
-                                              },
-                       't/40bindparam.t' => { filename => 'MariaDBEmb/t/40bindparam.t',
-                                              makedir => 'MariaDBEmb/t'
-                                             },
-                       't/40blobs.t' => { filename => 'MariaDBEmb/t/40blobs.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/40listfields.t' => { filename => 'MariaDBEmb/t/40listfields.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/40nulls.t' => { filename => 'MariaDBEmb/t/40nulls.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/40numrows.t' => { filename => 'MariaDBEmb/t/40numrows.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/50chopblanks.t' => { filename => 'MariaDBEmb/t/50chopblanks.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/50commit.t' => { filename => 'MariaDBEmb/t/50commit.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/60leaks.t' => { filename => 'MariaDBEmb/t/60leaks.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-                       't/00base.t' => { filename => 'MariaDBEmb/t/00base.t',
-                                                                    makedir => 'MariaDBEmb/t'
-                                                                  },
-
-                       'myld' => { filename => 'MariaDBEmb/myld',
-                                   makedir => 'MariaDBEmb'
-                                 },
-                       'socket.c' => { filename => 'MariaDBEmb/socket.c',
-                                   makedir => 'MariaDBEmb'
-                                 },
-                       'dbdimp.c' => { filename => 'MariaDBEmb/dbdimp.c',
-                                   makedir => 'MariaDBEmb'
-                                 },
-                       'dbdimp.h' => { filename => 'MariaDBEmb/dbdimp.h',
-                                   makedir => 'MariaDBEmb'
-                                 },
-                       'Makefile.PL.embedded' => { filename => 'MariaDBEmb/Makefile.PL',
-                                   makedir => 'MariaDBEmb'
-                                 },
-            );
-
-
-  #Create embedded files from original ones
-  prepare_files(\%embedded_files);
-
-  my %e=%o;
-
-  $o{'clean'}->{'FILES'} .= " ./MariaDBEmb";
-  $o{'DIR'}=['MariaDBEmb'];
-
-  $e{'NAME'} = 'DBD::MariaDBEmb';
-  $e{'C'} = ["dbdimp.c", "MariaDBEmb.c", "socket.c"];
-  $e{'XS'} = {'MariaDBEmb.xs' => 'MariaDBEmb.c'};
-  $e{'VERSION_FROM'} = 'lib/DBD/MariaDBEmb.pm';
-  $e{'LIBS'} = $opt->{'embedded'};
-
-  $e{'INC'} .= " -DDBD_MYSQL_EMBEDDED";
-
-  print "Preparing embedded Makefile\n";
-
-  #Create Makefile.conf for MariaDBEmb Makefile.PL
-  create_makefile(Data::Dumper->Dump([\%e], ["o"]));
-
-}
 
 if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
   $o{'CAPI'} = 'TRUE' if $Config::Config{'archname'} =~ /-object\b/i;
@@ -498,7 +340,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
     },
     CONFIGURE_REQUIRES => { 'DBI' => '1.608',
                             'Data::Dumper' => 0,
-                            'Devel::CheckLib' => '1.09',
+                            'Devel::CheckLib' => '1.12',
                             'ExtUtils::MakeMaker' => 0,
     },
   );
@@ -528,10 +370,6 @@ Possible options are:
   --libs=<libs>          Use <libs> for running the linker; defaults
                          to the value of "mariadb_config --libs" or a guessed
                          value
-  --force-embedded       Build version of driver supporting MariaDBEmb
-  --embedded=<libs>      Use these libs when building the embedded version of
-                         DBD (with --force-embedded). Defaults to the value of
-                         "mariadb_config --embedded".
   --testdb=<db>          Use the database <db> for running the test suite;
                          defaults to $TESTDB
   --testuser=<user>      Use the username <user> for running the test suite;
@@ -558,12 +396,27 @@ it can be found):
 
   mariadb_config --cflags
   mariadb_config --libs
-  mariadb_config --embedded
-  mariadb_config --testdb
 
 and so on. See DBD::MariaDB::INSTALL for details.
 USAGE
   exit 1;
+}
+
+
+my %ParsedCache;
+sub ParseMySQLConfig {
+  my ($opt, $param) = @_;
+  return $ParsedCache{$param} if exists $ParsedCache{$param};
+  return undef unless $opt->{'mysql_config'} and $opt->{'mysql_config'} ne 'skip';
+  my $output = `$opt->{'mysql_config'} --$param 2>&1`;
+  if (defined $output and $output !~ /Options:|Usage:|unrecognized option/) {
+    $output =~ s/\s+$//s;
+    $output =~ s/^\s+//s;
+    $ParsedCache{$param} = $output;
+  } else {
+    $ParsedCache{$param} = undef;
+  }
+  return $ParsedCache{$param};
 }
 
 
@@ -587,45 +440,62 @@ sub Configure {
     }
 
     # First try to get options values from mysql_config
-    my @mysql_config_options = qw(
-      cflags include libs libs_r plugindir socket port version libmysqld-libs embedded
-    );
-    if ( grep {$_ eq $param} @mysql_config_options ) {
-        if ($opt->{'mysql_config'} and $opt->{'mysql_config'} ne 'skip') {
-        my $command = $opt->{'mysql_config'} . " --$param";
-        if (open(PIPE, "$command |")) {
-            my $str = "";
-            while (defined(my $line = <PIPE>)) { $str .= $line; }
-
-            if ($str ne ""  &&  $str !~ /Options:/) {
-                $str =~ s/\s+$//s;
-                $str =~ s/^\s+//s;
-
-                # Unfortunately ExtUtils::MakeMaker doesn't deal very well
-                # with -L'...'
-                $str =~ s/\-L\'(.*?)\'/-L$1/sg;
-                $str =~ s/\-L\"(.*?)\"/-L$1/sg;
-
-                # Separate libs from ldflags
-                if ($param eq 'libs') {
-                    my (@libs, @ldflags);
-                    for (split ' ', $str) {
-                        if (/^-[Ll]/ || /^[^\-]/) { push @libs, $_ }
-                        else          { push @ldflags, $_ }
+    if ($param eq 'cflags') {
+        my $str = ParseMySQLConfig($opt, 'cflags');
+        if (defined $str) {
+            $opt->{$param} = $str;
+            $source->{$param} = "mysql_config";
+            return;
+        }
+    } elsif ($param eq 'libs') {
+        foreach (qw(libmysqld-libs libs_r libs)) {
+            my $str = ParseMySQLConfig($opt, $_);
+            next unless defined $str;
+            # Unfortunately ExtUtils::MakeMaker doesn't deal very well with -L'...'
+            $str =~ s/\-L\'(.*?)\'/-L$1/sg;
+            $str =~ s/\-L\"(.*?)\"/-L$1/sg;
+            # libmysqld is built using g++ rather than gcc, so we have to use libstdc++ to resolve linking problems
+            $str .= ' -lstdc++' if $_ eq 'libmysqld-libs';
+            if ($_ ne "libs") {
+                # libmysqld-libs and libs_r do not have to be always installed
+                # check that we use correct library, sometimes library reported
+                # by mysql_config is not present but linker find different
+                # version in system wide location; so check that version in
+                # header file matches version in library
+                my ($lib, @ldflags);
+                for (split ' ', $str) {
+                    if (not $lib and $_ =~ /^-l(.*mariadb.*|.*mysql.*)$/) {
+                        $lib = $1;
+                    } else {
+                        push @ldflags, $_;
                     }
-                    $str = "@libs";
-                    $opt->{ldflags} = "@ldflags";
-                    $source->{ldflags} = "mysql_config";
                 }
-
-                $opt->{$param} = $str;
-                $source->{$param} = "mysql_config";
-                return;
+                if ($lib) {
+                    my $ldflags = join ' ', @ldflags;
+                    if ($Config{usedl}) {
+                        # check that we can create a shared library (not executable)
+                            check_lib(
+                            lib => $lib,
+                            ldflags => $ldflags . ' ' . $Config{lddlflags},
+                            ccflags => $opt->{cflags},
+                            header => 'mysql.h',
+                            function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n",
+                            not_execute => 1,
+                        ) or next;
+                    }
+                    # and now create executable and do real version check
+                    check_lib(
+                        lib => $lib,
+                        ldflags => $ldflags,
+                        ccflags => $opt->{cflags},
+                        header => 'mysql.h',
+                        function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n",
+                    ) or next;
+                }
             }
-        }
-        else {
-            print "Can't find mysql_config. Use --mysql_config option to specify where mysql_config is located\n";
-        }
+            $opt->{$param} = $str;
+            $source->{$param} = "mysql_config";
+            return;
         }
     }
 
@@ -671,12 +541,9 @@ perl Makefile.PL --testuser=username
       $source->{$param} = "default";
       $opt->{$param} = "";
     }
-    elsif($param eq 'force-embedded') {
-      $source->{$param} = $opt->{$param} ? "default" : 'not set';
-    }
     elsif ($param eq "cflags") {
       $source->{$param} = "guessed";
-      my $dir = SearchFor('include', 'mysql.h');
+      my ($dir, $file) = SearchFor('include', 'mysql.h');
       if ($dir) {
         $opt->{$param} = "-I$dir";
         return;
@@ -692,40 +559,25 @@ section "C Compiler flags" or type
   perl Makefile.PL --help
 MSG
     }
-    elsif ($param eq "libs" || $param eq "embedded") {
+    elsif ($param eq "libs") {
       $source->{$param} = "guessed";
-
-      if ($param eq "embedded" && !$opt->{'embedded'}) {
-        $opt->{$param}="";
-        return;
-      }
-
-      my @files=();
-      my $default_libs;
-      if ($param eq "embedded") {
-        $default_libs= "-lmysqld -lpthread -lz -lm -lcrypt -lnsl";
-        @files = ($^O =~ /mswin32/i) ? qw(mysqlclient.lib) :
-		  	qw(libmysqld.a);
-      }
-      else {
-        $default_libs= "-lmysqlclient -lz -lm -lcrypt -lnsl";
-        @files = ($^O =~ /mswin32/i) ? qw(mysqlclient.lib) :
-	  		qw(libmysqlclient.a libmysqlclient.so);
-      }
-
-      my $dir = SearchFor('lib', @files);
-
+      my @files = qw(mariadb.lib libmariadb.lib mariadbclient.lib mysqlclient.lib
+                     libmysqld.so libmysqld.a libmariadb.so libmariadb.a
+                     libmysqlclient.so libmysqlclient.a);
+      my ($dir, $file) = SearchFor('lib', @files);
       if ($dir) {
-          $opt->{$param} = "-L$dir $default_libs";
-        return;
+          my $lib = $file;
+          $lib =~ s/\.[^.]+$//;
+          $lib =~ s/^lib//;
+          $opt->{$param} = "-L$dir -l$lib";
+          return;
       }
-      my $f = join("|", @files);
       die <<"MSG";
-Failed to determine directory of $f. Use
+Failed to determine directory of MariaDB or MySQL client library. Use
 
-  perl Makefile.PL "--$param=-L<dir> $default_libs"
+  perl Makefile.PL --libs="-L<dir> -l<library>"
 
-to set this directory. For details see the DBD::MariaDB::INSTALL,
+to set directory and client library. For details see the DBD::MariaDB::INSTALL,
 section "Linker flags" or type
 
   perl Makefile.PL --help
@@ -737,101 +589,25 @@ MSG
   }
 }
 
-my $fineDir;
 sub SearchFor {
   my($subdir, @files) = @_;
 
   my @dirs = ($^O eq 'MSWin32') ? qw(C:) : qw(/usr/local /usr /opt);
-  unshift(@dirs, $fineDir) if defined($fineDir);
 
   for my $f (@files) {
     for my $dir (@dirs) {
       my $try1 = File::Spec->catdir($dir, $subdir);
-      my $try2 = File::Spec->catdir($dir, "mysql");
+      my $try2 = File::Spec->catdir($try1, "mariadb");
       my $try3 = File::Spec->catdir($try1, "mysql");
-      my $try4 = File::Spec->catdir($try2, $subdir);
-      for my $path ($try3, $try4, $try2, $try1, $dir) {
+      for my $path ($try1, $try2, $try3) {
 	my $file = File::Spec->catfile($path, $f);
 	if (-f $file) {
-	  $fineDir = $dir;
-	  return $path;
+          my (undef, undef, $file) = File::Spec->splitpath($file);
+          return ($path, $file);
 	}
       }
     }
   }
-}
-
-sub SearchFor2 {
-  my($files, $dirs) = @_;
-
-  for my $f (@{$files})
-  {
-    for my $dir (@{$dirs})
-    {
-      if (-f File::Spec->catfile($dir, $f))
-      {
-        $fineDir = $dir;
-        return $dir;
-      }
-    }
-  }
-}
-
-sub replace
-{
-  my ($str, $ref)=@_;
-
-  for my $find (keys %{$ref})
-  {
-    $str =~ s/$find/$ref->{$find}/g;
-  }
-  $str;
-}
-
-sub prepare_files
-{
-  my ($files)= @_;
-  my $line;
-  my @lib;
-
-  for my $file (keys %{$files})
-  {
-
-    if ($files->{$file}->{makedir})
-    {
-      mkpath $files->{$file}->{makedir} or die "Can't create dir $files->{$file}->{makedir}"
-      unless (-e $files->{$file}->{makedir} && -d $files->{$file}->{makedir});
-    }
-
-    my $replace=$files->{$file}->{replace};
-
-    if ($replace)
-    {
-       open(FILE, $file) or die "Can't open file $file";
-       @lib= map { $replace ? replace($_, $replace) : $_; }  <FILE>;
-       close(FILE);
-
-       open(FILE, ">".$files->{$file}->{filename}) or die "Can't open file $files->{$file}->{filename}";
-       print FILE @lib;
-       close(FILE);
-    }
-    else
-    {
-       if(!copy($file, $files->{$file}->{filename}))
-       {
-         die "Unable to copy $file to $files->{$file}->{filename}\n";
-       }
-    }
-  }
-}
-
-sub create_makefile
-{
-  my ($cnf)=@_;
-
-  open(LOG, ">MariaDBEmb/Makefile.conf") or die "Can't write to file MariaDBEmb/Makefile.conf";
-  print LOG $cnf;
-  close(LOG);
 }
 
 package MY;

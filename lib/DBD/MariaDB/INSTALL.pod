@@ -222,7 +222,6 @@ export them by putting them in your .bashrc or the like:
 
     export DBD_MARIADB_CFLAGS=-I/usr/local/mysql/include/mysql
     export DBD_MARIADB_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
-    export DBD_MARIADB_EMBEDDED=
     export DBD_MARIADB_CONFIG=mysql_config
     export DBD_MARIADB_TESTDB=test
     export DBD_MARIADB_TESTHOST=localhost

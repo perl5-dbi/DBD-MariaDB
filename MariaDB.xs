@@ -36,6 +36,7 @@ INCLUDE: MariaDB.xsi
 MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 
 BOOT:
+{
   HV *stash = gv_stashpvs("DBD::MariaDB", GV_ADD);
 #define newTypeSub(stash, type) newCONSTSUB((stash), #type + sizeof("MYSQL_")-1, newSViv(type))
   newTypeSub(stash, MYSQL_TYPE_DECIMAL);
@@ -65,6 +66,8 @@ BOOT:
   newTypeSub(stash, MYSQL_TYPE_VAR_STRING);
   newTypeSub(stash, MYSQL_TYPE_STRING);
 #undef newTypeSub
+  mysql_thread_init();
+}
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
 
@@ -117,6 +120,11 @@ do(dbh, statement, attr=Nullsv, ...)
   MYSQL_BIND      *bind= NULL;
   STRLEN          blen;
     ASYNC_CHECK_XS(dbh);
+    if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+    {
+      mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+      XSRETURN_UNDEF;
+    }
     while (mysql_next_result(imp_dbh->pmysql)==0)
     {
       MYSQL_RES* res = mysql_use_result(imp_dbh->pmysql);
@@ -273,7 +281,7 @@ do(dbh, statement, attr=Nullsv, ...)
                                            &result,
                                            &stmt,
                                            bind,
-                                           imp_dbh->pmysql,
+                                           &imp_dbh->pmysql,
                                            &has_been_bound);
       if (bind)
         Safefree(bind);
@@ -310,7 +318,7 @@ do(dbh, statement, attr=Nullsv, ...)
       }
     }
     retval = mariadb_st_internal_execute(dbh, str_ptr, slen, num_params,
-                                       params, &result, imp_dbh->pmysql, FALSE);
+                                       params, &result, &imp_dbh->pmysql, FALSE);
   }
   if (params)
     Safefree(params);
@@ -409,17 +417,14 @@ quote(dbh, str, type=NULL)
 	XSRETURN(1);
     }
 
-void mariadb_sockfd(dbh)
+SV *
+mariadb_sockfd(dbh)
     SV* dbh
-  PPCODE:
-    {
-        D_imp_dbh(dbh);
-        if(imp_dbh->pmysql->net.fd != -1) {
-            XSRETURN_IV(imp_dbh->pmysql->net.fd);
-        } else {
-            XSRETURN_UNDEF;
-        }
-    }
+  CODE:
+    D_imp_dbh(dbh);
+    RETVAL = imp_dbh->pmysql ? newSViv(imp_dbh->pmysql->net.fd) : &PL_sv_undef;
+  OUTPUT:
+    RETVAL
 
 SV *
 mariadb_async_result(dbh)

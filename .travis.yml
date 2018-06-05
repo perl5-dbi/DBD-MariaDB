@@ -29,8 +29,14 @@ perl:
 
 matrix:
   include:
+    - perl: system_precise
+      dist: precise
+    - perl: system_trusty
+      dist: trusty
     - perl: "5.8.1"
       env: DBI_VERSION=1.608
+    - perl: "5.16.3"
+      env: DBI_VERSION=1.627
     - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22
     - perl: "5.22"
@@ -60,6 +66,8 @@ matrix:
     - perl: "5.22"
       env: DB=MySQL VERSION=5.5.59
     - perl: "5.22"
+      env: DB=MySQL VERSION=5.5.60
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.10
     - perl: "5.22"
       env: DB=MySQL VERSION=5.6.30
@@ -73,6 +81,8 @@ matrix:
       env: DB=MySQL VERSION=5.6.38
     - perl: "5.22"
       env: DB=MySQL VERSION=5.6.39
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.40
     - perl: "5.22"
       env: DB=MySQL VERSION=5.7.8-rc
     - perl: "5.22"
@@ -90,6 +100,8 @@ matrix:
     - perl: "5.22"
       env: DB=MySQL VERSION=5.7.21
     - perl: "5.22"
+      env: DB=MySQL VERSION=5.7.22
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.0-dmr
     - perl: "5.22"
       env: DB=MySQL VERSION=8.0.1-dmr
@@ -99,6 +111,8 @@ matrix:
       env: DB=MySQL VERSION=8.0.3-rc
     - perl: "5.22"
       env: DB=MySQL VERSION=8.0.4-rc
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.11
     - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.40
     - perl: "5.22"
@@ -120,6 +134,8 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.59
     - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.60
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.14
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.20
@@ -138,6 +154,8 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.34
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.0.35
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.2
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.8
@@ -154,6 +172,8 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.31
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.1.33
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.0
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.1
@@ -162,11 +182,10 @@ matrix:
 #      env: DB=MariaDB VERSION=10.2.2
 #    - perl: "5.22"
 #      env: DB=MariaDB VERSION=10.2.3
-# Incompatible, client library crash for unknown reason
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.2.4
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.2.5
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.4
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.5
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.6
     - perl: "5.22"
@@ -183,9 +202,10 @@ matrix:
       env: DB=MariaDB VERSION=10.2.12
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.13
-# Incompatible, client library crash for unknown reason
-#    - perl: "5.22"
-#      env: DB=MariaDB VERSION=10.3.0
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.15
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.0
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.1
     - perl: "5.22"
@@ -194,6 +214,10 @@ matrix:
       env: DB=MariaDB VERSION=10.3.3
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.4
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.6
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.7
     - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.0-beta
     - perl: "5.22"
@@ -236,6 +260,8 @@ matrix:
     - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=3.0.3
     - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=3.0.4
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.0.96 CONC_DB=MariaDB CONC_VERSION=2.3.4
     - perl: "5.22"
       env: DB=MySQL VERSION=5.1.72 CONC_DB=MariaDB CONC_VERSION=3.0.2
@@ -258,15 +284,16 @@ addons:
   apt:
     packages:
       - libaio-dev
+      - libdbi-perl
       - libnuma-dev
       - libjemalloc-dev
       - libmysqlclient-dev
-      - libmysqld-dev
+      - libmysqld-pic
       - libwrap0-dev
       - libstdc++5
 
 before_install:
-  - if [ -z "$PERLBREW_PERL" ]; then eval $(curl https://travis-perl.github.io/init) --perl; fi
+  - if ! [[ $TRAVIS_PERL_VERSION =~ ^system ]] && [ -z "$PERLBREW_PERL" ]; then eval $(curl https://travis-perl.github.io/init) --perl; fi
   - if [ "$DB" = "MySQL" ]; then
       case "$VERSION" in
         4.1.*)            SANDBOX_URL=http://mysql.localhost.net.ar/Downloads/MySQL-4.1/mysql-standard-$VERSION-unknown-linux-gnu-x86_64-glibc23.tar.gz ;;
@@ -287,8 +314,12 @@ before_install:
       esac ;
       SANDBOX_CACHE_FILE="$HOME/cache/$(basename "$SANDBOX_URL")" ;
     elif [ "$DB" = "MariaDB" ]; then
-      SANDBOX_URL=https://downloads.mariadb.com/MariaDB/mariadb-$VERSION/bintar-linux-x86_64/mariadb-$VERSION-linux-x86_64.tar.gz ;
-      SANDBOX_CACHE_FILE="$HOME/cache/mariadb-$VERSION-linux-x86_64.tar.gz" ;
+      case "$VERSION" in
+        5.*|10.[012].*)   SANDBOX_URL=https://downloads.mariadb.com/MariaDB/mariadb-$VERSION/bintar-linux-x86_64/mariadb-$VERSION-linux-x86_64.tar.gz ;;
+        10.3.*)           SANDBOX_URL=https://downloads.mariadb.com/MariaDB/mariadb-$VERSION/bintar-linux-glibc_214-x86_64/mariadb-$VERSION-linux-glibc_214-x86_64.tar.gz ;;
+        *)                echo "Unsupported MariaDB version '$VERSION'"; exit 1 ;;
+      esac ;
+      SANDBOX_CACHE_FILE="$HOME/cache/$(basename "$SANDBOX_URL")" ;
     elif [ -n "$DB" ]; then
       echo "Unsupported DB '$DB'"; exit 1 ;
     fi
@@ -321,6 +352,10 @@ before_install:
 
 install:
   - perlbrew install-cpanm --force --notest
+  - if [[ $TRAVIS_PERL_VERSION =~ ^system ]]; then
+      cpanm --quiet --notest --local-lib="$HOME/perl5" local::lib ;
+      eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib) ;
+    fi
   - if [ -n "$DBI_VERSION" ]; then cpanm --quiet --notest DBI@$DBI_VERSION; fi
   - cpanm --quiet --notest --skip-satisfied DBI Devel::CheckLib
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
@@ -367,6 +402,10 @@ before_script:
       fi ;
     elif [ -n "$DB" ]; then
       export DBD_MARIADB_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
+    elif which mysql_config_pic &>/dev/null; then
+      sed 's/-lmysqld /-lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
+      chmod +x $HOME/mysql_config_pic ;
+      export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic" ;
     fi
   - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
