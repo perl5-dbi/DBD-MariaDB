@@ -424,6 +424,7 @@ struct imp_drh_st {
     dbih_drc_t com;         /* MUST be first element in structure   */
     unsigned long int instances;
     bool non_embedded_started;
+    bool non_embedded_finished;
     bool embedded_started;
     SV *embedded_args;
     SV *embedded_groups;
