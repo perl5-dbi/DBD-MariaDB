@@ -15,7 +15,7 @@ my $drh = eval { DBI->install_driver('MariaDB') } or do {
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-plan tests => 21;
+plan tests => 31;
 
 pass("obtained driver handle");
 pass("connected to database");
@@ -78,9 +78,23 @@ is $drh2->{ActiveKids}, 1,
 
 read_write_test($dbh2);
 
-# must cut the connection data again
+# this will cut the connection data, at the end connection should be properly closed
 ok ($imp_data = $dbh2->take_imp_data, "didn't get imp_data");
 
+# install a handler so that a warning about unfreed resources gets caught
+$SIG{__WARN__} = sub { die @_ };
+
+ok my $dbh3 = DBI->connect($test_dsn, $test_user, $test_password);
+
+read_write_test($dbh3);
+
+ok my $imp_data2 = $dbh3->take_imp_data;
+
+ok my $dbh4 = DBI->connect($test_dsn, $test_user, $test_password, { dbi_imp_data => $imp_data });
+
+ok ! defined eval { DBI->connect($test_dsn, $test_user, $test_password, { dbi_imp_data => $imp_data }) }, 'reusing same imp_data for two different connections is not possible';
+
+read_write_test($dbh4);
 
 sub read_write_test {
     my ($dbh)= @_;
