@@ -428,6 +428,7 @@ struct imp_drh_st {
     bool embedded_started;
     SV *embedded_args;
     SV *embedded_groups;
+    AV *taken_pmysqls;      /* List of active MYSQL* structures from take_imp_data() */
 };
 
 
@@ -567,6 +568,7 @@ struct imp_sth_st {
  * These defines avoid name clashes for multiple statically linked DBD's	*/
 #define dbd_init		mariadb_dr_init
 #define dbd_discon_all		mariadb_dr_discon_all
+#define dbd_take_imp_data	mariadb_db_take_imp_data
 #define dbd_db_login6_sv	mariadb_db_login6_sv
 #define dbd_db_commit		mariadb_db_commit
 #define dbd_db_rollback		mariadb_db_rollback

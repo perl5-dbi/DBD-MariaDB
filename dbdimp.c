@@ -2330,7 +2330,10 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* user;
   char* password;
   char* mysql_socket;
+  I32 i;
+  bool found_taken_pmysql;
   D_imp_xxh(dbh);
+  D_imp_drh_from_dbh;
 
   if (DBIc_has(imp_dbh, DBIcf_IMPSET))
   { /* eg from take_imp_data() */
@@ -2340,6 +2343,31 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mariadb_db_my_login skip connect\n");
       /* tell our parent we've adopted an active child */
       ++DBIc_ACTIVE_KIDS(DBIc_PARENT_COM(imp_dbh));
+      found_taken_pmysql = FALSE;
+      if (imp_drh->taken_pmysqls)
+      {
+        for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
+        {
+          svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
+          if (!svp || !*svp)
+            continue;
+          SvGETMAGIC(*svp);
+          if (!SvIOK(*svp))
+            continue;
+          if (imp_dbh->pmysql == INT2PTR(MYSQL *, SvIVX(*svp)))
+          {
+            found_taken_pmysql = TRUE;
+            av_delete(imp_drh->taken_pmysqls, i, G_DISCARD);
+            break;
+          }
+        }
+      }
+      if (!found_taken_pmysql)
+      {
+        imp_dbh->pmysql = NULL;
+        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
+        return FALSE;
+      }
       return TRUE;
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -2403,6 +2431,22 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
 		  (unsigned int)port);
 
   return mariadb_dr_connect(dbh, imp_dbh, mysql_socket, host, port, user, password, dbname);
+}
+
+
+SV *mariadb_db_take_imp_data(SV *dbh, imp_xxh_t *imp_xxh, void *foo)
+{
+  dTHX;
+  D_imp_dbh(dbh);
+  D_imp_drh_from_dbh;
+  PERL_UNUSED_ARG(imp_xxh);
+  PERL_UNUSED_ARG(foo);
+
+  if (!imp_drh->taken_pmysqls)
+    imp_drh->taken_pmysqls = newAV();
+  av_push(imp_drh->taken_pmysqls, newSViv(PTR2IV(imp_dbh->pmysql)));
+
+  return &PL_sv_no;
 }
 
 
@@ -2527,6 +2571,39 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
   return 1;
 }
 
+static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
+{
+  if (pmysql)
+  {
+    mysql_close(pmysql);
+    imp_drh->instances--;
+  }
+  if (imp_drh->instances == 0)
+  {
+    /*
+     * Some MariaDB and MySQL clients have a bug which cause:
+     * - inability to successfully initialize a new network connection, even after mysql_server_init()
+     * - infinite loop when calling mysql_server_end() more then once in case Embedded server was not started
+     * Therefore do not call mysql_server_end() when Embedded server was not in used.
+     */
+    if (imp_drh->embedded_started)
+    {
+      mysql_server_end();
+      imp_drh->embedded_started = FALSE;
+    }
+    if (imp_drh->embedded_args)
+    {
+      (void)SvREFCNT_dec(imp_drh->embedded_args);
+      imp_drh->embedded_args = NULL;
+    }
+    if (imp_drh->embedded_groups)
+    {
+      (void)SvREFCNT_dec(imp_drh->embedded_groups);
+      imp_drh->embedded_groups = NULL;
+    }
+  }
+}
+
 /*
  ***************************************************************************
  *
@@ -2563,9 +2640,8 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
   if (imp_dbh->pmysql)
   {
-    mysql_close(imp_dbh->pmysql);
+    mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql);
     imp_dbh->pmysql = NULL;
-    imp_drh->instances--;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
     if (svp && *svp)
     {
@@ -2602,30 +2678,6 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
       }
     }
   }
-  if (imp_drh->instances == 0)
-  {
-    /*
-     * Some MariaDB and MySQL clients have a bug which cause:
-     * - inability to successfully initialize a new network connection, even after mysql_server_init()
-     * - infinite loop when calling mysql_server_end() more then once in case Embedded server was not started
-     * Therefore do not call mysql_server_end() when Embedded server was not in used.
-     */
-    if (imp_drh->embedded_started)
-    {
-      mysql_server_end();
-      imp_drh->embedded_started = FALSE;
-    }
-    if (imp_drh->embedded_args)
-    {
-      (void)SvREFCNT_dec(imp_drh->embedded_args);
-      imp_drh->embedded_args = NULL;
-    }
-    if (imp_drh->embedded_groups)
-    {
-      (void)SvREFCNT_dec(imp_drh->embedded_groups);
-      imp_drh->embedded_groups = NULL;
-    }
-  }
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
@@ -2654,6 +2706,22 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
   AV *av;
   I32 i;
   PERL_UNUSED_ARG(drh);
+
+  if (imp_drh->taken_pmysqls)
+  {
+    for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
+    {
+      svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
+      if (!svp || !*svp)
+        continue;
+      SvGETMAGIC(*svp);
+      if (!SvIOK(*svp))
+        continue;
+      mariadb_dr_close_mysql(aTHX_ imp_drh, INT2PTR(MYSQL *, SvIVX(*svp)));
+    }
+    av_undef(imp_drh->taken_pmysqls);
+    imp_drh->taken_pmysqls = NULL;
+  }
 
   svp = hv_fetchs((HV*)DBIc_MY_H(imp_drh), "ChildHandles", FALSE);
   if (svp && *svp)
