@@ -510,11 +510,6 @@ PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
       || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
 }
 
-PERL_STATIC_INLINE bool mysql_field_is_utf8(MYSQL_FIELD *field)
-{
-    return mysql_charsetnr_is_utf8(field->charsetnr);
-}
-
 /* 
   count embedded options
 */
@@ -3312,7 +3307,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
     SvPOK_on(sv);
     SvCUR_set(sv, prefix_len + lengths[0]);
 
-    if (mysql_field_is_utf8(field))
+    if (mysql_charsetnr_is_utf8(field->charsetnr))
       sv_utf8_decode(sv);
 
     if ((my_ulonglong)i == num_rows+1)
@@ -3338,7 +3333,7 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
  *  Input:   sth - statement handle being initialized
  *           imp_sth - drivers private statement handle data
  *           statement - pointer to string with SQL statement
- *           attribs - statement attributes, currently not in use
+ *           attribs - statement attributes
  *
  *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
@@ -3383,6 +3378,7 @@ mariadb_st_prepare_sv(
   imp_sth->statement_len = statement_len;
 
  /* Set default value of 'mariadb_server_prepare' attribute for sth from dbh */
+  imp_sth->use_mysql_use_result = imp_dbh->use_mysql_use_result;
   imp_sth->use_server_side_prepare = imp_dbh->use_server_side_prepare;
   imp_sth->disable_fallback_for_server_prepare = imp_dbh->disable_fallback_for_server_prepare;
 
@@ -4353,7 +4349,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
                       fields[i].length, fields[i].max_length, fields[i].type, fields[i].flags, fields[i].charsetnr);
       }
 
-      fbh->is_utf8 = mysql_field_is_utf8(&fields[i]);
+      fbh->is_utf8 = mysql_charsetnr_is_utf8(fields[i].charsetnr);
 
       buffer->buffer_type= fields[i].type;
       buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? TRUE : FALSE;
@@ -4880,7 +4876,7 @@ process:
         STRLEN len= lengths[i];
         if (ChopBlanks)
         {
-          if (mysql_field_is_utf8(&fields[i]))
+          if (mysql_charsetnr_is_utf8(fields[i].charsetnr))
           while (len && col[len-1] == ' ')
           {	--len; }
         }
@@ -4916,7 +4912,7 @@ process:
 
         default:
           /* TEXT columns can be returned as MYSQL_TYPE_BLOB, so always check for charset */
-          if (mysql_field_is_utf8(&fields[i]))
+          if (mysql_charsetnr_is_utf8(fields[i].charsetnr))
             sv_utf8_decode(sv);
           break;
         }
@@ -5217,7 +5213,7 @@ static SV* mariadb_st_fetch_internal(
           length = strlen(curField->name);
 #endif
         sv= newSVpvn(curField->name, length);
-        if (mysql_field_is_utf8(curField))
+        if (mysql_charsetnr_is_utf8(curField->charsetnr))
           sv_utf8_decode(sv);
         break;
 
@@ -5230,7 +5226,7 @@ static SV* mariadb_st_fetch_internal(
           length = strlen(curField->table);
 #endif
         sv= newSVpvn(curField->table, length);
-        if (mysql_field_is_utf8(curField))
+        if (mysql_charsetnr_is_utf8(curField->charsetnr))
           sv_utf8_decode(sv);
         break;
 

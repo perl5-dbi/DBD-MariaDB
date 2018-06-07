@@ -226,11 +226,15 @@ do(dbh, statement, attr=Nullsv, ...)
     }
     else if (failed)
     {
-      /*
-        For commands that are not supported by server side prepared
-        statement mechanism lets try to pass them through regular API
-      */
-      if (!disable_fallback_for_server_prepare && mysql_stmt_errno(stmt) == ER_UNSUPPORTED_PS)
+      /* For commands that are not supported by server side prepared statement
+         mechanism lets try to pass them through regular API */
+      if (!disable_fallback_for_server_prepare &&
+          (mysql_stmt_errno(stmt) == ER_UNSUPPORTED_PS ||
+          /* And also fallback when placeholder is used in unsupported
+           * construction with old server versions (e.g. LIMIT ?) */
+          (mysql_stmt_errno(stmt) == ER_PARSE_ERROR &&
+           mysql_get_server_version(imp_dbh->pmysql) < 50007 &&
+           strstr(mysql_stmt_error(stmt), "'?"))))
       {
         use_server_side_prepare = FALSE;
       }
