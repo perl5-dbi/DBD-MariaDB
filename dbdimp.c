@@ -3338,7 +3338,7 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
  *  Input:   sth - statement handle being initialized
  *           imp_sth - drivers private statement handle data
  *           statement - pointer to string with SQL statement
- *           attribs - statement attributes, currently not in use
+ *           attribs - statement attributes
  *
  *  Returns: 1 for success, 0 otherwise; mariadb_dr_do_error will
  *           be called in the latter case
