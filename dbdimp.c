@@ -3383,6 +3383,7 @@ mariadb_st_prepare_sv(
   imp_sth->statement_len = statement_len;
 
  /* Set default value of 'mariadb_server_prepare' attribute for sth from dbh */
+  imp_sth->use_mysql_use_result = imp_dbh->use_mysql_use_result;
   imp_sth->use_server_side_prepare = imp_dbh->use_server_side_prepare;
   imp_sth->disable_fallback_for_server_prepare = imp_dbh->disable_fallback_for_server_prepare;
 
