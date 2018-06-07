@@ -18,17 +18,17 @@ ok $dbh->do('INSERT INTO t(id) VALUES(20)');
 
 ok my $sth = $dbh->prepare('SELECT id FROM t ORDER BY id LIMIT ?');
 ok $sth->execute(1);
-is_deeply $sth->fetchall_arrayref()->[0], [10];
+is_deeply $sth->fetchall_arrayref(), [ [10] ];
 ok $sth->finish();
 
 ok $sth = $dbh->prepare('SELECT id FROM t ORDER BY id LIMIT ?,?');
 ok $sth->execute(0, 1);
-is_deeply $sth->fetchall_arrayref()->[0], [10];
+is_deeply $sth->fetchall_arrayref(), [ [10] ];
 ok $sth->finish();
 
 ok $sth = $dbh->prepare('SELECT id FROM t ORDER BY id LIMIT ? OFFSET ?');
 ok $sth->execute(1, 0);
-is_deeply $sth->fetchall_arrayref()->[0], [10];
+is_deeply $sth->fetchall_arrayref(), [ [10] ];
 ok $sth->finish();
 
 ok $dbh->disconnect();

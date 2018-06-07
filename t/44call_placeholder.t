@@ -25,7 +25,7 @@ EOPROC
 
 ok my $sth = $dbh->prepare('CALL t44_call_placeholder(?)');
 ok $sth->execute(10);
-is_deeply $sth->fetchall_arrayref()->[0], [5, 10];
+is_deeply $sth->fetchall_arrayref(), [ [5, 10] ];
 ok $sth->finish();
 
 ok $dbh->do('DROP PROCEDURE t44_call_placeholder');
