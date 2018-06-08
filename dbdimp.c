@@ -1434,6 +1434,20 @@ static bool mariadb_dr_connect(
     return FALSE;
   }
 
+  /* host=localhost means to connect via unix socket, host=embedded means to use embedded server, so do not allow specifying port */
+  if (port && host && (strcmp(host, "localhost") == 0 || strcmp(host, "embedded") == 0))
+  {
+    mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: port cannot be specified when host is localhost or embedded", "HY000");
+    return FALSE;
+  }
+
+  /* when connecting via unix socket do not allow specifying port or host != localhost */
+  if (mysql_socket && (port || (host && strcmp(host, "localhost") != 0)))
+  {
+    mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: host or port cannot be specified together with mariadb_socket", "HY000");
+    return FALSE;
+  }
+
   if (host && strcmp(host, "embedded") == 0)
   {
 #ifndef HAVE_EMBEDDED
