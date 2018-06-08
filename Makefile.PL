@@ -102,9 +102,9 @@ for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags
   Configure($opt, $source, $key);
 }
 
-#if we have a testport but no host, assume localhost
+#if we have a testport but no host, assume 127.0.0.1
 if ( $opt->{testport} && !$opt->{testhost} ) {
-  $opt->{testhost} = 'localhost';
+  $opt->{testhost} = '127.0.0.1';
   $source->{testhost} = 'guessed';
 }
 
