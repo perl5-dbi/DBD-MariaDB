@@ -665,17 +665,17 @@ static char *parse_params(
 
   /* Calculate the number of bytes being allocated for the statement */
   alen= slen;
-
   for (i= 0, ph= params; i < num_params; i++, ph++)
   {
+    alen--; /* Erase '?' */
     if (!ph->value)
-      alen+= 3;  /* Erase '?', insert 'NULL' */
+      alen += 4;  /* insert 'NULL' */
     else
-      alen+= 2+ph->len+1;
+      alen += 2 + 2*ph->len; /* 2 bytes for quotes and in the worst case two bytes for each character */
   }
 
-  /* Allocate memory, why *2, well, because we have ptr and statement_ptr */
-  New(908, salloc, alen*2, char);
+  /* +1 for null term byte */
+  New(908, salloc, alen+1, char);
   ptr= salloc;
 
   i= 0;
