@@ -2,44 +2,20 @@ use strict;
 use warnings;
 
 use Test::More;
-use vars qw($mdriver $dbdriver $childPid $test_dsn $test_user $test_password);
+use FindBin qw($Bin);
+use vars qw($test_dsn $test_user $test_password);
 
 $| = 1; # flush stdout asap to keep in sync with stderr
-
-#
-#   Driver names; EDIT THIS!
-#
-$mdriver = 'MariaDB';
-$dbdriver = $mdriver; # $dbdriver is usually just the same as $mdriver.
-                      # The exception is DBD::pNET where we have to
-                      # to separate between local driver (pNET) and
-                      # the remote driver ($dbdriver)
-
-
-#
-#   DSN being used; do not edit this, edit "$dbdriver.dbtest" instead
-#
-
 
 $::COL_NULLABLE = 1;
 $::COL_KEY = 2;
 
+my $file = "$Bin/MariaDB.mtest";
+BAIL_OUT "Cannot execute $file: $@" if -e $file and not eval { require $file };
 
-my $file;
-    $::test_dsn      = $::test_dsn || $ENV{'DBI_DSN'} || 'DBI:MariaDB:database=test';
-    $::test_user     = $::test_user|| $ENV{'DBI_USER'}  ||  '';
-    $::test_password = $::test_password || $ENV{'DBI_PASS'}  ||  '';
-if (-f ($file = "t/$mdriver.mtest")  ||
-    -f ($file = "$mdriver.mtest")    ||
-    -f ($file = "../tests/$mdriver.mtest")  ||
-    -f ($file = "tests/$mdriver.mtest")) {
-    if (not eval { require $file }) {
-	$@ = "unknown error" unless $@;
-	print STDERR "Cannot execute $file: $@.\n";
-	print "1..0\n";
-	exit 0;
-    }
-}
+$::test_dsn      = $::test_dsn      || $ENV{'DBI_DSN'}   || 'DBI:MariaDB:database=test';
+$::test_user     = $::test_user     || $ENV{'DBI_USER'}  || '';
+$::test_password = $::test_password || $ENV{'DBI_PASS'}  || '';
 
 sub DbiTestConnect {
     my $err;
