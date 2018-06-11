@@ -158,36 +158,6 @@ package DBD::MariaDB::db; # ====== DATABASE ======
 use strict;
 use DBI qw(:sql_types);
 
-%DBD::MariaDB::db::db2ANSI = (
-    "INT"   =>  "INTEGER",
-    "CHAR"  =>  "CHAR",
-    "REAL"  =>  "REAL",
-    "IDENT" =>  "DECIMAL"
-);
-
-### ANSI datatype mapping to MySQL datatypes
-%DBD::MariaDB::db::ANSI2db = (
-    "CHAR"          => "CHAR",
-    "VARCHAR"       => "CHAR",
-    "LONGVARCHAR"   => "CHAR",
-    "NUMERIC"       => "INTEGER",
-    "DECIMAL"       => "INTEGER",
-    "BIT"           => "INTEGER",
-    "TINYINT"       => "INTEGER",
-    "SMALLINT"      => "INTEGER",
-    "INTEGER"       => "INTEGER",
-    "BIGINT"        => "INTEGER",
-    "REAL"          => "REAL",
-    "FLOAT"         => "REAL",
-    "DOUBLE"        => "REAL",
-    "BINARY"        => "CHAR",
-    "VARBINARY"     => "CHAR",
-    "LONGVARBINARY" => "CHAR",
-    "DATE"          => "CHAR",
-    "TIME"          => "CHAR",
-    "TIMESTAMP"     => "CHAR"
-);
-
 sub prepare {
     my($dbh, $statement, $attribs)= @_;
 
@@ -202,18 +172,6 @@ sub prepare {
     }
 
     $sth;
-}
-
-sub db2ANSI {
-    my $self = shift;
-    my $type = shift;
-    return $DBD::MariaDB::db::db2ANSI{"$type"};
-}
-
-sub ANSI2db {
-    my $self = shift;
-    my $type = shift;
-    return $DBD::MariaDB::db::ANSI2db{"$type"};
 }
 
 sub table_info {
