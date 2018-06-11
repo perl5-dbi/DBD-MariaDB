@@ -10,10 +10,10 @@ use vars qw($test_user $test_password $test_db $test_dsn);
 use lib 't', '.';
 require 'lib.pl';
 
-my %attributes;
 my @parts = DBI->parse_dsn($test_dsn);
-%attributes = %{$parts[3]} if defined $parts[3];
-DBD::MariaDB->_OdbcParse($parts[4], \%attributes, ['database', 'host', 'port']);
+my $driver_dsn = DBD::MariaDB->parse_dsn($parts[4]);
+my %attributes = %{$driver_dsn};
+%attributes = (%attributes, %{$parts[3]}) if defined $parts[3];
 $attributes{user} = $test_user;
 $attributes{password} = $test_password;
 delete $attributes{database};
