@@ -54,11 +54,12 @@ sub CLONE {
   undef $drh;
 }
 
-sub _OdbcParse {
-    my($class, $dsn, $hash, $args) = @_;
+sub parse_dsn {
+    my ($class, $dsn) = @_;
+    my $hash = {};
     my($var, $val);
     if (!defined($dsn)) {
-	return;
+        return $hash;
     }
     while (length($dsn)) {
 	if ($dsn =~ /([^:;]*\[.*]|[^:;]*)[:;](.*)/) {
@@ -80,7 +81,7 @@ sub _OdbcParse {
 		$hash->{$var} = $val;
 	    }
 	} else {
-	    foreach $var (@$args) {
+	    foreach $var (qw(database host port)) {
 		if (!defined($hash->{$var})) {
 		    $hash->{$var} = $val;
 		    last;
@@ -88,9 +89,8 @@ sub _OdbcParse {
 	    }
 	}
     }
+    return $hash;
 }
-
-1;
 
 
 package DBD::MariaDB::dr; # ====== DRIVER ======
@@ -104,15 +104,15 @@ sub connect {
     my $connect_ref= { 'Name' => $dsn };
 
     # create a 'blank' dbh
+    my $attr_dsn = DBD::MariaDB->parse_dsn($dsn);
     my($this, $privateAttrHash) = (undef, $attrhash);
-    $privateAttrHash = { %$privateAttrHash,
+    $privateAttrHash = {
+	%$attr_dsn,
+	%$privateAttrHash,
 	'Name' => $dsn,
 	'user' => $username,
 	'password' => $password
     };
-
-    DBD::MariaDB->_OdbcParse($dsn, $privateAttrHash,
-				    ['database', 'host', 'port']);
 
     if (defined $attrhash) {
       $connect_ref->{'dbi_imp_data'} = $attrhash->{dbi_imp_data};
@@ -158,36 +158,6 @@ package DBD::MariaDB::db; # ====== DATABASE ======
 use strict;
 use DBI qw(:sql_types);
 
-%DBD::MariaDB::db::db2ANSI = (
-    "INT"   =>  "INTEGER",
-    "CHAR"  =>  "CHAR",
-    "REAL"  =>  "REAL",
-    "IDENT" =>  "DECIMAL"
-);
-
-### ANSI datatype mapping to MySQL datatypes
-%DBD::MariaDB::db::ANSI2db = (
-    "CHAR"          => "CHAR",
-    "VARCHAR"       => "CHAR",
-    "LONGVARCHAR"   => "CHAR",
-    "NUMERIC"       => "INTEGER",
-    "DECIMAL"       => "INTEGER",
-    "BIT"           => "INTEGER",
-    "TINYINT"       => "INTEGER",
-    "SMALLINT"      => "INTEGER",
-    "INTEGER"       => "INTEGER",
-    "BIGINT"        => "INTEGER",
-    "REAL"          => "REAL",
-    "FLOAT"         => "REAL",
-    "DOUBLE"        => "REAL",
-    "BINARY"        => "CHAR",
-    "VARBINARY"     => "CHAR",
-    "LONGVARBINARY" => "CHAR",
-    "DATE"          => "CHAR",
-    "TIME"          => "CHAR",
-    "TIMESTAMP"     => "CHAR"
-);
-
 sub prepare {
     my($dbh, $statement, $attribs)= @_;
 
@@ -202,18 +172,6 @@ sub prepare {
     }
 
     $sth;
-}
-
-sub db2ANSI {
-    my $self = shift;
-    my $type = shift;
-    return $DBD::MariaDB::db::db2ANSI{"$type"};
-}
-
-sub ANSI2db {
-    my $self = shift;
-    my $type = shift;
-    return $DBD::MariaDB::db::ANSI2db{"$type"};
 }
 
 sub table_info {

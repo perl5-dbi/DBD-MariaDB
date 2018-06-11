@@ -38,20 +38,20 @@ $charVal = "Tim Bunce";
 ok ($sth->execute($numericVal, $charVal));
 
 # Now try the explicit type settings
-ok ($sth->bind_param(1, " 4", SQL_INTEGER()));
+ok ($sth->bind_param(1, " 4", DBI::SQL_INTEGER()));
 
 # umlaut equivalent is vowel followed by 'e'
 ok ($sth->bind_param(2, 'Andreas Koenig'));
 ok ($sth->execute);
 
 # Works undef -> NULL?
-ok ($sth->bind_param(1, 5, SQL_INTEGER()));
+ok ($sth->bind_param(1, 5, DBI::SQL_INTEGER()));
 
 ok ($sth->bind_param(2, undef));
 
 ok ($sth->execute);
 
-ok ($sth->bind_param(1, undef, SQL_INTEGER()));
+ok ($sth->bind_param(1, undef, DBI::SQL_INTEGER()));
 
 ok ($sth->bind_param(2, undef));
 

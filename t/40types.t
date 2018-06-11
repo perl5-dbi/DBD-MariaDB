@@ -5,7 +5,6 @@ use B qw(svref_2object SVf_IOK SVf_NOK SVf_POK SVf_IVisUV);
 use Test::More;
 use Test::Deep;
 use DBI;
-use DBI::Const::GetInfoType;
 use DBD::MariaDB;
 use lib '.', 't';
 require 'lib.pl';

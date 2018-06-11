@@ -86,7 +86,6 @@ t/cve-2017-3302.t
 t/lib.pl
 t/magic.t
 t/manifest.t
-t/MariaDB.dbtest
 t/pod.t
 t/rt110983-valid-mysqlfd.t
 t/rt118977-zerofill.t

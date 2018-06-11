@@ -3,7 +3,6 @@ use warnings;
 
 use Test::More;
 use DBI;
-use DBI::Const::GetInfoType;
 
 use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';

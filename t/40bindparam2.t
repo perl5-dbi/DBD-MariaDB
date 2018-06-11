@@ -37,7 +37,7 @@ ok (my $sth = $dbh->prepare("UPDATE dbd_mysql_t40bindparam2 SET num = ? WHERE id
 
 ok ($sth->bind_param(1, undef));
 
-ok ($sth->bind_param(2, 1, SQL_INTEGER()));
+ok ($sth->bind_param(2, 1, DBI::SQL_INTEGER()));
 
 ok ($sth->execute());
 

@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use DBI;
-use DBI::Const::GetInfoType;
 use Test::More;
 use lib 't', '.';
 require 'lib.pl';

@@ -3,7 +3,6 @@ use warnings;
 
 use Test::More;
 use DBI;
-use DBI::Const::GetInfoType;
 $|= 1;
 
 my $rows = 0;
