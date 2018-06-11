@@ -102,9 +102,9 @@ for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags
   Configure($opt, $source, $key);
 }
 
-#if we have a testport but no host, assume localhost
+#if we have a testport but no host, assume 127.0.0.1
 if ( $opt->{testport} && !$opt->{testhost} ) {
-  $opt->{testhost} = 'localhost';
+  $opt->{testhost} = '127.0.0.1';
   $source->{testhost} = 'guessed';
 }
 
@@ -205,9 +205,9 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 	      "\$::test_password = \$opt->{'testpassword'};\n" .
 	      "\$::test_db = \$opt->{'testdb'};\n" .
 	      "\$::test_dsn = \"DBI:MariaDB:\$::test_db\";\n" .
-	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
+	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
 	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
 	      "\$::test_libs = \$opt->{'libs'} if \$source->{'libs'} eq 'User\\'s choice';\n" .
