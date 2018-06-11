@@ -3,7 +3,6 @@ use warnings;
 
 use Test::More;
 use DBI;
-use DBI::Const::GetInfoType;
 use lib 't', '.';
 require 'lib.pl';
 $|= 1;
