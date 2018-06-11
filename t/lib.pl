@@ -56,19 +56,6 @@ sub DbiTestConnect {
     return $dbh;
 }
 
-
-#
-#   Print a DBI error message
-#
-# TODO - This is on the chopping block
-sub DbiError ($$) {
-    my ($rc, $err) = @_;
-    $rc ||= 0;
-    $err ||= '';
-    $::numTests ||= 0;
-    print "Test $::numTests: DBI error $rc, $err\n";
-}
-
 sub connection_id {
     my $dbh = shift;
     return 0 unless $dbh;
