@@ -73,9 +73,6 @@ sub byte_string {
     return $ret;
 }
 
-sub SQL_VARCHAR { 12 };
-sub SQL_INTEGER { 4 };
-
 =item CheckRoutinePerms()
 
 Check if the current user of the DBH has permissions to create/drop procedures
