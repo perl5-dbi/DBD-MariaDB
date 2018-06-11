@@ -26,20 +26,9 @@ $::COL_KEY = 2;
 
 
 my $file;
-if (-f ($file = "t/$dbdriver.dbtest")  ||
-    -f ($file = "$dbdriver.dbtest")    ||
-    -f ($file = "../tests/$dbdriver.dbtest")  ||
-    -f ($file = "tests/$dbdriver.dbtest")) {
-    if (not eval { require $file }) {
-	$@ = "unknown error" unless $@;
-	print STDERR "Cannot execute $file: $@.\n";
-	print "1..0\n";
-	exit 0;
-    }
     $::test_dsn      = $::test_dsn || $ENV{'DBI_DSN'} || 'DBI:MariaDB:database=test';
     $::test_user     = $::test_user|| $ENV{'DBI_USER'}  ||  '';
     $::test_password = $::test_password || $ENV{'DBI_PASS'}  ||  '';
-}
 if (-f ($file = "t/$mdriver.mtest")  ||
     -f ($file = "$mdriver.mtest")    ||
     -f ($file = "../tests/$mdriver.mtest")  ||
