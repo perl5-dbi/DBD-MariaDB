@@ -112,8 +112,8 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
 # When linking libdirs must be specified before libs due to runtime linking problems
 my ($main_lib, @libs, @libdirs, @ldflags);
 for (split ' ', $opt->{libs}) {
-  if (not $main_lib and /^-l(.*mariadb.*|.*mysql.*)$/) {
-    $main_lib = $1;
+  if (not defined $main_lib and /^-l(?:.*mariadb.*|.*mysql.*)$/) {
+    $main_lib = $_;
   } elsif (/^-l/) {
     push @libs, $_;
   } elsif (/^-L/) {
@@ -122,9 +122,8 @@ for (split ' ', $opt->{libs}) {
     push @ldflags, $_;
   }
 }
-if (not $main_lib) {
+if (not defined $main_lib) {
   $main_lib = shift @libs;
-  $main_lib =~ s/^-l//;
 }
 
 print <<"MSG";
@@ -160,9 +159,9 @@ MSG
 print "Checking if libs and header files are available for compiling...\n";
 
 assert_lib(
-  LIBS => (join ' ', @libdirs, "-l$main_lib", @libs),
+  LIBS => (join ' ', @libdirs, $main_lib, @libs),
   ccflags => (join ' ', $opt->{cflags}, ($Config{usedl} ? $Config{cccdlflags} : ())),
-  ldflags => (join ' ', @ldflags, ($Config{usedl} ? $Config{lddlflags} : ())),
+  ldflags => (join ' ', @libdirs, @ldflags, ($Config{usedl} ? $Config{lddlflags} : ())),
   header => 'mysql.h',
   not_execute => 1,
 );
@@ -170,7 +169,7 @@ assert_lib(
 print "Checking if correct version of MariaDB or MySQL client is present...\n";
 
 check_lib(
-  lib => $main_lib,
+  LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
   header => 'mysql.h',
@@ -185,7 +184,7 @@ MSG
 print "Looks good.\n\n";
 
 my $have_embedded = check_lib(
-  lib => $main_lib,
+  LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
   header => 'mysql.h',
@@ -195,7 +194,7 @@ my $have_embedded = check_lib(
 print "Embedded server: " . ($have_embedded ? "supported" : "not supported by client library") . "\n\n";
 
 my $have_get_charset_number = check_lib(
-  lib => $main_lib,
+  LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
   header => 'mysql.h',
@@ -237,7 +236,7 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
           'C' => ["dbdimp.c", "MariaDB.c", "socket.c"],
           'XS' => {'MariaDB.xs' => 'MariaDB.c'},
 	  'OBJECT' => '$(O_FILES)',
-	  'LIBS' => (join ' ', @libdirs, "-l$main_lib", @libs),
+	  'LIBS' => (join ' ', @libdirs, $main_lib, @libs),
 	  @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
 	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
 	);
@@ -468,16 +467,18 @@ sub Configure {
             # by mysql_config is not present but linker find different
             # version in system wide location; so check that version in
             # header file matches version in library
-            my ($lib, @ldflags);
+            my ($main_lib, @libdirs, @ldflags);
             for (split ' ', $str) {
-                if (not $lib and $_ =~ /^-l(.*mariadb.*|.*mysql.*)$/) {
-                    $lib = $1;
+                if (not defined $main_lib and /^-l(?:.*mariadb.*|.*mysql.*)$/) {
+                    $main_lib = $_;
+                } elsif (/^-L/) {
+                    push @libdirs, $_;
                 } else {
                     push @ldflags, $_;
                 }
             }
             my $check_passed;
-            if (defined $lib) {
+            if (defined $main_lib) {
                 # libmysqld is built using g++ rather than gcc and sometimes
                 # we have to use libstdc++ to resolve linking problems
                 foreach my $add_ldflags (undef, '-lstdc++') {
@@ -486,9 +487,9 @@ sub Configure {
                     if ($Config{usedl}) {
                         # check that we can create a shared library (not executable)
                         check_lib(
-                            lib => $lib,
-                            ldflags => $ldflags . ' ' . $Config{lddlflags},
-                            ccflags => $opt->{cflags} . ' ' . $Config{cccdlflags},
+                            LIBS => (join ' ', @libdirs, $main_lib),
+                            ldflags => (join ' ', @libdirs, $ldflags, $Config{lddlflags}),
+                            ccflags => (join ' ', $opt->{cflags}, $Config{cccdlflags}),
                             header => 'mysql.h',
                             function => $function,
                             not_execute => 1,
@@ -496,8 +497,8 @@ sub Configure {
                     }
                     # and now create executable and do real version check
                     check_lib(
-                        lib => $lib,
-                        ldflags => $ldflags,
+                        LIBS => (join ' ', @libdirs, $main_lib),
+                        ldflags => (join ' ', @libdirs, $ldflags),
                         ccflags => $opt->{cflags},
                         header => 'mysql.h',
                         function => $function,
