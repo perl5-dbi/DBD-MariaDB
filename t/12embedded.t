@@ -36,7 +36,8 @@ sub fatal_connection_error {
 
 sub connect_to_embedded_server {
     my ($tmpdir, $database) = @_;
-    my $emb_dsn = "DBI:MariaDB:host=embedded;mariadb_embedded_options=--datadir=$tmpdir;";
+    my $lang_arg = $ENV{DBD_MARIADB_TESTLANGDIR} ? ",--language=$ENV{DBD_MARIADB_TESTLANGDIR}" : '';
+    my $emb_dsn = "DBI:MariaDB:host=embedded;mariadb_embedded_options=--datadir=$tmpdir$lang_arg;";
     $emb_dsn .= "database=$database" if defined $database;
     return eval { DBI->connect($emb_dsn, undef, undef, { RaiseError => 1, PrintError => 1, AutoCommit => 1 }) };
 }
@@ -60,7 +61,7 @@ my $tmpdir1 = eval { File::Temp::tempdir(CLEANUP => 1) } or fatal_tmpdir_error()
 my $tmpdir2 = eval { File::Temp::tempdir(CLEANUP => 1) } or fatal_tmpdir_error();
 
 my $dbh1 = connect_to_embedded_server($tmpdir1);
-plan skip_all => $DBI::errstr if not defined $dbh1 and $DBI::errstr =~ /Embedded server is not supported|Cannot start embedded server/;
+plan skip_all => $DBI::errstr if not defined $dbh1 and $DBI::errstr =~ /Embedded server is not supported/;
 ok(defined $dbh1, "Connected to embedded server with datadir in $tmpdir1") or fatal_connection_error();
 ok($dbh1->do('CREATE DATABASE dbd_mariadb_embedded'), 'Created database');
 ok($dbh1->do('USE dbd_mariadb_embedded'), 'Switched to database');

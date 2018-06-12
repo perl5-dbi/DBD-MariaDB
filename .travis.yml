@@ -388,6 +388,7 @@ before_script:
       export DBD_MARIADB_TESTPASSWORD=msandbox ;
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3310 ;
+      export DBD_MARIADB_TESTLANGDIR=`find $SANDBOX_HOME/* -name english | head -1` ;
     elif [ -n "$CONC_DB" ]; then
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3306 ;
