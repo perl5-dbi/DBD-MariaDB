@@ -463,32 +463,34 @@ sub Configure {
             # Unfortunately ExtUtils::MakeMaker doesn't deal very well with -L'...'
             $str =~ s/\-L\'(.*?)\'/-L$1/sg;
             $str =~ s/\-L\"(.*?)\"/-L$1/sg;
-            # libmysqld is built using g++ rather than gcc, so we have to use libstdc++ to resolve linking problems
-            $str .= ' -lstdc++' if $_ eq 'libmysqld-libs';
-            if ($_ ne "libs") {
-                # libmysqld-libs and libs_r do not have to be always installed
-                # check that we use correct library, sometimes library reported
-                # by mysql_config is not present but linker find different
-                # version in system wide location; so check that version in
-                # header file matches version in library
-                my ($lib, @ldflags);
-                for (split ' ', $str) {
-                    if (not $lib and $_ =~ /^-l(.*mariadb.*|.*mysql.*)$/) {
-                        $lib = $1;
-                    } else {
-                        push @ldflags, $_;
-                    }
+            # libmysqld-libs and libs_r do not have to be always installed
+            # check that we use correct library, sometimes library reported
+            # by mysql_config is not present but linker find different
+            # version in system wide location; so check that version in
+            # header file matches version in library
+            my ($lib, @ldflags);
+            for (split ' ', $str) {
+                if (not $lib and $_ =~ /^-l(.*mariadb.*|.*mysql.*)$/) {
+                    $lib = $1;
+                } else {
+                    push @ldflags, $_;
                 }
-                if ($lib) {
-                    my $ldflags = join ' ', @ldflags;
+            }
+            my $check_passed;
+            if (defined $lib) {
+                # libmysqld is built using g++ rather than gcc and sometimes
+                # we have to use libstdc++ to resolve linking problems
+                foreach my $add_ldflags (undef, '-lstdc++') {
+                    my $ldflags = join ' ', @ldflags, (defined $add_ldflags ? $add_ldflags : ());
+                    my $function = "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n";
                     if ($Config{usedl}) {
                         # check that we can create a shared library (not executable)
-                            check_lib(
+                        check_lib(
                             lib => $lib,
                             ldflags => $ldflags . ' ' . $Config{lddlflags},
                             ccflags => $opt->{cflags} . ' ' . $Config{cccdlflags},
                             header => 'mysql.h',
-                            function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n",
+                            function => $function,
                             not_execute => 1,
                         ) or next;
                     }
@@ -498,10 +500,16 @@ sub Configure {
                         ldflags => $ldflags,
                         ccflags => $opt->{cflags},
                         header => 'mysql.h',
-                        function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n",
+                        function => $function,
                     ) or next;
+                    $str .= ' ' . $add_ldflags if defined $add_ldflags;
+                    $check_passed = 1;
+                    last;
                 }
             }
+            # libs param is checked as last, so ensure that mysql_config
+            # error is reported back to the caller
+            next unless $_ eq 'libs' or $check_passed;
             $opt->{$param} = $str;
             $source->{$param} = "mysql_config";
             return;
