@@ -161,7 +161,7 @@ print "Checking if libs and header files are available for compiling...\n";
 
 assert_lib(
   LIBS => (join ' ', @libdirs, "-l$main_lib", @libs),
-  ccflags => $opt->{cflags},
+  ccflags => (join ' ', $opt->{cflags}, ($Config{usedl} ? $Config{cccdlflags} : ())),
   ldflags => (join ' ', @ldflags, ($Config{usedl} ? $Config{lddlflags} : ())),
   header => 'mysql.h',
   not_execute => 1,
@@ -486,7 +486,7 @@ sub Configure {
                             check_lib(
                             lib => $lib,
                             ldflags => $ldflags . ' ' . $Config{lddlflags},
-                            ccflags => $opt->{cflags},
+                            ccflags => $opt->{cflags} . ' ' . $Config{cccdlflags},
                             header => 'mysql.h',
                             function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n",
                             not_execute => 1,
