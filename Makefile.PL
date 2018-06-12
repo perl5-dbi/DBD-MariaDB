@@ -201,6 +201,14 @@ my $have_get_charset_number = check_lib(
   function => 'unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags); mysql_server_init(-1, 0, 0); get_charset_number("utf8", 32); return 0;',
 );
 
+my $have_get_option = check_lib(
+  LIBS => (join ' ', @libdirs, $main_lib),
+  ccflags => $opt->{cflags},
+  ldflags => (join ' ', @libdirs, @libs, @ldflags),
+  header => 'mysql.h',
+  function => 'MYSQL mysql; char buf[1024]; mysql_server_init(-1, 0, 0); mysql_init(&mysql); mysql_get_option(&mysql, 0, &buf); return 0;',
+);
+
 my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
  (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
@@ -226,6 +234,7 @@ my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
 $cflags .= " -DHAVE_DBI_1_634" if eval { DBI->VERSION(1.634) };
 $cflags .= " -DHAVE_EMBEDDED" if $have_embedded;
 $cflags .= " -DHAVE_GET_CHARSET_NUMBER" if $have_get_charset_number;
+$cflags .= " -DHAVE_GET_OPTION" if $have_get_option;
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
 	  'dist'         => { 'SUFFIX'       => ".gz",
