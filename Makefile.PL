@@ -488,11 +488,19 @@ sub Configure {
             }
             my $check_passed;
             if (defined $main_lib) {
+                my $function = "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\n";
+                if ($_ eq 'libmysqld-libs') {
+                    # libmariadbd.so from MariaDB 10.3.1+ is totally broken and always crash
+                    # when calling mysql_real_connect() function, see reported bug:
+                    # https://jira.mariadb.org/browse/MDEV-16478
+                    # so we need to avoid using this broken library
+                    $function .= "\n#if defined(MARIADB_BASE_VERSION) || defined(MARIADB_PACKAGE_VERSION)\nif (mysql_get_client_version() >= 100301) return 1;\n#endif\n";
+                }
+                $function .= 'return (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;';
                 # libmysqld is built using g++ rather than gcc and sometimes
                 # we have to use libstdc++ to resolve linking problems
                 foreach my $add_ldflags (undef, '-lstdc++') {
                     my $ldflags = join ' ', @ldflags, (defined $add_ldflags ? $add_ldflags : ());
-                    my $function = "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;\n";
                     if ($Config{usedl}) {
                         # check that we can create a shared library (not executable)
                         check_lib(
