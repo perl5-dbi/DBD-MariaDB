@@ -586,7 +586,7 @@ PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
 SV* mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val);
 #define my_ulonglong2sv(val) mariadb_dr_my_ulonglong2sv(aTHX_ val)
 
-void    mariadb_dr_do_error (SV* h, int rc, const char *what, const char *sqlstate);
+void    mariadb_dr_do_error (SV* h, unsigned int rc, const char *what, const char *sqlstate);
 
 my_ulonglong mariadb_st_internal_execute(SV *,
                                        char *,

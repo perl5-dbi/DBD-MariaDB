@@ -1299,7 +1299,7 @@ void mariadb_dr_init(dbistate_t* dbistate)
  *
  **************************************************************************/
 
-void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
+void mariadb_dr_do_error(SV* h, unsigned int rc, const char *what, const char *sqlstate)
 {
   dTHX;
   D_imp_xxh(h);
@@ -1309,7 +1309,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
   errstr= DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
+  sv_setuv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -1322,7 +1322,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
 
   /* NO EFFECT DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr); */
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %d recorded: %" SVf "\n", rc, SVfARG(errstr));
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %u recorded: %" SVf "\n", rc, SVfARG(errstr));
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- mariadb_dr_do_error\n");
 }
