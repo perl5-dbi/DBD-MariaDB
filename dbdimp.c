@@ -2827,7 +2827,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
   {
       if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) && imp_dbh->pmysql)
         if (mysql_rollback(imp_dbh->pmysql))
-            mariadb_dr_do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
+          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
     mariadb_db_disconnect(dbh, imp_dbh);
   }
 
@@ -2884,11 +2884,7 @@ mariadb_db_STORE_attrib(
             mysql_autocommit(imp_dbh->pmysql, bool_value)
            )
         {
-          mariadb_dr_do_error(dbh, TX_ERR_AUTOCOMMIT,
-                   bool_value ?
-                   "Turning on AutoCommit failed" :
-                   "Turning off AutoCommit failed"
-                   ,NULL);
+          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
           return 1;  /* 1 means we handled it - important to avoid spurious errors */
         }
       }
