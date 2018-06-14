@@ -21,7 +21,7 @@
 
 #define ASYNC_CHECK_XS(h)\
   if(imp_dbh->async_query_in_flight) {\
-      mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling a synchronous function on an asynchronous handle", "HY000");\
       XSRETURN_UNDEF;\
   }
 

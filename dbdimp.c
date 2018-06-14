@@ -17,7 +17,7 @@
 
 #define ASYNC_CHECK_RETURN(h, value)\
   if(imp_dbh->async_query_in_flight) {\
-      mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling a synchronous function on an asynchronous handle", "HY000");\
       return (value);\
   }
 
@@ -6093,11 +6093,11 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   if(! dbh->async_query_in_flight) {
       if (async_sth)
           return retval;
-      mariadb_dr_do_error(h, 2000, "Gathering asynchronous results for a synchronous handle", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering asynchronous results for a synchronous handle", "HY000");
       return -1;
   }
   if(dbh->async_query_in_flight != imp_xxh) {
-      mariadb_dr_do_error(h, 2000, "Gathering async_query_in_flight results for the wrong handle", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
       return -1;
   }
   dbh->async_query_in_flight = NULL;
@@ -6182,17 +6182,17 @@ int mariadb_db_async_ready(SV* h)
           }
           return retval;
       } else {
-          mariadb_dr_do_error(h, 2000, "Calling mariadb_async_ready on the wrong handle", "HY000");
+          mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling mariadb_async_ready on the wrong handle", "HY000");
           return -1;
       }
   } else {
       if (async_sth) {
           if (async_active)
               return 1;
-          mariadb_dr_do_error(h, 2000, "Asynchronous handle was not executed yet", "HY000");
+          mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Asynchronous handle was not executed yet", "HY000");
           return -1;
       }
-      mariadb_dr_do_error(h, 2000, "Handle is not in asynchronous mode", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Handle is not in asynchronous mode", "HY000");
       return -1;
   }
 }
