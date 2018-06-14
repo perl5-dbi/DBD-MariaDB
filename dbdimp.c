@@ -1371,8 +1371,8 @@ static void error_no_connection(SV *h, const char *msg)
   mariadb_dr_do_error(h, CR_CONNECTION_ERROR, msg, "HY000");
 }
 
-#if !defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID < 50700 || MYSQL_VERSION_ID == 60000)
-/* Available only in MySQL client prior to 5.7, declared in header file my_sys.h which cannot be included */
+#ifdef HAVE_GET_CHARSET_NUMBER
+/* Available only in some clients and declared in header file my_sys.h which cannot be included */
 unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
 #endif
 
@@ -2210,12 +2210,14 @@ static bool mariadb_dr_connect(
       MYSQL_SET_CHARSET_NAME option (prior to establishing connection) sets client's charset.
       Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different. So issue SET NAMES.
       To enable UTF-8 storage on server it is needed to configure it via session variable character_set_server.
-      MySQL client prior to 5.7 provides function get_charset_number() to check if charset is supported.
+      Some clients provides function get_charset_number() to check if charset is supported.
       If MySQL client does not support specified charset it used to print error message to stdout or stderr.
       DBD::MariaDB expects that whole communication with server is encoded in UTF-8.
     */
-#if !defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID < 50700 || MYSQL_VERSION_ID == 60000)
+#ifdef HAVE_GET_CHARSET_NUMBER
     client_supports_utf8mb4 = get_charset_number("utf8mb4", MY_CS_PRIMARY) ? TRUE : FALSE;
+#elif MYSQL_VERSION_ID < 50503
+    client_supports_utf8mb4 = FALSE;
 #else
     client_supports_utf8mb4 = TRUE;
 #endif
@@ -3164,10 +3166,16 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     {
       unsigned long packet_size;
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
-      /* mysql_get_option() was added in mysql 5.7.3 */
+      /* mysql_get_option() is not available in all versions */
+      /* if we do not have mysql_get_option() we cannot retrieve max_allowed_packet */
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+  #ifdef HAVE_GET_OPTION
       mysql_get_option(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
+  #else
+      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Fetching mariadb_max_allowed_packet is not supported", "HY000");
+      return Nullsv;
+  #endif
 #else
       /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
       packet_size = max_allowed_packet;

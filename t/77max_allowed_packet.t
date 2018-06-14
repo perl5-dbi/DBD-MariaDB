@@ -10,6 +10,10 @@ require "lib.pl";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1 });
 
+if (not eval { my $tmp = $dbh->{mariadb_max_allowed_packet}; 1 }) {
+    plan skip_all => $dbh->errstr();
+}
+
 plan tests => 4;
 
 $dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1, mariadb_max_allowed_packet => 8192*2 });
