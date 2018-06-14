@@ -4518,11 +4518,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
     if (!imp_sth->done_desc)
     {
       if (!mariadb_st_describe(sth, imp_sth))
-      {
-        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "Error while describe result set.",
-                 NULL);
         return Nullav;
-      }
     }
   }
 
