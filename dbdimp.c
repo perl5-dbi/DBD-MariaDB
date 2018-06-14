@@ -4942,21 +4942,6 @@ process:
 
 }
 
-/*
-  We have to fetch all data from stmt
-  There is may be useful for 2 cases:
-  1. st_finish when we have undef statement
-  2. call st_execute again when we have some unfetched data in stmt
- */
-
-static int mariadb_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
-
-  if (DBIc_ACTIVE(imp_sth) && mariadb_st_describe(sth, imp_sth) &&
-      !imp_sth->fetch_done)
-    mysql_stmt_free_result(imp_sth->stmt);
-  return 1;
-}
-
 /***************************************************************************
  *
  *  Name:    mariadb_st_finish
@@ -4985,17 +4970,16 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n--> mariadb_st_finish\n");
   }
 
-  if (imp_sth->use_server_side_prepare)
+  if (imp_sth->use_server_side_prepare && imp_sth->stmt)
   {
-    if (imp_sth && imp_sth->stmt)
-    {
-      if (!mariadb_st_clean_cursor(sth, imp_sth))
-      {
-        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
-                 "Error happened while tried to clean up stmt",NULL);
-        return 0;
-      }
-    }
+    /*
+      We have to fetch all data from stmt
+      There is may be useful for 2 cases:
+      1. st_finish when we have undef statement
+      2. call st_execute again when we have some unfetched data in stmt
+     */
+    if (DBIc_ACTIVE(imp_sth) && mariadb_st_describe(sth, imp_sth) && !imp_sth->fetch_done)
+      mysql_stmt_free_result(imp_sth->stmt);
   }
 
   /*
