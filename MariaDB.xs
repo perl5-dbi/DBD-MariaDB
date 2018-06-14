@@ -178,7 +178,7 @@ do(dbh, statement, attr=Nullsv, ...)
       key = hv_iterkey(he, &len);
       if (hv_exists(processed, key, len))
         continue;
-      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
       XSRETURN_UNDEF;
     }
   }

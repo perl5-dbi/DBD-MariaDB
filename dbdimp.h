@@ -42,6 +42,16 @@
 #define MY_CS_PRIMARY 32
 #endif
 
+/* Macro is not defined in some MariaDB versions */
+#ifndef CR_NO_RESULT_SET
+#define CR_NO_RESULT_SET 2053
+#endif
+
+/* Macro is not defined in older MySQL versions */
+#ifndef CR_NOT_IMPLEMENTED
+#define CR_NOT_IMPLEMENTED 2054
+#endif
+
 /* Macro is not defined in older MySQL versions */
 #ifndef CR_STMT_CLOSED
 #define CR_STMT_CLOSED 2056
@@ -353,38 +363,6 @@ PERL_STATIC_INLINE bool ssl_verify_usable(void) {
 	return ((version >= 50549 && version < 50600) || (version >= 50630 && version < 50700) || version >= 50712);
 #endif
 }
-
-/*
- *  The following are return codes passed in $h->err in case of
- *  errors by DBD::MariaDB.
- */
-enum errMsgs {
-    JW_ERR_CONNECT = 1,
-    JW_ERR_SELECT_DB,
-    JW_ERR_STORE_RESULT,
-    JW_ERR_NOT_ACTIVE,
-    JW_ERR_QUERY,
-    JW_ERR_FETCH_ROW,
-    JW_ERR_LIST_DB,
-    JW_ERR_CREATE_DB,
-    JW_ERR_DROP_DB,
-    JW_ERR_LIST_TABLES,
-    JW_ERR_LIST_FIELDS,
-    JW_ERR_LIST_FIELDS_INT,
-    JW_ERR_LIST_SEL_FIELDS,
-    JW_ERR_NO_RESULT,
-    JW_ERR_NOT_IMPLEMENTED,
-    JW_ERR_ILLEGAL_PARAM_NUM,
-    JW_ERR_MEM,
-    JW_ERR_LIST_INDEX,
-    JW_ERR_SEQUENCE,
-    AS_ERR_EMBEDDED,
-    TX_ERR_AUTOCOMMIT,
-    TX_ERR_COMMIT,
-    TX_ERR_ROLLBACK,
-    JW_ERR_INVALID_ATTRIBUTE
-};
-
 
 /*
  *  Internal constants, used for fetching array attributes
