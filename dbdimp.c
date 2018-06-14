@@ -1286,7 +1286,7 @@ void mariadb_dr_init(dbistate_t* dbistate)
 
 /**************************************************************************
  *
- *  Name:    mariadb_dr_do_error, mariadb_dr_do_warn
+ *  Name:    mariadb_dr_do_error
  *
  *  Purpose: Called to associate an error code and an error message
  *           to some handle
@@ -1325,22 +1325,6 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %d recorded: %" SVf "\n", rc, SVfARG(errstr));
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- mariadb_dr_do_error\n");
-}
-
-void mariadb_dr_do_warn(SV* h, int rc, char* what)
-{
-  dTHX;
-  D_imp_xxh(h);
-
-  SV *errstr = DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
-  SvUTF8_off(errstr);
-  sv_setpv(errstr, what);
-  sv_utf8_decode(errstr);
-  /* NO EFFECT DBIh_EVENT2(h, WARN_event, DBIc_ERR(imp_xxh), errstr);*/
-  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "warning %d recorded: %" SVf "\n", rc, SVfARG(errstr));
-  warn("%" SVf, SVfARG(errstr));
 }
 
 static void error_unknown_attribute(SV *h, const char *key)
