@@ -407,6 +407,9 @@ before_script:
       sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
       chmod +x $HOME/mysql_config_pic ;
       export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic" ;
+      apt download mysql-server-core-5.5 ;
+      dpkg -x mysql-server-core-5.5_*.deb $HOME/mysql-server-core-5.5 ;
+      export DBD_MARIADB_TESTLANGDIR="$HOME/mysql-server-core-5.5/usr/share/mysql/english" ;
     fi
   - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
