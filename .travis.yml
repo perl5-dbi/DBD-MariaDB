@@ -404,7 +404,7 @@ before_script:
     elif [ -n "$DB" ]; then
       export DBD_MARIADB_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
     elif which mysql_config_pic &>/dev/null; then
-      sed 's/-lmysqld /-lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
+      sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
       chmod +x $HOME/mysql_config_pic ;
       export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic" ;
     fi
