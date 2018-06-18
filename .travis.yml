@@ -33,6 +33,12 @@ matrix:
       dist: precise
     - perl: system_trusty
       dist: trusty
+    - perl: system_precise
+      dist: precise
+      env: MYSQL_CONFIG=PIC
+    - perl: system_trusty
+      dist: trusty
+      env: MYSQL_CONFIG=PIC
     - perl: "5.8.1"
       env: DBI_VERSION=1.608
     - perl: "5.16.3"
@@ -403,10 +409,13 @@ before_script:
       fi ;
     elif [ -n "$DB" ]; then
       export DBD_MARIADB_CONFIG="$SANDBOX_HOME/msb/my sql_config" ;
-    elif which mysql_config_pic &>/dev/null; then
-      sed 's/-lmysqld /-lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
+    elif [ "$MYSQL_CONFIG" = "PIC" ]; then
+      sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic" ;
       chmod +x $HOME/mysql_config_pic ;
       export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic" ;
+      apt download mysql-server-core-5.5 ;
+      dpkg -x mysql-server-core-5.5_*.deb $HOME/mysql-server-core-5.5 ;
+      export DBD_MARIADB_TESTLANGDIR="$HOME/mysql-server-core-5.5/usr/share/mysql/english" ;
     fi
   - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
