@@ -17,7 +17,7 @@
 
 #define ASYNC_CHECK_RETURN(h, value)\
   if(imp_dbh->async_query_in_flight) {\
-      mariadb_dr_do_error(h, 2000, "Calling a synchronous function on an asynchronous handle", "HY000");\
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling a synchronous function on an asynchronous handle", "HY000");\
       return (value);\
   }
 
@@ -1286,7 +1286,7 @@ void mariadb_dr_init(dbistate_t* dbistate)
 
 /**************************************************************************
  *
- *  Name:    mariadb_dr_do_error, mariadb_dr_do_warn
+ *  Name:    mariadb_dr_do_error
  *
  *  Purpose: Called to associate an error code and an error message
  *           to some handle
@@ -1299,7 +1299,7 @@ void mariadb_dr_init(dbistate_t* dbistate)
  *
  **************************************************************************/
 
-void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
+void mariadb_dr_do_error(SV* h, unsigned int rc, const char *what, const char *sqlstate)
 {
   dTHX;
   D_imp_xxh(h);
@@ -1309,7 +1309,7 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t--> mariadb_dr_do_error\n");
   errstr= DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
+  sv_setuv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
   SvUTF8_off(errstr);
   sv_setpv(errstr, what);
   sv_utf8_decode(errstr);
@@ -1322,31 +1322,15 @@ void mariadb_dr_do_error(SV* h, int rc, const char* what, const char* sqlstate)
 
   /* NO EFFECT DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr); */
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %d recorded: %" SVf "\n", rc, SVfARG(errstr));
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "error %u recorded: %" SVf "\n", rc, SVfARG(errstr));
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\t<-- mariadb_dr_do_error\n");
-}
-
-void mariadb_dr_do_warn(SV* h, int rc, char* what)
-{
-  dTHX;
-  D_imp_xxh(h);
-
-  SV *errstr = DBIc_ERRSTR(imp_xxh);
-  sv_setiv(DBIc_ERR(imp_xxh), rc);	/* set err early	*/
-  SvUTF8_off(errstr);
-  sv_setpv(errstr, what);
-  sv_utf8_decode(errstr);
-  /* NO EFFECT DBIh_EVENT2(h, WARN_event, DBIc_ERR(imp_xxh), errstr);*/
-  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "warning %d recorded: %" SVf "\n", rc, SVfARG(errstr));
-  warn("%" SVf, SVfARG(errstr));
 }
 
 static void error_unknown_attribute(SV *h, const char *key)
 {
   dTHX;
-  mariadb_dr_do_error(h, JW_ERR_INVALID_ATTRIBUTE, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+  mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
 }
 
 static void error_nul_character(SV *h, const char *key)
@@ -2827,7 +2811,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
   {
       if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) && imp_dbh->pmysql)
         if (mysql_rollback(imp_dbh->pmysql))
-            mariadb_dr_do_error(dbh, TX_ERR_ROLLBACK,"ROLLBACK failed" ,NULL);
+          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
     mariadb_db_disconnect(dbh, imp_dbh);
   }
 
@@ -2884,11 +2868,7 @@ mariadb_db_STORE_attrib(
             mysql_autocommit(imp_dbh->pmysql, bool_value)
            )
         {
-          mariadb_dr_do_error(dbh, TX_ERR_AUTOCOMMIT,
-                   bool_value ?
-                   "Turning on AutoCommit failed" :
-                   "Turning off AutoCommit failed"
-                   ,NULL);
+          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
           return 1;  /* 1 means we handled it - important to avoid spurious errors */
         }
       }
@@ -2945,7 +2925,7 @@ mariadb_db_STORE_attrib(
           mysql_options(imp_dbh->pmysql, FABRIC_OPT_DEFAULT_MODE, len == 0 ? NULL : str);
         else
         {
-          mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_DEFAULT_MODE are 'ro', 'rw', or undef/empty string", "HY000");
+          mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Valid settings for FABRIC_OPT_DEFAULT_MODE are 'ro', 'rw', or undef/empty string", "HY000");
           return 0;
         }
       }
@@ -2959,14 +2939,14 @@ mariadb_db_STORE_attrib(
       const char *str = SvPV_nomg(valuesv, len);
       if (!memEQs(str, len, "ro") && !memEQs(str, len, "rw"))
       {
-        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
         return 0;
       }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_MODE, str);
     }
     else if (memEQs(key, kl, "mariadb_fabric_opt_group_credentials"))
     {
-      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "'fabric_opt_group_credentials' is not supported", "HY000");
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "'fabric_opt_group_credentials' is not supported", "HY000");
       return 0;
     }
   #endif
@@ -2981,7 +2961,7 @@ mariadb_db_STORE_attrib(
 #else
       /* before MySQL 5.7.9 and MariaDB 10.2.2 it is not possible to change max_allowed_packet after connection was established */
       if (imp_dbh->connected)
-        mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Changing mariadb_max_allowed_packet is not supported after connection was established", "HY000");
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Changing mariadb_max_allowed_packet is not supported after connection was established", "HY000");
       return 0;
 #endif
     }
@@ -3173,7 +3153,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
   #ifdef HAVE_GET_OPTION
       mysql_get_option(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
   #else
-      mariadb_dr_do_error(dbh, JW_ERR_INVALID_ATTRIBUTE, "Fetching mariadb_max_allowed_packet is not supported", "HY000");
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Fetching mariadb_max_allowed_packet is not supported", "HY000");
       return Nullsv;
   #endif
 #else
@@ -3293,7 +3273,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   field = mysql_fetch_field(res);
   if (!field)
   {
-    mariadb_dr_do_error(dbh, JW_ERR_NO_RESULT, "No result list of databases", NULL);
+    mariadb_dr_do_error(dbh, CR_NO_RESULT_SET, "No result list of databases", "HY000");
     return NULL;
   }
 
@@ -3440,7 +3420,7 @@ mariadb_st_prepare_sv(
         imp_sth->is_async = TRUE;
         if (imp_sth->disable_fallback_for_server_prepare)
         {
-          mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
+          mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED,
                    "Async option not supported with server side prepare", "HY000");
           return 0;
         }
@@ -3720,8 +3700,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
   if (imp_sth->use_server_side_prepare)
   {
-    mariadb_dr_do_warn(sth, JW_ERR_NOT_IMPLEMENTED,
-            "Processing of multiple result set is not possible with server side prepare");
+    mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Processing of multiple result set is not possible with server side prepare", "HY000");
     return FALSE;
   }
 
@@ -4211,7 +4190,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
     {
       if (disable_fallback_for_server_prepare)
       {
-        mariadb_dr_do_error(sth, ER_UNSUPPORTED_PS,
+        mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED,
                  "\"mariadb_use_result\" not supported with server side prepare",
                  "HY000");
         return -2;
@@ -4338,9 +4317,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
     if (num_fields <= 0 || !imp_sth->result)
     {
       /* no metadata */
-      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
-               "no metadata information while trying describe result set",
-               NULL);
+      mariadb_dr_do_error(sth, CR_NO_STMT_METADATA, "Prepared statement contains no metadata", "HY000");
       return 0;
     }
 
@@ -4349,8 +4326,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
           || !(imp_sth->buffer= alloc_bind(num_fields)) )
     {
       /* Out of memory */
-      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
-               "Out of memory in mariadb_st_describe()",NULL);
+      mariadb_dr_do_error(sth, CR_OUT_OF_MEMORY, "Out of memory in mariadb_st_describe()", "HY000");
       return 0;
     }
 
@@ -4505,24 +4481,20 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
   {
     if (!DBIc_ACTIVE(imp_sth) )
     {
-      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "no statement executing\n",NULL);
+      mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "no statement executing", "HY000");
       return Nullav;
     }
 
     if (imp_sth->fetch_done)
     {
-      mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "fetch() but fetch already done",NULL);
+      mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "fetch() but fetch already done", "HY000");
       return Nullav;
     }
 
     if (!imp_sth->done_desc)
     {
       if (!mariadb_st_describe(sth, imp_sth))
-      {
-        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "Error while describe result set.",
-                 NULL);
         return Nullav;
-      }
     }
   }
 
@@ -4535,7 +4507,7 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
   if (!imp_sth->result)
   {
-    mariadb_dr_do_error(sth, JW_ERR_SEQUENCE, "fetch() without execute()" ,NULL);
+    mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "fetch() without execute()", "HY000");
     return Nullav;
   }
 
@@ -4950,21 +4922,6 @@ process:
 
 }
 
-/*
-  We have to fetch all data from stmt
-  There is may be useful for 2 cases:
-  1. st_finish when we have undef statement
-  2. call st_execute again when we have some unfetched data in stmt
- */
-
-static int mariadb_st_clean_cursor(SV* sth, imp_sth_t* imp_sth) {
-
-  if (DBIc_ACTIVE(imp_sth) && mariadb_st_describe(sth, imp_sth) &&
-      !imp_sth->fetch_done)
-    mysql_stmt_free_result(imp_sth->stmt);
-  return 1;
-}
-
 /***************************************************************************
  *
  *  Name:    mariadb_st_finish
@@ -4993,17 +4950,16 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\n--> mariadb_st_finish\n");
   }
 
-  if (imp_sth->use_server_side_prepare)
+  if (imp_sth->use_server_side_prepare && imp_sth->stmt)
   {
-    if (imp_sth && imp_sth->stmt)
-    {
-      if (!mariadb_st_clean_cursor(sth, imp_sth))
-      {
-        mariadb_dr_do_error(sth, JW_ERR_SEQUENCE,
-                 "Error happened while tried to clean up stmt",NULL);
-        return 0;
-      }
-    }
+    /*
+      We have to fetch all data from stmt
+      There is may be useful for 2 cases:
+      1. st_finish when we have undef statement
+      2. call st_execute again when we have some unfetched data in stmt
+     */
+    if (DBIc_ACTIVE(imp_sth) && mariadb_st_describe(sth, imp_sth) && !imp_sth->fetch_done)
+      mysql_stmt_free_result(imp_sth->stmt);
   }
 
   /*
@@ -5206,7 +5162,7 @@ static SV* mariadb_st_fetch_internal(
 
   /* Are we asking for a legal value? */
   if (what < 0 ||  what >= AV_ATTRIB_LAST)
-    mariadb_dr_do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Not implemented", NULL);
+    mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Not implemented", "HY000");
 
   /* Return cached value, if possible */
   else if (cacheit  &&  imp_sth->av_attr[what])
@@ -5214,8 +5170,7 @@ static SV* mariadb_st_fetch_internal(
 
   /* Does this sth really have a result? */
   else if (!res)
-    mariadb_dr_do_error(sth, JW_ERR_NOT_ACTIVE,
-	     "statement contains no result" ,NULL);
+    mariadb_dr_do_error(sth, CR_NO_RESULT_SET, "No result set associated with the statement", "HY000");
   /* Do the real work. */
   else
   {
@@ -5546,7 +5501,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
   if (param_num <= 0  ||  param_num > DBIc_NUM_PARAMS(imp_sth))
   {
-    mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, "Illegal parameter number", NULL);
+    mariadb_dr_do_error(sth, CR_INVALID_PARAMETER_NO, "Illegal parameter number", "HY000");
     return 0;
   }
 
@@ -5563,14 +5518,14 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
       err_msg = SvPVX(sv_2mortal(newSVpvf(
               "Binding non-numeric field %" IVdf ", value %s as a numeric!",
               param_num, neatsvpv(value,0))));
-      mariadb_dr_do_error(sth, JW_ERR_ILLEGAL_PARAM_NUM, err_msg, NULL);
+      mariadb_dr_do_error(sth, CR_INVALID_PARAMETER_NO, err_msg, "HY000");
       return 0;
     }
   }
 
   if (is_inout)
   {
-    mariadb_dr_do_error(sth, JW_ERR_NOT_IMPLEMENTED, "Output parameters not implemented", NULL);
+    mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Output parameters not implemented", "HY000");
     return 0;
   }
 
@@ -6117,11 +6072,11 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   if(! dbh->async_query_in_flight) {
       if (async_sth)
           return retval;
-      mariadb_dr_do_error(h, 2000, "Gathering asynchronous results for a synchronous handle", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering asynchronous results for a synchronous handle", "HY000");
       return -1;
   }
   if(dbh->async_query_in_flight != imp_xxh) {
-      mariadb_dr_do_error(h, 2000, "Gathering async_query_in_flight results for the wrong handle", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
       return -1;
   }
   dbh->async_query_in_flight = NULL;
@@ -6206,17 +6161,17 @@ int mariadb_db_async_ready(SV* h)
           }
           return retval;
       } else {
-          mariadb_dr_do_error(h, 2000, "Calling mariadb_async_ready on the wrong handle", "HY000");
+          mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling mariadb_async_ready on the wrong handle", "HY000");
           return -1;
       }
   } else {
       if (async_sth) {
           if (async_active)
               return 1;
-          mariadb_dr_do_error(h, 2000, "Asynchronous handle was not executed yet", "HY000");
+          mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Asynchronous handle was not executed yet", "HY000");
           return -1;
       }
-      mariadb_dr_do_error(h, 2000, "Handle is not in asynchronous mode", "HY000");
+      mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Handle is not in asynchronous mode", "HY000");
       return -1;
   }
 }
