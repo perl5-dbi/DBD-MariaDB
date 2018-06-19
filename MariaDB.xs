@@ -372,21 +372,20 @@ ping(dbh)
     SV* dbh;
   CODE:
     {
-/* MySQL 5.7 below 5.7.18 is affected by Bug #78778.
- * MySQL 5.7.18 and higher (including 8.0.3) is affected by Bug #89139.
- *
- * Once Bug #89139 is fixed we can adjust the upper bound of this check.
- *
- * https://bugs.mysql.com/bug.php?id=78778
- * https://bugs.mysql.com/bug.php?id=89139 */
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
+      /*
+       * mysql_insert_id() returns incorrect value after mysql_ping() C function.
+       * As a workaround prior to calling mysql_ping() function we store value
+       * of last insert id. After function finish we restore previous value of
+       * last insert id.
+       */
       my_ulonglong insertid;
 #endif
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
       if (!imp_dbh->pmysql)
         XSRETURN_NO;
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
       insertid = mysql_insert_id(imp_dbh->pmysql);
 #endif
       RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
@@ -395,7 +394,7 @@ ping(dbh)
         if (mariadb_db_reconnect(dbh, NULL))
           RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       }
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50718
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
       imp_dbh->pmysql->insert_id = insertid;
 #endif
     }
