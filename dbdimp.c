@@ -3919,6 +3919,17 @@ my_ulonglong mariadb_st_internal_execute(
         rows = 0;
     }
   } else {
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
+      /*
+       * mysql_insert_id() returns incorrect value after SELECT operation.
+       * As a workaround prior to issuing mysql query we store value of
+       * last insert id. If query returns result set then we know that it
+       * was SELECT operation and so after that we restore previous value
+       * of last insert id.
+       */
+      my_ulonglong insertid = mysql_insert_id(*svsock);
+#endif
+
       if ((mysql_real_query(*svsock, sbuf, slen))  &&
           (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(*svsock, sbuf, slen))))
@@ -3936,6 +3947,11 @@ my_ulonglong mariadb_st_internal_execute(
           else {
             rows = mysql_affected_rows(*svsock);
           }
+
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
+          if (*result)
+            (*svsock)->insert_id = insertid;
+#endif
       }
   }
 
