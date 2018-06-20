@@ -5833,9 +5833,6 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
  *
  *  Purpose: Implements $dbh->type_info_all
  *
- *  Input:   dbh - database handle
- *           imp_sth - drivers private database handle data
- *
  *  Returns: RV to AV of types
  *
  **************************************************************************/
@@ -5851,7 +5848,7 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
 
 #define IV_PUSH(i) sv= newSViv((i)); SvREADONLY_on(sv); av_push(row, sv);
 
-AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
+AV *mariadb_db_type_info_all(void)
 {
   dTHX;
   AV *av= newAV();
@@ -5882,9 +5879,6 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
     "mariadb_native_type",
     "mariadb_is_num"
   };
-
-  dbh= dbh;
-  imp_dbh= imp_dbh;
  
   hv= newHV();
   av_push(av, newRV_noinc((SV*) hv));

@@ -628,7 +628,7 @@ my_ulonglong mariadb_st_internal_execute41(SV *,
 
 bool mariadb_st_more_results(SV*, imp_sth_t*);
 
-AV* mariadb_db_type_info_all (SV* dbh, imp_dbh_t* imp_dbh);
+AV* mariadb_db_type_info_all(void);
 SV* mariadb_db_quote(SV*, SV*, SV*);
 
 bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt);

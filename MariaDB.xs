@@ -89,8 +89,7 @@ type_info_all(dbh)
 {
   D_imp_dbh(dbh);
   ASYNC_CHECK_XS(dbh);
-  ST(0) = sv_2mortal(newRV_noinc((SV*) mariadb_db_type_info_all(dbh,
-                                                            imp_dbh)));
+  ST(0) = sv_2mortal(newRV_noinc((SV*) mariadb_db_type_info_all()));
   XSRETURN(1);
 }
 
