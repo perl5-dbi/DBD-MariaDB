@@ -87,8 +87,7 @@ type_info_all(dbh)
   SV* dbh
   PPCODE:
 {
-  D_imp_dbh(dbh);
-  ASYNC_CHECK_XS(dbh);
+  PERL_UNUSED_VAR(dbh);
   ST(0) = sv_2mortal(newRV_noinc((SV*) mariadb_db_type_info_all()));
   XSRETURN(1);
 }
