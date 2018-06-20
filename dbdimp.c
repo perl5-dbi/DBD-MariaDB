@@ -6039,14 +6039,12 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
         SV *catalog, SV *schema, SV *table, SV *field, SV *attr)
 {
   dTHX;
-  /* all these non-op settings are to stifle OS X compile warnings */
-  imp_dbh= imp_dbh;
-  dbh= dbh;
-  catalog= catalog;
-  schema= schema;
-  table= table;
-  field= field;
-  attr= attr;
+  PERL_UNUSED_ARG(dbh);
+  PERL_UNUSED_ARG(catalog);
+  PERL_UNUSED_ARG(schema);
+  PERL_UNUSED_ARG(table);
+  PERL_UNUSED_ARG(field);
+  PERL_UNUSED_ARG(attr);
 
   if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
   {
