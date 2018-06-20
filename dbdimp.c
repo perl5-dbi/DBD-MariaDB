@@ -5460,15 +5460,15 @@ int mariadb_st_blob_read (
   SV *destrv,
   long destoffset)
 {
-    /* quell warnings */
-    sth= sth;
-    imp_sth=imp_sth;
-    field= field;
-    offset= offset;
-    len= len;
-    destrv= destrv;
-    destoffset= destoffset;
-    return 0;
+  PERL_UNUSED_ARG(sth);
+  PERL_UNUSED_ARG(imp_sth);
+  PERL_UNUSED_ARG(field);
+  PERL_UNUSED_ARG(offset);
+  PERL_UNUSED_ARG(len);
+  PERL_UNUSED_ARG(destrv);
+  PERL_UNUSED_ARG(destoffset);
+  mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "blob_read not implemented", "HY000");
+  return 0;
 }
 
 
