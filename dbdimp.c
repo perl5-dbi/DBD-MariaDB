@@ -833,7 +833,11 @@ static char *parse_params(
           if (quote_value)
           {
             *ptr++ = '\'';
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50706 && MYSQL_VERSION_ID != 60000
+            ptr += mysql_real_escape_string_quote(sock, ptr, ph->value, ph->len, '\'');
+#else
             ptr += mysql_real_escape_string(sock, ptr, ph->value, ph->len);
+#endif
             *ptr++ = '\'';
           }
           else
@@ -6018,7 +6022,11 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
       sptr = SvPVX(result);
 
       *sptr++ = '\'';
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50706 && MYSQL_VERSION_ID != 60000
+      sptr += mysql_real_escape_string_quote(imp_dbh->pmysql, sptr, ptr, len, '\'');
+#else
       sptr += mysql_real_escape_string(imp_dbh->pmysql, sptr, ptr, len);
+#endif
       *sptr++ = '\'';
     }
 
