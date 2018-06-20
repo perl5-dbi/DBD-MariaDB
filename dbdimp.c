@@ -5501,6 +5501,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   char *err_msg;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
+  PERL_UNUSED_ARG(attribs);
+  PERL_UNUSED_ARG(maxlen);
 
   char *buffer= NULL;
   my_bool buffer_is_null = FALSE;
@@ -5515,9 +5517,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "   Called: mariadb_st_bind_ph\n");
-
-  attribs= attribs;
-  maxlen= maxlen;
 
   if (param_num <= 0  ||  param_num > DBIc_NUM_PARAMS(imp_sth))
   {
