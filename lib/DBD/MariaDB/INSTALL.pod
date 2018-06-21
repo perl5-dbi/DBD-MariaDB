@@ -11,25 +11,16 @@ DBD::MariaDB::INSTALL - How to install and configure DBD::MariaDB
   make test
   make install
 
-
 =head1 DESCRIPTION
 
-This document describes the installation and configuration of
-DBD::MariaDB, the Perl DBI driver for the MySQL database. Before
-reading on, make sure that you have the prerequisites available:
-Perl, MySQL and DBI. For details see the separate section
-L</PREREQUISITES>.
+This document describes the installation and configuration of DBD::MariaDB, the
+Perl DBI driver for the MariaDB and MySQL database. Before reading on, make sure
+that you have the prerequisites available: Perl, MariaDB/MySQL and DBI. For
+details see the separate section L</PREREQUISITES>.
 
-Depending on your version of Perl, it might be possible to
-use a binary distribution of DBD::MariaDB. If possible, this is
-recommended. Otherwise you need to install from the sources.
-If so, you will definitely need a C compiler. Installation
-from binaries and sources are both described in separate
-sections. L</BINARY INSTALLATION>. L</SOURCE INSTALLATION>.
-
-Finally, if you encounter any problems, do not forget to
-read the section on known problems L</KNOWN PROBLEMS>. If
-that doesn't help, you should check the section on L</SUPPORT>.
+Finally, if you encounter any problems, do not forget to read the section on
+known problems L</KNOWN PROBLEMS>. If that doesn't help, you should check the
+section on L</SUPPORT>.
 
 =head1 PREREQUISITES
 
@@ -37,201 +28,133 @@ that doesn't help, you should check the section on L</SUPPORT>.
 
 =item Perl
 
-Preferably a version of Perl, that comes preconfigured with
-your system. For example, all Linux and FreeBSD distributions
-come with Perl. For Windows, use L<ActivePerl|https://www.activestate.com/activeperl> 
-or L<Strawberry Perl|http://www.strawberryperl.com>.
+Preferably a version of Perl, that comes preconfigured with your system. For
+example, all Linux and FreeBSD distributions come with Perl. For Windows, use
+L<ActivePerl|https://www.activestate.com/activeperl> or
+L<Strawberry Perl|http://www.strawberryperl.com>.
 
-=item MySQL
+=item MariaDB/MySQL
 
-You need not install the actual MySQL database server, the
-client files and the development files are sufficient. For
-example, Fedora Linux distribution comes with RPM files
-(using YUM) B<mysql> and B<mysql-server> (use "yum search"
-to find exact package names). These are sufficient, if the MySQL
-server is located on a foreign machine.  You may also create client
-files by compiling from the MySQL source distribution and using
+You need not install the actual MariaDB or MySQL database server, the client
+files and the development files are sufficient. They are distributed either in
+I<Connector/C> package or as part of server package. You need at least MySQL
+version 4.1.3.
 
-  configure --without-server
+For example, Fedora, RedHat, CentOS Linux distribution comes with RPM files
+(using YUM) C<mariadb-devel>, C<mariadb-embedded-devel>, C<mysql-devel> or
+C<mysql-embedded-devel> (use C<yum search> to find exact package names). Debian
+and Ubuntu comes with DEB packages C<libmariadb-dev>, C<libmariadbclient-dev>,
+C<libmariadbd-dev>, C<libmysqlclient-dev> or C<libmysqld-dev> (use
+C<apt-cache search> to find exact package names).
 
-If you are using Windows and need to compile from sources
-(which is only the case if you are not using ActivePerl or
-Strawberry Perl),
-then you must ensure that the header and library files are
-installed. This may require choosing a "Custom installation"
-and selecting the appropriate option when running the
-MySQL setup program.
+In some cases MariaDB or MySQL libraries depends on external libpcre, libaio,
+libnuma, libjemalloc or libwrap libraries. If it is that case, they needs to be
+installed before MariaDB/MySQL libraries.
+
+These are sufficient, if the MariaDB/MySQL server is located on a foreign
+machine. You may also create client files by compiling from the MariaDB/MySQL
+source distribution and using
+
+  ./configure --without-server
+
+or
+
+  cmake -DWITHOUT_SERVER=ON
+
+If you are using Windows and need to compile from sources (which is only the
+case if you are not using ActivePerl or Strawberry Perl), then you must ensure
+that the header and library files are installed. This may require choosing a
+I<Custom installation> and selecting the appropriate option when running the
+MariaDB/MySQL setup program.
 
 =item DBI
 
-DBD::MariaDB is a DBI driver, hence you need DBI. It is available
-from the same source where you got the DBD::MariaDB distribution
-from.
+DBD::MariaDB is a DBI driver, hence you need DBI. It is available from the same
+source where you got the DBD::MariaDB distribution from.
 
 =item C compiler
 
-A C compiler is only required if you install from source. In
-most cases there are binary distributions of DBD::MariaDB
-available. However, if you need a C compiler, make sure, that
-it is the same C compiler that was used for compiling Perl and
-MySQL! Otherwise you will almost definitely encounter problems
-because of differences in the underlying C runtime libraries.
+A C compiler is required if you install from source. Make sure, that it is the
+same C compiler that was used for compiling Perl and MariaDB/MySQL! Otherwise
+you will almost definitely encounter problems because of differences in the
+underlying C runtime libraries.
 
-In the worst case, this might mean to compile Perl and MySQL
-yourself. But believe me, experience shows that a lot of problems
-are fixed this way.
+In the worst case, this might mean to compile Perl and MariaDB/MySQL yourself.
+But believe me, experience shows that a lot of problems are fixed this way.
 
 =item Gzip libraries
 
-Late versions of MySQL come with support for compression. Thus
-it B<may> be required that you have install an RPM package like
-libz-devel, libgz-devel or something similar.
+Late versions of MySQL and MariaDB come with support for compression. Thus it
+B<may> be required that you have install an RPM package like C<libz-devel>,
+C<libgz-devel> or something similar.
 
 =back
 
-
-=head1 BINARY INSTALLATION
-
-Binary installation is possible in the most cases, depending
-on your system.
-
-
-=head2 Windows
-
-=head3 Strawberry Perl
-
-Strawberry Perl comes bundled with DBD::MariaDB and the needed
-client libraries.
-
-=head3 ActiveState Perl
-
-ActivePerl offers a PPM archive of DBD::MariaDB. All you need to
-do is typing in a cmd.exe window:
-
-  ppm install DBD-MariaDB
-
-This will fetch the module via HTTP and install them. If you
-need to use a WWW proxy server, the environment variable
-HTTP_proxy must be set:
-
-  set HTTP_proxy=http://myproxy.example.com:8080/
-  ppm install DBD-MariaDB
-
-Of course you need to replace the host name C<myproxy.example.com>
-and the port number C<8080> with your local values.
-
-If the above procedure doesn't work, please upgrade to the latest
-version of ActivePerl. ActiveState has a policy where it only
-provides access free-of-charge for the PPM mirrors of the last
-few stable Perl releases. If you have an older perl, you'd either
-need to upgrade your perl or contact ActiveState about a subscription.
-
-
-=head2 Red Hat Enterprise Linux (RHEL), CentOS and Fedora
-
-Red Hat Enterprise Linux, its community derivatives such as
-CentOS, and Fedora come with MySQL and DBD::MariaDB.
-
-Use the following command to install DBD::MariaDB:
-
-    yum install "perl(DBD::MariaDB)"
-
-
-=head2 Debian and Ubuntu
-
-On Debian, Ubuntu and derivatives you can install DBD::MariaDB from
-the repositories with the following command:
-
-    sudo apt-get install libdbd-mariadb-perl
-
-
-=head2 SLES and openSUSE
-
-On SUSE Linux Enterprise and the community version openSUSE, you
-can install DBD::MariaDB from the repositories with the following
-command:
-
-    zypper install perl-DBD-MariaDB
-
-
-=head2 Other systems
-
-In the case of other Linux or FreeBSD distributions it is very likely
-that all you need comes with your distribution.
-I just cannot give you names, as I am not using
-these systems.
-
-Please let me know if you find the files in your favorite
-Linux or FreeBSD distribution so that I can extend the above list.
-
-
 =head1 SOURCE INSTALLATION
 
-So you need to install from sources. If you are lucky, the Perl
-module C<CPAN> will do all for you, thanks to the excellent work
-of Andreas König. Otherwise you will need to do a manual
-installation.
-All of these installation types have their own section:
-L</CPAN installation>, L</Manual installation> and L</Configuration>.
+So you need to install from sources? If you are lucky, the Perl module C<CPAN>
+will do all for you, thanks to the excellent work of Andreas König. Otherwise
+you will need to do a manual installation. All of these installation types have
+their own section: L</CPAN installation>, L</Manual installation> and
+L</Configuration>.
 
-The DBD::MariaDB Makefile.PL needs to know where to find your MySQL
-installation. This may be achieved using command line switches
-(see L</Configuration>) or automatically using the mysql_config binary
-which comes with most MySQL distributions. If your MySQL distribution
-contains mysql_config the easiest method is to ensure this binary
-is on your path.
+The DBD::MariaDB C<Makefile.PL> needs to know where to find your MySQL
+installation. This may be achieved using command line switches (see
+L</Configuration>) or automatically using the C<mariadb_config> or
+C<mysql_config> binary which comes with most MariaDB and MySQL distributions. If
+your MariaDB or MySQL distribution contains C<mariadb_config> or C<mysql_config>
+the easiest method is to ensure this binary is on your path.
 
-Typically, this is the case if you've installed the mysql library
-from your systems' package manager.
+Typically, this is the case if you've installed the mysql library from your
+systems' package manager.
 
 e.g.
 
   PATH=$PATH:/usr/local/mysql/bin
   export PATH
 
-As stated, to compile DBD::MariaDB you'll need a C compiler. This should
-be the same compiler as the one used to build perl AND the mysql client
-libraries. If you're on linux, this is most typically the case and you
-need not worry. If you're on UNIX systems, you might want to pay
-attention.
+As stated, to compile DBD::MariaDB you'll need a C compiler. This should be the
+same compiler as the one used to build perl AND the MariaDB or MySQL client
+libraries. If you're on linux, this is most typically the case and you need not
+worry. If you're on UNIX systems, you might want to pay attention.
 
-Also you'll need to get the MySQL client and development headers on
+Also you'll need to get the MariaDB or MySQL client and development headers on
 your system. The easiest is to get these from your package manager.
 
-To run the tests that ship with the module, you'll need access to a
-running MySQL server. This can be running on localhost, but it can also
-be on a remote machine.
+To run the tests that ship with the module, you'll need access to a running
+MariaDB or MySQL server. This can be running on localhost, but it can also be on
+a remote machine. You can use any server version which is greater or equal to
+4.1.0. It does not have to be same as version of client library. Also you can
+use MariaDB client library and MySQL server or vice-versa.
 
-On Fedora the process is as follows. Please note that Fedora actually
-ships with MariaDB but not with MySQL. This is not a problem, it
-will work just as well.
-In this example we install and start a local server for running the
-tests against.
+On Fedora the process is as follows. In this example we install and start a
+local server for running the tests against.
 
-    yum -y install make gcc mariadb-devel mariadb-libs mariadb-server
-    yum -y install "perl(Test::Deep)" "perl(Test::More)"
-    systemctl start mariadb.service
-
+  yum -y install make gcc mariadb-devel mariadb-libs mariadb-server
+  yum -y install "perl(Test::Deep)" "perl(Test::More)"
+  systemctl start mariadb.service
 
 =head2 Environment Variables
 
-For ease of use, you can set environment variables for
-DBD::MariaDB installation. You can set any or all of the options, and
-export them by putting them in your .bashrc or the like:
+For ease of use, you can set environment variables for DBD::MariaDB
+installation. You can set any or all of the options, and export them by putting
+them in your .bashrc or the like:
 
-    export DBD_MARIADB_CFLAGS=-I/usr/local/mysql/include/mysql
-    export DBD_MARIADB_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
-    export DBD_MARIADB_CONFIG=mysql_config
-    export DBD_MARIADB_TESTDB=test
-    export DBD_MARIADB_TESTHOST=localhost
-    export DBD_MARIADB_TESTPASSWORD=s3kr1+
-    export DBD_MARIADB_TESTPORT=3306
-    export DBD_MARIADB_TESTUSER=me
+  export DBD_MARIADB_CFLAGS=-I/usr/local/mysql/include/mysql
+  export DBD_MARIADB_LIBS="-L/usr/local/mysql/lib/mysql -lmysqlclient"
+  export DBD_MARIADB_CONFIG=mysql_config
+  export DBD_MARIADB_TESTDB=test
+  export DBD_MARIADB_TESTHOST=127.0.0.1
+  export DBD_MARIADB_TESTPORT=3306
+  export DBD_MARIADB_TESTSOCKET=/var/run/mysqld/mysqld.sock
+  export DBD_MARIADB_TESTUSER=me
+  export DBD_MARIADB_TESTPASSWORD=s3kr1+
 
 The most useful may be the host, database, port, socket, user, and password.
 
-Installation will first look to your mysql_config, and then your
-environment variables, and then it will guess with intelligent defaults.
+Installation will first look to your C<mariadb_config>, your C<mysql_config>,
+and then your environment variables, and then it will guess with intelligent
+defaults.
 
 =head2 CPAN installation
 
@@ -239,74 +162,65 @@ Installation of DBD::MariaDB can be incredibly easy:
 
   cpan DBD::MariaDB
 
-Please note that this will only work if the prerequisites are
-fulfilled, which means you have a C-compiler installed, and you
-have the development headers and mysql client libraries available
-on your system.
+Please note that this will only work if the prerequisites are fulfilled, which
+means you have a C-compiler installed, and you have the development headers and
+mariadb or mysql client libraries available on your system.
 
-If you are using the CPAN module for the first time, just answer
-the questions by accepting the defaults which are fine in most
-cases.
+If you are using the CPAN module for the first time, just answer the questions
+by accepting the defaults which are fine in most cases.
 
-If you cannot get the CPAN module working, you might try manual
-installation. If installation with CPAN fails because the your local
-settings have been guessed wrong, you need to ensure MySQL's
-mysql_config is on your path (see L</SOURCE INSTALLATION>) or
-alternatively create a script called C<mysql_config>. This is
-described in more details later. L</Configuration>.
-
+If you cannot get the CPAN module working, you might try manual installation. If
+installation with CPAN fails because your local settings have been guessed
+wrong, you need to ensure MariaDB's C<mariadb_config> or MySQL's C<mysql_config>
+is on your path (see L</SOURCE INSTALLATION>) or alternatively create a script
+called C<mysql_config>. This is described in more details later.
+L</Configuration>.
 
 =head2 Manual installation
 
-For a manual installation you need to fetch the DBD::MariaDB
-source distribution. The latest version is always available
-from
-
-  https://metacpan.org/module/DBD::MariaDB
+For a manual installation you need to fetch the DBD::MariaDB source
+distribution. The latest version is always available from
+L<https://metacpan.org/release/DBD-MariaDB>.
 
 The name is typically something like
 
-  DBD-MariaDB-4.025.tar.gz
+  DBD-MariaDB-<version>.tar.gz
 
-The archive needs to be extracted. On Windows you may use a tool
-like 7-zip, on *nix you type
+The archive needs to be extracted. On Windows you may use a tool like 7-zip, on
+*nix you type
 
-  tar xf DBD-MariaDB-4.025.tar.gz
+  tar xf DBD-MariaDB-<version>.tar.gz
 
-This will create a subdirectory DBD-MariaDB-4.025. Enter this
+This will create a subdirectory F<< DBD-MariaDB-<version> >>. Enter this
 subdirectory and type
 
   perl Makefile.PL
   make
   make test
 
-(On Windows you may need to replace "make" with "dmake" or
-"nmake".) If the tests seem to look fine, you may continue with
+On Windows you may need to replace C<make> with C<dmake>, C<gmake> or C<nmake>.
+If the tests seem to look fine, you may continue with
 
   make install
 
-If the compilation (make) or tests fail, you might need to
-configure some settings.
+If the compilation (make) or tests fail, you might need to configure some
+settings.
 
-For example you might choose a different database, the C
-compiler or the linker might need some flags. L</Configuration>.
-L</Compiler flags>. L</Linker flags>.
+For example you might choose a different database, the C compiler or the linker
+might need some flags. L</Configuration>. L</Compiler flags>. L</Linker flags>.
 
-For Cygwin there is a special section below.
-L</Cygwin>.
-
+For Cygwin there is a special section below. L</Cygwin>.
 
 =head2 Configuration
 
-The install script "Makefile.PL" can be configured via a lot of
-switches. All switches can be used on the command line. For
-example, the test database:
+The install script C<Makefile.PL> can be configured via a lot of switches. All
+switches can be used on the command line. For example, the test database:
 
   perl Makefile.PL --testdb=<db>
 
-If you do not like configuring these switches on the command
-line, you may alternatively create a script called C<mysql_config>.
-This is described later on.
+If you do not like configuring these switches on the command line, you may
+alternatively create a script called C<mariadb_config> or C<mysql_config>. This
+is described later on.
 
 Available switches are:
 
@@ -318,8 +232,8 @@ Name of the test database, defaults to B<test>.
 
 =item testuser
 
-Name of the test user, defaults to empty. If the name is empty,
-then the currently logged in users name will be used.
+Name of the test user, defaults to empty. If the name is empty, then the
+currently logged in users name will be used.
 
 =item testpassword
 
@@ -331,24 +245,24 @@ Host name or IP number of the test database; defaults to localhost.
 
 =item testport
 
-Port number of the test database; ignored when L</testhost> is set to
+Port number of the test database; ignored when L<testhost|/testhost> is set to
 C<localhost>.
 
 =item testsocket
 
-Unix socket of the test database; takes effect only when L</testhost>
+Unix socket of the test database; takes effect only when L<testhost|/testhost>
 is set to C<localhost>.
 
 =item cflags
 
-This is a list of flags that you want to give to the C compiler.
-The most important flag is the location of the MySQL header files.
-For example, on Red Hat Linux the header files are in /usr/include/mysql
-and you might try
+This is a list of flags that you want to give to the C compiler. The most
+important flag is the location of the MariaDB or MySQL header files. For
+example, on Red Hat Linux the header files are in F</usr/include/mysql> and you
+might try
 
   -I/usr/include/mysql
 
-On Windows the header files may be in C:\mysql\include and you might try
+On Windows the header files may be in F<C:\mysql\include> and you might try
 
   -IC:\mysql\include
 
@@ -356,19 +270,19 @@ The default flags are determined by running
 
   mysql_config --cflags
 
-More details on the C compiler flags can be found in the following
-section. L</Compiler flags>.
+More details on the C compiler flags can be found in the following section.
+L</Compiler flags>.
 
 =item libs
 
-This is a list of flags that you want to give to the linker
-or loader. The most important flags are the locations and names
-of additional libraries. For example, on Red Hat Linux your
-MySQL client libraries are in /usr/lib/mysql and you might try
+This is a list of flags that you want to give to the linker or loader. The most
+important flags are the locations and names of additional libraries. For
+example, on Red Hat Linux your MySQL client libraries are in F</usr/lib/mysql>
+and you might try
 
   -L/usr/lib/mysql -lmysqlclient -lz
 
-On Windows the libraries may be in C:\mysql\lib and
+On Windows the libraries may be in F<C:\mysql\lib> and
 
   -LC:\mysql\lib -lmysqlclient
 
@@ -377,103 +291,105 @@ might be a good choice. The default flags are determined by running
   mysql_config --libs
 
 More details on the linker flags can be found in a separate section.
-L<Linker flags>.
+L</Linker flags>.
 
 =back
 
-If a switch is not present on the command line, then the
-script C<mysql_config> will be executed. This script comes
-as part of the MySQL distribution. For example, to determine
-the C compiler flags, we are executing
+If a switch is not present on the command line, then the script
+C<mariadb_config> or C<mysql_config> will be executed. This script comes as part
+of the MariaDB or MySQL distribution. For example, to determine the C compiler
+flags, we are executing
 
   mysql_config --cflags
   mysql_config --libs
 
-If you want to configure your own settings for database name,
-database user and so on, then you have to create a script with
-the same name, that replies
-
+If you want to configure your own settings for cflags or libs, then you have to
+create a script with same name that provides needed details.
 
 =head2 Compiler flags
 
-Note: the following info about compiler and linker flags, you shouldn't have
-to use these options because Makefile.PL is pretty good at utilizing
-mysql_config to get the flags that you need for a successful compile.
+Note: the following info about compiler and linker flags, you shouldn't have to
+use these options because C<Makefile.PL> is pretty good at utilizing
+C<mariadb_config> and C<mysql_config> to get the flags that you need for a
+successful compile.
 
-It is typically not so difficult to determine the appropriate
-flags for the C compiler. The linker flags, which you find in
-the next section, are another story.
+It is typically not so difficult to determine the appropriate flags for the C
+compiler. The linker flags, which you find in the next section, are another
+story.
 
-The determination of the C compiler flags is usually left to
-a configuration script called F<mysql_config>, which can be
-invoked with
+The determination of the C compiler flags is usually left to a configuration
+script called C<mysql_config>, which can be invoked with
 
   mysql_config --cflags
 
-When doing so, it will emit a line with suggested C compiler
-flags, for example like this:
+When doing so, it will emit a line with suggested C compiler flags, for example
+like this:
 
   -L/usr/include/mysql
 
-The C compiler must find some header files. Header files have
-the extension C<.h>. MySQL header files are, for example,
-F<mysql.h> and F<mysql_version.h>. In most cases the header
-files are not installed by default. For example, on Windows
-it is an installation option of the MySQL setup program
-(Custom installation), whether the header files are installed
-or not. On Red Hat Linux, you need to install an RPM archive
-F<mysql-devel> or F<MySQL-devel>.
+The C compiler must find some header files. Header files have the extension
+F<.h>. MySQL header files are, for example, F<mysql.h> and F<mysql_version.h>.
+In most cases the header files are not installed by default. For example, on
+Windows it is an installation option of the MySQL setup program (Custom
+installation), whether the header files are installed or not. On Red Hat Linux,
+you need to install an RPM archive C<mariadb-devel>, C<mariadb-embedded-devel>,
+C<mysql-devel> or C<mysql-embedded-devel>.
 
-If you know the location of the header files, then you will
-need to add an option
+If you know the location of the header files, then you will need to add an
+option
 
   -L<header directory>
 
 to the C compiler flags, for example C<-L/usr/include/mysql>.
 
-
 =head2 Linker flags
 
-Appropriate linker flags are the most common source of problems
-while installing DBD::MariaDB. I will only give a rough overview,
-you'll find more details in the troubleshooting section.
-L</KNOWN PROBLEMS>
+Appropriate linker flags are the most common source of problems while installing
+DBD::MariaDB. I will only give a rough overview, you'll find more details in the
+troubleshooting section. L</KNOWN PROBLEMS>
 
-The determination of the C compiler flags is usually left to
-a configuration script called F<mysql_config>, which can be
-invoked with
+The determination of the C compiler flags is usually left to a configuration
+script called C<mysql_config>, which can be invoked with
 
   mysql_config --libs
 
-When doing so, it will emit a line with suggested C compiler
-flags, for example like this:
+When doing so, it will emit a line with suggested C compiler flags, for example
+like this:
 
-   -L'/usr/lib/mysql' -lmysqlclient -lnsl -lm -lz -lcrypt
+  -L'/usr/lib/mysql' -lmysqlclient -lnsl -lm -lz -lcrypt
 
-The following items typically need to be configured for the
-linker:
+The following items typically need to be configured for the linker:
 
 =over
 
-=item The mysqlclient library
+=item The mariadb/mysqlclient library
 
-The MySQL client library comes as part of the MySQL distribution.
-Depending on your system it may be a file called
+The MariaDB or MySQL client library comes as part of the MariaDB or MySQL
+distribution. Depending on your system it may be a file called
 
-  F<libmysqlclient.a>   statically linked library, Unix
-  F<libmysqlclient.so>  dynamically linked library, Unix
-  F<mysqlclient.lib>    statically linked library, Windows
-  F<mysqlclient.dll>    dynamically linked library, Windows
+  libmariadb.a       statically linked library, Unix
+  libmariadb.so      dynamically linked library, Unix
+  libmysqlclient.a   statically linked library, Unix
+  libmysqlclient.so  dynamically linked library, Unix
+  libmysqld.a        statically linked library with embedded server, Unix
+  libmysqld.so       dynamically linked library with embedded server, Unix
+  libmariadbd.a      statically linked library with embedded server, Unix
+  libmariadbd.so     dynamically linked library with embedded server, Unix
+  mariadb.lib        statically linked library, Windows
+  libmariadb.lib     statically linked library, Windows
+  mariadbclient.lib  statically linked library, Windows
+  libmariadb.dll     dynamically linked library, Windows
+  mysqlclient.lib    statically linked library, Windows
+  mysqlclient.dll    dynamically linked library, Windows
 
 or something similar.
 
-As in the case of the header files, the client library is typically
-not installed by default. On Windows you will need to select them
-while running the MySQL setup program (Custom installation). On
-Red Hat Linux an RPM archive F<mysql-devel> or F<MySQL-devel> must
-be installed.
+As in the case of the header files, the client library is typically not
+installed by default. On Windows you will need to select them while running the
+MySQL setup program (I<Custom installation>). On Red Hat Linux an RPM archive
+C<mysql-devel> or C<MySQL-devel> must be installed.
 
-The linker needs to know the location and name of the mysqlclient
+The linker needs to know the location and name of the mariadb/mysqlclient
 library. This can be done by adding the flags
 
   -L<lib directory> -lmysqlclient
@@ -483,10 +399,9 @@ or by adding the complete path name. Examples:
   -L/usr/lib/mysql -lmysqlclient
   -LC:\mysql\lib -lmysqlclient
 
-If you would like to use the static libraries (and there are
-excellent reasons to do so), you need to create a separate
-directory, copy the static libraries to that place and use
-the -L switch above to point to your new directory. For example:
+If you would like to use the static libraries, you need to create a separate
+directory, copy the static libraries to that place and use the C<-L> switch
+above to point to your new directory. For example:
 
   mkdir /tmp/mysql-static
   cp /usr/lib/mysql/*.a /tmp/mysql-static
@@ -496,41 +411,39 @@ the -L switch above to point to your new directory. For example:
   make install
   rm -rf /tmp/mysql-static
 
-
 =item The gzip library
 
-The MySQL client can use compression when talking to the MySQL
-server, a nice feature when sending or receiving large texts over
-a slow network.
+The MariaDB or MySQL client can use compression when talking to the MariaDB or
+MySQL server, a nice feature when sending or receiving large texts over a slow
+network.
 
 On Unix you typically find the appropriate file name by running
 
   ldconfig -p | grep libz
   ldconfig -p | grep libgz
 
-Once you know the name (libz.a or libgz.a is best), just add it
-to the list of linker flags. If this seems to be causing problem
-you may also try to link without gzip libraries.
+Once you know the name (F<libz.a> or F<libgz.a> is best), just add it to the
+list of linker flags. If this seems to be causing problem you may also try to
+link without gzip libraries.
 
 =back
 
-
 =head1 MARIADB NATIVE CLIENT INSTALLATION
 
-The MariaDB native client is another option for connecting to a MySQL·
-database licensed LGPL 2.1. To build DBD::MariaDB against this client, you
-will first need to build the client. Generally, this is done with
-the following:
+The MariaDB native client is another option for connecting to a MySQL database
+licensed LGPL 2.1. To build DBD::MariaDB against this client, you will first
+need to build the client. Generally, this is done with the following:
 
   cd path/to/src/mariadb-native-client
   cmake -G "Unix Makefiles'
   make
   sudo make install
 
-Once the client is built and installed, you can build DBD::MariaDB against
-it:
+Once the client is built and installed, you can build DBD::MariaDB against it:
 
-  perl Makefile.PL --testuser=xxx --testpassword=xxx --testsocket=/path/to//mysqld.sock --mysql_config=/usr/local/bin/mariadb_config·
+  perl Makefile.PL --testuser=xxx --testpassword=xxx \
+                   --testsocket=/path/to/mysqld.sock \
+                   --mariadb_config=/usr/local/bin/mariadb_config
   make
   make test
   make install
@@ -547,90 +460,84 @@ mysql client libs. The easiest way to install these is using Homebrew
 
 Once you have Homebrew set up, you can simply install the dependencies using
 
-    brew install openssl mysql-connector-c
+  brew install openssl mysql-connector-c
 
 Then you can install DBD::MariaDB using your cpan client.
 
 =head2 Cygwin
 
-If you are a user of Cygwin you already
-know, it contains a nicely running perl 5.6.1, installation of
-additional modules usually works like a charm via the standard
-procedure of
+If you are a user of Cygwin you already know, it contains a nicely running perl
+5.6.1, installation of additional modules usually works like a charm via the
+standard procedure of
 
-    perl makefile.PL
-    make
-    make test
-    make install
+  perl makefile.PL
+  make
+  make test
+  make install
 
-The Windows binary distribution of MySQL runs smoothly under Cygwin.
-You can start/stop the server and use all Windows clients without problem.
-But to install DBD::MariaDB you have to take a little special action.
+The Windows binary distribution of MySQL runs smoothly under Cygwin. You can
+start/stop the server and use all Windows clients without problem. But to
+install DBD::MariaDB you have to take a little special action.
 
 Don't attempt to build DBD::MariaDB against either the MySQL Windows or
-Linux/Unix BINARY distributions: neither will work!
+Linux/Unix distributions: neither will work!
 
 You MUST compile the MySQL clients yourself under Cygwin, to get a
-'libmysqlclient.a' compiled under Cygwin. Really! You'll only need
-that library and the header files, you don't need any other client parts.
-Continue to use the Windows binaries. And don't attempt (currently) to
-build the MySQL Server part, it is unnecessary, as MySQL AB does an
-excellent job to deliver optimized binaries for the mainstream
-operating systems, and it is told, that the server compiled under Cygwin is
-unstable.
+F<libmysqlclient.a> compiled under Cygwin. Really! You'll only need that library
+and the header files, you don't need any other client parts. Continue to use the
+Windows binaries. And don't attempt (currently) to build the MySQL Server part,
+it is unnecessary, as MySQL AB does an excellent job to deliver optimized
+binaries for the mainstream operating systems, and it is told, that the server
+compiled under Cygwin is unstable.
 
-Install a MySQL server for testing against. You can install the regular
-Windows MySQL server package on your Windows machine, or you can also
-test against a MySQL server on a remote host.
+Install a MySQL server for testing against. You can install the regular Windows
+MySQL server package on your Windows machine, or you can also test against a
+MySQL server on a remote host.
 
 =head3 Build MySQL clients under Cygwin:
 
-download the MySQL LINUX source from
-L<https://www.mysql.com/downloads>,
-unpack mysql-<version>.tar.gz into some tmp location and from this directory
-run configure:
+Download the MySQL LINUX source from L<https://www.mysql.com/downloads>, unpack
+F<< mysql-<version>.tar.gz >> into some tmp location and from this directory run
+configure:
 
   ./configure --prefix=/usr/local/mysql --without-server
 
-This prepares the Makefile with the installed Cygwin features. It
-takes some time, but should finish without error. The 'prefix', as
-given, installs the whole Cygwin/MySQL thingy into a location not
-normally in your PATH, so that you continue to use already installed
-Windows binaries. The --without-server parameter tells configure to
-only build the clients.
+This prepares the Makefile with the installed Cygwin features. It takes some
+time, but should finish without error. The C<--prefix>, as given, installs the
+whole Cygwin/MySQL thingy into a location not normally in your PATH, so that you
+continue to use already installed Windows binaries. The C<--without-server>
+parameter tells configure to only build the clients.
 
   make
 
-This builds all MySQL client parts ... be patient. It should finish
-finally without any error.
+This builds all MySQL client parts ... be patient. It should finish finally
+without any error.
 
   make install
 
-This installs the compiled client files under /usr/local/mysql/.
-Remember, you don't need anything except the library under
-/usr/local/mysql/lib and the headers under /usr/local/mysql/include!
+This installs the compiled client files under F</usr/local/mysql/>. Remember,
+you don't need anything except the library under F</usr/local/mysql/lib> and the
+headers under F</usr/local/mysql/include>!
 
-Essentially you are now done with this part. If you want, you may try
-your compiled binaries shortly; for that, do:
+Essentially you are now done with this part. If you want, you may try your
+compiled binaries shortly; for that, do:
 
   cd /usr/local/mysql/bin
   ./mysql -h 127.0.0.1
 
-The host (-h) parameter 127.0.0.1 targets the local host, but forces
-the mysql client to use a TCP/IP connection. The default would be a
-pipe/socket connection (even if you say '-h localhost') and this
-doesn't work between Cygwin and Windows (as far as I know).
+The host (C<-h>) parameter C<127.0.0.1> targets the local host, but forces the
+mysql client to use a TCP/IP connection. The default would be a pipe/socket
+connection (even if you say C<-h localhost>) and this doesn't work between
+Cygwin and Windows (as far as I know).
 
-If you have your MySQL server running on some other box, then please
-substitute '127.0.0.1' with the name or IP-number of that box.
+If you have your MySQL server running on some other box, then please substitute
+C<127.0.0.1> with the name or IP-number of that box.
 
-Please note, in my environment the 'mysql' client did not accept a
-simple RETURN, I had to use CTRL-RETURN to send commands
-... strange,
-but I didn't attempt to fix that, as we are only interested in the
-built lib and headers.
+Please note, in my environment the C<mysql> client did not accept a simple
+RETURN, I had to use CTRL-RETURN to send commands ... strange, but I didn't
+attempt to fix that, as we are only interested in the built lib and headers.
 
-At the 'mysql>' prompt do a quick check:
+At the C<< mysql> >> prompt do a quick check:
 
   mysql> use mysql
   mysql> show tables;
@@ -641,23 +548,21 @@ You are now ready to build DBD::MariaDB!
 
 =head3 compile DBD::MariaDB
 
-download and extract DBD-MariaDB-<version>.tar.gz from CPAN
-
-cd into unpacked dir DBD-MariaDB-<version>
-you probably did that already, if you are reading this!
+Download and extract F<< DBD-MariaDB-<version>.tar.gz >> from CPAN, C<cd> into
+unpacked dir F<< DBD-MariaDB-<version> >> you probably did that already, if you
+are reading this!
 
   cp /usr/local/mysql/bin/mysql_config .
 
-This copies the executable script mentioned in the DBD::MariaDB docs
-from your just built Cywin/MySQL client directory; it knows about
-your Cygwin installation, especially about the right libraries to link
-with.
+This copies the executable script mentioned in the DBD::MariaDB docs from your
+just built Cywin/MySQL client directory; it knows about your Cygwin
+installation, especially about the right libraries to link with.
 
   perl Makefile.PL --testhost=127.0.0.1
 
-The --testhost=127.0.0.1 parameter again forces a TCP/IP connection
-to the MySQL server on the local host instead of a pipe/socket
-connection for the 'make test' phase.
+The C<--testhost=127.0.0.1> parameter again forces a TCP/IP connection to the
+MySQL server on the local host instead of a pipe/socket connection for the
+C<make test> phase.
 
   make
 
@@ -668,13 +573,12 @@ This should run without error
 
 This installs DBD::MariaDB into the Perl hierarchy.
 
-
 =head1 KNOWN PROBLEMS
 
 =head2 no gzip on your system
 
-Some Linux distributions don't come with a gzip library by default.
-Running "make" terminates with an error message like
+Some Linux distributions don't come with a gzip library by default. Running
+C<make> terminates with an error message like
 
   LD_RUN_PATH="/usr/lib/mysql:/lib:/usr/lib" gcc
     -o blib/arch/auto/DBD/mysql/mysql.so  -shared
@@ -685,15 +589,14 @@ Running "make" terminates with an error message like
   collect2: ld returned 1 exit status
   make: *** [blib/arch/auto/DBD/mysql/mysql.so] Error 1
 
-If this is the case for you, install an RPM archive like
-libz-devel, libgz-devel, zlib-devel or gzlib-devel or something
-similar.
+If this is the case for you, install an RPM archive like C<libz-devel>,
+C<libgz-devel>, C<zlib-devel> or C<gzlib-devel> or something similar.
 
 =head2 different compiler for mysql and perl
 
-If Perl was compiled with gcc or egcs, but MySQL was compiled
-with another compiler or on another system, an error message like
-this is very likely when running "Make test":
+If Perl was compiled with gcc or egcs, but MySQL was compiled with another
+compiler or on another system, an error message like this is very likely when
+running C<make test>:
 
   t/00base............install_driver(mysql) failed: Can't load
   '../blib/arch/auto/DBD/mysql/mysql.so' for module DBD::MariaDB:
@@ -701,15 +604,14 @@ this is very likely when running "Make test":
   at /usr/local/perl-5.005/lib/5.005/i586-linux-thread/DynaLoader.pm
   line 168.
 
-This means, that your linker doesn't include libgcc.a. You have
-the following options:
+This means, that your linker doesn't include F<libgcc.a>. You have the following
+options:
 
-The solution is telling the linker to use libgcc. Run
+The solution is telling the linker to use C<libgcc>. Run
 
   gcc --print-libgcc-file
 
-to determine the exact location of libgcc.a or for older versions
-of gcc
+to determine the exact location of F<libgcc.a> or for older versions of gcc
 
   gcc -v
 
@@ -721,15 +623,13 @@ to the list of C compiler flags. L</Configuration>. L</Linker flags>.
 
 =head1 SUPPORT
 
-Finally, if everything else fails, you are not alone. First of
-all, for an immediate answer, you should look into the archives
-of the dbi-users mailing list, which is available at
-L<http://groups.google.com/group/perl.dbi.users?hl=en&lr=>
+Finally, if everything else fails, you are not alone. First of all, for an
+immediate answer, you should look into the archives of the dbi-users mailing
+list, which is available at
+L<Perl DBI Users' Forum|https://groups.google.com/forum/#!forum/perl.dbi.users>.
 
 To subscribe to this list, send and email to
+L<C<dbi-users-subscribe@perl.org>|mailto:dbi-users-subscribe@perl.org>.
 
-    dbi-users-subscribe@perl.org
-
-If you don't find an appropriate posting and reply in the
-mailing list, please post a question. Typically a reply will
-be seen within one or two days.
+If you don't find an appropriate posting and reply in the mailing list, please
+post a question. Typically a reply will be seen within one or two days.
