@@ -251,12 +251,9 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
 	);
 
 if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
-  $o{'CAPI'} = 'TRUE' if $Config::Config{'archname'} =~ /-object\b/i;
-  $o{'AUTHOR'} = 'Patrick Galbraith <patg@patg.net>';
-  $o{'ABSTRACT'} =
-    'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)';
-  $o{'PREREQ_PM'} = { 'DBI' => 1.608 };
   %o=(%o,
+    ABSTRACT => 'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)',
+    AUTHOR => 'Pali <pali@cpan.org>',
     LICENSE => 'perl',
     MIN_PERL_VERSION => '5.008001',
     META_MERGE => {
@@ -274,20 +271,21 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
           web  => 'https://github.com/gooddata/DBD-MariaDB/issues',
         },
         x_MailingList => 'mailto:dbi-dev@perl.org',
-        license     => 'http://dev.perl.org/licenses/',
-        homepage    => 'http://dbi.perl.org/',
+        license     => [ 'http://dev.perl.org/licenses/' ],
+        homepage    => 'https://github.com/gooddata/DBD-MariaDB',
         x_IRC       => 'irc://irc.perl.org/#dbi',
       },
       x_contributors => [
         # a list of our awesome contributors generated from git
         # using the command:
         # git shortlog -se | cut  -f2- | sed "s/^/        '/;s/$/',/"
-
         'Alexandr Ciornii <alexchorny@gmail.com>',
         'Alexey Molchanov <alexey.molchanov@portaone.com>',
         'Amiri Barksdale at Home <amiri@roosterpirates.com>',
+        'Andrew Miller <ikari7789@yahoo.com>',
         'Aran Deltac <bluefeet@gmail.com>',
         'Bernt M. Johnsen <bernt.johnsen@oracle.com>',
+        'Branislav Zahradník <branislav.zahradnik@gooddata.com>',
         'Chase Whitener <chase.whitener@infotechfl.com>',
         'Chip Salzenberg <chip@topsy.com>',
         'Chris Hammond <chrishammond@ymail.com>',
@@ -296,15 +294,18 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
         'Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>',
         'Daisuke Murase <typester@cpan.org>',
         'Damyan Ivanov <dmn@debian.org>',
+        'Dan Book <grinnz@gmail.com>',
         'Daniël van Eeden <daniel.vaneeden@booking.com>',
         'Dave Lambley <davel@isosceles.(none)>',
         'David Farrell <davidnmfarrell@gmail.com>',
         'David Steinbrunner <dsteinbrunner@pobox.com>',
+        'Dominik Sauer <dominik.sauer@gooddata.com>',
         'Giovanni Bechis <giovanni@bigio.snb.it>',
         'Graham Ollis <plicease@cpan.org>',
         'H.Merijn Brand - Tux <h.m.brand@xs4all.nl>',
         'Hanno <hanno@gentoo.org>',
         'James McCoy <jamessan@jamessan.com>',
+        'Jan Holcapek <jan.holcapek@gooddata.com>',
         'Jim Winstead <jimw@trainedmonkey.com>',
         'Juergen Weigert <jw@suse.com>',
         'Kenny Gryp <kenny.gryp@percona.com>',
@@ -313,9 +314,11 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
         'Matthew Horsfall (alh) <WolfSage@gmail.com>',
         'Michiel Beijen <michiel.beijen@gmail.com>',
         'Mike Pomraning <mjp@pilcrow.madison.wi.us>',
+        'Mohammad S Anwar <mohammad.anwar@yahoo.com>',
         'Pali <pali@cpan.org>',
         'Patrick Galbraith <patg@patg.net>',
         'Perlover <perlover@perlover.com>',
+        'Peter Botha <peterb@striata.com>',
         'Petr Písař <ppisar@redhat.com>',
         'Reini Urban <rurban@cpanel.net>',
         'Rob Hoelz <rhoelz@inoc.com>',
@@ -330,6 +333,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
         'Taro Kobayashi <9re.3000@gmail.com>',
         'Tatsuhiko Miyagawa <miyagawa@bulknews.net>',
         'Tim Mullin <tim@cpanel.net>',
+        'Ville Skyttä <ville.skytta@iki.fi>',
         'Vladimir Marek <vlmarek@volny.cz>',
         'katyavoid <katyavoid@gmail.com>',
         'kmx <kmx@cpan.org>',
@@ -340,25 +344,52 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       prereqs => {
         test => {
           recommends => {
-            'TAP::Harness' => '3.31',
             'Proc::ProcessTable' => 0,
+            'TAP::Harness' => '3.31',
           },
           suggests => {
+            'Storable' => 0,
             'Test::Pod' => '1.41',
             'Test::DistManifest' => 0,
           },
         },
       },
     },
-    TEST_REQUIRES => { 'bigint'       => 0,
-                       'Test::More'   => '0.90',
-                       'Test::Deep'   => 0,
-                       'Time::HiRes'  => 0,
+    CONFIGURE_REQUIRES => {
+      'strict' => 0,
+      'utf8' => 0,
+      'warnings' => 0,
+      'Config' => 0,
+      'Data::Dumper' => 0,
+      'DBI' => '1.608',
+      'Devel::CheckLib' => '1.12',
+      'ExtUtils::MakeMaker' => 0,
+      'File::Spec' => 0,
+      'Getopt::Long' => 0,
     },
-    CONFIGURE_REQUIRES => { 'DBI' => '1.608',
-                            'Data::Dumper' => 0,
-                            'Devel::CheckLib' => '1.12',
-                            'ExtUtils::MakeMaker' => 0,
+    PREREQ_PM => {
+      'strict' => 0,
+      'warnings' => 0,
+      'DBI' => 1.608,
+      'DynaLoader' => 0,
+    },
+    TEST_REQUIRES => {
+      'bigint' => 0,
+      'lib' => 0,
+      'strict' => 0,
+      'utf8' => 0,
+      'vars' => 0,
+      'warnings' => 0,
+      'B' => 0,
+      'DBI' => 0,
+      'DBI::Const::GetInfoType' => 0,
+      'Data::Dumper' => 0,
+      'Encode' => 0,
+      'File::Temp' => 0,
+      'FindBin' => 0,
+      'Test::Deep' => 0,
+      'Test::More' => '0.90',
+      'Time::HiRes' => 0,
     },
   );
 }
