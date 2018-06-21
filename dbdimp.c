@@ -5460,15 +5460,15 @@ int mariadb_st_blob_read (
   SV *destrv,
   long destoffset)
 {
-    /* quell warnings */
-    sth= sth;
-    imp_sth=imp_sth;
-    field= field;
-    offset= offset;
-    len= len;
-    destrv= destrv;
-    destoffset= destoffset;
-    return 0;
+  PERL_UNUSED_ARG(sth);
+  PERL_UNUSED_ARG(imp_sth);
+  PERL_UNUSED_ARG(field);
+  PERL_UNUSED_ARG(offset);
+  PERL_UNUSED_ARG(len);
+  PERL_UNUSED_ARG(destrv);
+  PERL_UNUSED_ARG(destoffset);
+  mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "blob_read not implemented", "HY000");
+  return 0;
 }
 
 
@@ -5501,6 +5501,8 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   char *err_msg;
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
+  PERL_UNUSED_ARG(attribs);
+  PERL_UNUSED_ARG(maxlen);
 
   char *buffer= NULL;
   my_bool buffer_is_null = FALSE;
@@ -5515,9 +5517,6 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "   Called: mariadb_st_bind_ph\n");
-
-  attribs= attribs;
-  maxlen= maxlen;
 
   if (param_num <= 0  ||  param_num > DBIc_NUM_PARAMS(imp_sth))
   {
@@ -5833,9 +5832,6 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
  *
  *  Purpose: Implements $dbh->type_info_all
  *
- *  Input:   dbh - database handle
- *           imp_sth - drivers private database handle data
- *
  *  Returns: RV to AV of types
  *
  **************************************************************************/
@@ -5851,7 +5847,7 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
 
 #define IV_PUSH(i) sv= newSViv((i)); SvREADONLY_on(sv); av_push(row, sv);
 
-AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
+AV *mariadb_db_type_info_all(void)
 {
   dTHX;
   AV *av= newAV();
@@ -5882,9 +5878,6 @@ AV *mariadb_db_type_info_all(SV *dbh, imp_dbh_t *imp_dbh)
     "mariadb_native_type",
     "mariadb_is_num"
   };
-
-  dbh= dbh;
-  imp_dbh= imp_dbh;
  
   hv= newHV();
   av_push(av, newRV_noinc((SV*) hv));
@@ -6045,14 +6038,12 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
         SV *catalog, SV *schema, SV *table, SV *field, SV *attr)
 {
   dTHX;
-  /* all these non-op settings are to stifle OS X compile warnings */
-  imp_dbh= imp_dbh;
-  dbh= dbh;
-  catalog= catalog;
-  schema= schema;
-  table= table;
-  field= field;
-  attr= attr;
+  PERL_UNUSED_ARG(dbh);
+  PERL_UNUSED_ARG(catalog);
+  PERL_UNUSED_ARG(schema);
+  PERL_UNUSED_ARG(table);
+  PERL_UNUSED_ARG(field);
+  PERL_UNUSED_ARG(attr);
 
   if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
   {
