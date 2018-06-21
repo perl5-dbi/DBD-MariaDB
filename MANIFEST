@@ -2,6 +2,7 @@ Changes
 dbdimp.c
 dbdimp.h
 lib/DBD/MariaDB.pm
+lib/DBD/MariaDB.pod
 lib/DBD/MariaDB/INSTALL.pod
 LICENSE
 Makefile.PL
