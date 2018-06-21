@@ -19,6 +19,7 @@ bootstrap DBD::MariaDB $VERSION;
 
 our $err = 0;	    # holds error code for DBI::err
 our $errstr = "";	# holds error string for DBI::errstr
+our $sqlstate = "";	# holds five character SQLSTATE code
 our $drh = undef;	# holds driver handle once initialised
 
 my $methods_are_installed = 0;
@@ -33,6 +34,8 @@ sub driver{
 				   'Version' => $VERSION,
 				   'Err'    => \$DBD::MariaDB::err,
 				   'Errstr' => \$DBD::MariaDB::errstr,
+				   'State'  => \$DBD::MariaDB::sqlstate,
+				   'Attribution' => "DBD::MariaDB $VERSION by Pali and others",
 				 });
 
     if (!$methods_are_installed) {
