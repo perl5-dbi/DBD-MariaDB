@@ -57,8 +57,6 @@ like(
 );
 diag "SQL_DRIVER_VER is $driver_ver";
 
-like($driver_ver, qr/^04\./, 'SQL_DRIVER_VER starts with "04." (update for 5.x)');
-
 # The variable name for MySQL's storage engine function has varied over time
 #
 # From MySQL version 3.23.0 until 4.1.2: @@table_type
