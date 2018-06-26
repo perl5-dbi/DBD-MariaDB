@@ -1,0 +1,72 @@
+0.90_01 2018-06-26
+ - This is a new DBD::MariaDB driver, fork of DBD::mysql 4.041 with fixes
+ - Attributes and methods with mysql_* prefix were renamed to mariadb_*
+
+ [1. Security fixes]
+ - CVE-2017-10788: Fix use-after-free after calling mysql_stmt_close()
+ - CVE-2017-3302: Add workaround for defect of leaking dangling pointers
+ - CVE-2018-2767: Handle SSL problems of MySQL and MariaDB clients
+
+ [2. Client/server changes]
+ - New support for MySQL 8.0+ clients
+ - New support for MariaDB 10.2.4+ clients
+ - New support for MariaDB 10.3.0+ clients
+ - New support for MariaDB Connector/C 2.3.0+ clients
+ - New support for MariaDB Connector/C 3.0.2+ clients
+ - Minimal DBI version is now 1.608
+ - Minimal MySQL client library version is now 4.1.3
+ - Minimal MySQL server version is now 4.1.0
+ - Requirement for utf8mb4 (preferred) or utf8(mb3) connection charset
+
+ [3. Functional changes]
+ - Full Unicode support for all Perl strings in all methods according to
+   Perl Unicode model (same as in recent DBD::Pg and DBD::SQLite drivers),
+   activated by default, improperly written applications may have problems
+ - Embedded Server support is now in main DBD::MariaDB module and enabled
+   at compile time if MariaDB/MySQL linking library supports it, additional
+   module DBD::MariaDBEmb was therefore removed
+ - Fix lot of bugs related to Unicode, mysql utf8mb4 charset and login
+ - Remove support for Latin1 encoding
+
+ [4. Client compatibility changes]
+ - Fix initialization of MySQL/MariaDB client library, fix MariaDB 10.2.4+
+ - Fix crashing when prepared statements are used
+ - Do not access internal MYSQL* and MYSQL_STMT* structures
+
+ [5. Statement handling changes]
+ - Stop parsing SQL statements (exception are client side placeholders)
+ - Fix support for client side placeholder replacing with MySQL 5.7.6+
+ - Fix $dbh->quote() method for MySQL 5.7.6+ and MySQL 8.0+ clients
+ - Fix error handling for statements with LIMIT and OFFSET
+ - Fix processing statements with nul bytes
+ - Fix calculation of buffer size for client side placeholder replacing
+ - Fix checking if bind value is mysql number and if needs to be quoted
+ - Check that correct number of bind parameters were supplied
+
+ [6. Miscellaneous changes]
+ - Fix fetching numeric values of types with fixed-length of decimals
+ - Fix ChopBlanks for binary fields
+ - Fix $dbh->ping() and $dbh->last_insert_id() with MySQL 5.7+ and 8.0+
+ - Fix tests so can be run in parallel (via testrules.yml)
+ - Fix retrieving $sth attributes after $sth->fetchall* call
+ - Fix usage of normal eval, $@ and error handling
+ - Fix and simplify code which uses number of returned or affected rows
+ - Fix usage of boolean variables
+ - Fix creating perl scalars with unsigned numbers
+ - Fix autoreconnect for server side prepared statements
+ - Fix and cleanup ODBC attributes returned by $dbh->get_info() method
+ - Fix support for IMP_DATA
+ - Fix propagating server error code and messages to DBI
+ - Remove usage of %llu and %lld for PerlIO_printf
+ - Remove usage of stringified eval
+ - Remove old undocumented, legacy and hidden options and methods
+ - Remove nonsense prototypes for object methods
+ - Distinguish between undef (NULL) and "" for mysql_real_connect()
+ - Check for valid and supported attribute names
+ - Cleanup Makefile.PL options
+ - Hide passwords in trace logs
+ - Use DBI dbd_st_execute_iv() API when available
+ - Add support for mariadb_conn_attrs attribute with MariaDB 10+ clients
+ - Disable autoreconnect by default also for mod_perl
+ - Implement $dbh->disconnect_all() method
+ - Makefile.PL now depends on Devel::CheckLib 1.12 (ensure correct linking)
