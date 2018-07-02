@@ -909,6 +909,22 @@ A reference to an array of maximum column sizes. The I<mariadb_max_length> is
 the maximum physically present in the result table, I<mariadb_length> gives the
 theoretically possible maximum.
 
+For string orientated variable types (char, varchar, text and similar types)
+both attributes return value in bytes. If you are interested in number of
+characters then instead of I<mariadb_length> use C<COLUMN_SIZE> via standard DBI
+method L<column_info|DBI/column_info> and instead of I<mariadb_max_length> issue
+SQL query C<SELECT MAX(CHAR_LENGTH(...))>. Example:
+
+  my $ci_sth = $dbh->column_info(undef, undef, $table, $column);
+  my $ci_ref = $ci_sth->fetchall_arrayref({});
+  my $mariadb_char_length = $ci_ref->[0]->{COLUMN_SIZE};
+
+  my $mariadb_char_max_length = $dbh->selectrow_array(sprintf(
+                                    'SELECT MAX(CHAR_LENGTH(%s)) FROM %s',
+                                    $dbh->quote_identifier($column),
+                                    $dbh->quote_identifier($table),
+                                ));
+
 =item NAME
 
 A reference to an array of column names.
