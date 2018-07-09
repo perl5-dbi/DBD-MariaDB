@@ -94,7 +94,10 @@ sub parse_dsn {
 }
 
 
-package DBD::MariaDB::dr; # ====== DRIVER ======
+# ====== DRIVER ======
+package # hide from PAUSE
+    DBD::MariaDB::dr;
+
 use strict;
 use DBI qw(:sql_types);
 
@@ -155,7 +158,11 @@ sub data_sources {
     return $dbh->data_sources();
 }
 
-package DBD::MariaDB::db; # ====== DATABASE ======
+
+# ====== DATABASE ======
+package # hide from PAUSE
+    DBD::MariaDB::db;
+
 use strict;
 use DBI qw(:sql_types);
 
@@ -922,7 +929,10 @@ BEGIN {
 }
 
 
-package DBD::MariaDB::st; # ====== STATEMENT ======
+# ====== STATEMENT ======
+package # hide from PAUSE
+    DBD::MariaDB::st;
+
 use strict;
 
 BEGIN {
