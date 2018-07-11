@@ -1545,10 +1545,10 @@ static bool mariadb_dr_connect(
           */
 
           if ( ((svp = hv_fetchs(hv, "mariadb_embedded_groups", FALSE)) && *svp && SvTRUE(*svp)))
-            rc =+ abs(sv_cmp_flags(*svp, imp_drh->embedded_groups, 0));
+            rc += abs(sv_cmp_flags(*svp, imp_drh->embedded_groups, 0));
 
           if ( ((svp = hv_fetchs(hv, "mariadb_embedded_options", FALSE)) && *svp && SvTRUE(*svp)) )
-            rc =+ abs(sv_cmp_flags(*svp, imp_drh->embedded_args, 0));
+            rc += abs(sv_cmp_flags(*svp, imp_drh->embedded_args, 0));
 
           if (rc)
           {
