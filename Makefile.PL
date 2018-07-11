@@ -125,6 +125,18 @@ for (split ' ', $opt->{libs}) {
 if (not defined $main_lib) {
   $main_lib = shift @libs;
 }
+if (not defined $main_lib) {
+  die <<"MSG";
+No MariaDB or MySQL client library was specified. Use
+
+  perl Makefile.PL --libs="-L<dir> -l<library>"
+
+to set directory and client library. For details see the DBD::MariaDB::INSTALL,
+section "Linker flags" or type
+
+  perl Makefile.PL --help
+MSG
+}
 
 print <<"MSG";
 I will use the following settings for compiling and testing:
