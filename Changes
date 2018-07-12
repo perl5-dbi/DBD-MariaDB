@@ -1,4 +1,13 @@
-0.90_01 2018-06-26
+1.00 2018-07-12
+ - Do not remove test name and line from test error messages
+ - Update documentation for mariadb_length and mariadb_max_length
+ - Fix retrieving ODBC attribute SQL_USER_NAME via $dbh->get_info()
+ - Do not show internal DBI packages on cpan
+ - Fix checking for error value from mariadb_embedded options
+ - Makefile.PL shows error message when no client library was specified
+ - Fix checking if integer value should be signed or unsigned
+
+0.90_01 2018-06-26 (beta)
  - This is a new DBD::MariaDB driver, fork of DBD::mysql 4.041 with fixes
  - Attributes and methods with mysql_* prefix were renamed to mariadb_*
 
@@ -70,3 +79,71 @@
  - Disable autoreconnect by default also for mod_perl
  - Implement $dbh->disconnect_all() method
  - Makefile.PL now depends on Devel::CheckLib 1.12 (ensure correct linking)
+
+ [7. List of fixed issues]
+ - https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866821#17
+ - https://github.com/gooddata/DBD-MariaDB/issues/13
+ - https://github.com/perl5-dbi/DBD-mysql/issues/78
+ - https://github.com/perl5-dbi/DBD-mysql/issues/110
+ - https://github.com/perl5-dbi/DBD-mysql/issues/120
+ - https://github.com/perl5-dbi/DBD-mysql/issues/126
+ - https://github.com/perl5-dbi/DBD-mysql/issues/139
+ - https://github.com/perl5-dbi/DBD-mysql/issues/140
+ - https://github.com/perl5-dbi/DBD-mysql/issues/149
+ - https://github.com/perl5-dbi/DBD-mysql/issues/165
+ - https://github.com/perl5-dbi/DBD-mysql/issues/167
+ - https://github.com/perl5-dbi/DBD-mysql/issues/169
+ - https://github.com/perl5-dbi/DBD-mysql/issues/170
+ - https://github.com/perl5-dbi/DBD-mysql/issues/182
+ - https://github.com/perl5-dbi/DBD-mysql/issues/185
+ - https://github.com/perl5-dbi/DBD-mysql/issues/187
+ - https://github.com/perl5-dbi/DBD-mysql/issues/197
+ - https://github.com/perl5-dbi/DBD-mysql/issues/201
+ - https://github.com/perl5-dbi/DBD-mysql/issues/203
+ - https://github.com/perl5-dbi/DBD-mysql/issues/204
+ - https://github.com/perl5-dbi/DBD-mysql/issues/207
+ - https://github.com/perl5-dbi/DBD-mysql/issues/211
+ - https://github.com/perl5-dbi/DBD-mysql/issues/212
+ - https://github.com/perl5-dbi/DBD-mysql/issues/214
+ - https://github.com/perl5-dbi/DBD-mysql/issues/215
+ - https://github.com/perl5-dbi/DBD-mysql/issues/218
+ - https://github.com/perl5-dbi/DBD-mysql/issues/219
+ - https://github.com/perl5-dbi/DBD-mysql/issues/220
+ - https://github.com/perl5-dbi/DBD-mysql/issues/221
+ - https://github.com/perl5-dbi/DBD-mysql/issues/228
+ - https://github.com/perl5-dbi/DBD-mysql/issues/232
+ - https://github.com/perl5-dbi/DBD-mysql/issues/244
+ - https://github.com/perl5-dbi/DBD-mysql/issues/249
+ - https://github.com/perl5-dbi/DBD-mysql/issues/250
+ - https://github.com/perl5-dbi/DBD-mysql/issues/251
+ - https://github.com/perl5-dbi/DBD-mysql/pull/133
+ - https://github.com/perl5-dbi/DBD-mysql/pull/138
+ - https://github.com/perl5-dbi/DBD-mysql/pull/223
+ - https://github.com/perl5-dbi/DBD-mysql/pull/224
+ - https://github.com/perl5-dbi/DBD-mysql/pull/225#issuecomment-357522793
+ - https://github.com/perl5-dbi/DBD-mysql/pull/227
+ - https://github.com/perl5-dbi/DBD-mysql/pull/230
+ - https://github.com/perl5-dbi/DBD-mysql/pull/245
+ - https://github.com/perl5-dbi/DBD-mysql/pull/246
+ - https://rt.cpan.org/Public/Bug/Display.html?id=25590
+ - https://rt.cpan.org/Public/Bug/Display.html?id=53130
+ - https://rt.cpan.org/Public/Bug/Display.html?id=60987
+ - https://rt.cpan.org/Public/Bug/Display.html?id=62516
+ - https://rt.cpan.org/Public/Bug/Display.html?id=87428
+ - https://rt.cpan.org/Public/Bug/Display.html?id=97541
+ - https://rt.cpan.org/Public/Bug/Display.html?id=103306
+ - https://rt.cpan.org/Public/Bug/Display.html?id=106527
+ - https://rt.cpan.org/Public/Bug/Display.html?id=108650
+ - https://rt.cpan.org/Public/Bug/Display.html?id=110983
+ - https://rt.cpan.org/Public/Bug/Display.html?id=118837
+ - https://rt.cpan.org/Public/Bug/Display.html?id=118977
+ - https://rt.cpan.org/Public/Bug/Display.html?id=119902
+ - https://rt.cpan.org/Public/Bug/Display.html?id=119904
+ - https://rt.cpan.org/Public/Bug/Display.html?id=120141
+ - https://rt.cpan.org/Public/Bug/Display.html?id=120709
+ - https://rt.cpan.org/Public/Bug/Display.html?id=122065
+ - https://rt.cpan.org/Public/Bug/Display.html?id=122429
+ - https://rt.cpan.org/Public/Bug/Display.html?id=122431
+ - https://rt.cpan.org/Public/Bug/Display.html?id=122541
+ - https://rt.cpan.org/Public/Bug/Display.html?id=123826
+ - https://rt.cpan.org/Public/Bug/Display.html?id=125517

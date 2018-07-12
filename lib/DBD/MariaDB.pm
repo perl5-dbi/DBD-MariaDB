@@ -10,7 +10,7 @@ use DBI;
 use DynaLoader();
 our @ISA = qw(DynaLoader);
 
-our $VERSION = '0.90_01';
+our $VERSION = '1.00';
 
 bootstrap DBD::MariaDB $VERSION;
 
@@ -94,7 +94,10 @@ sub parse_dsn {
 }
 
 
-package DBD::MariaDB::dr; # ====== DRIVER ======
+# ====== DRIVER ======
+package # hide from PAUSE
+    DBD::MariaDB::dr;
+
 use strict;
 use DBI qw(:sql_types);
 
@@ -155,7 +158,11 @@ sub data_sources {
     return $dbh->data_sources();
 }
 
-package DBD::MariaDB::db; # ====== DATABASE ======
+
+# ====== DATABASE ======
+package # hide from PAUSE
+    DBD::MariaDB::db;
+
 use strict;
 use DBI qw(:sql_types);
 
@@ -896,7 +903,7 @@ my %odbc_info_subs = (
     105 => sub { $_[0]->FETCH('mariadb_max_allowed_packet') },                                                                            # SQL_MAX_STATEMENT_LEN
     106 => sub { $_[0]->FETCH('mariadb_serverversion') >= 50000 ? 63 : 31 },                                                              # SQL_MAX_TABLES_IN_SELECT
      13 => sub { $_[0]->FETCH('mariadb_hostinfo') },                                                                                      # SQL_SERVER_NAME
-     47 => sub { $_[0]->{CURRENT_USER} },                                                                                                 # SQL_USER_NAME
+     47 => sub { $_[0]->{Username} },                                                                                                     # SQL_USER_NAME
 );
 
 sub get_info {
@@ -922,7 +929,10 @@ BEGIN {
 }
 
 
-package DBD::MariaDB::st; # ====== STATEMENT ======
+# ====== STATEMENT ======
+package # hide from PAUSE
+    DBD::MariaDB::st;
+
 use strict;
 
 BEGIN {

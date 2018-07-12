@@ -13,7 +13,6 @@ require 'lib.pl';
 my $dbh = eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 0 }) };
 if (not defined $dbh) {
     my $err = $@;
-    $err =~ s/ at \S+ line \d+\.?\s*$//;
     $err = "unknown error" unless $err;
     if ( $ENV{CONNECTION_TESTING} ) {
         BAIL_OUT "no database connection: $err";
