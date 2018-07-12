@@ -3027,7 +3027,7 @@ signed_my_ulonglong2str(my_ulonglong val, char *buf, STRLEN *len)
 {
   char *ptr;
 
-  if (val <= LLONG_MAX)
+  if (val <= (~(my_ulonglong)0 >> 1))
     return my_ulonglong2str(val, buf, len);
 
   ptr = my_ulonglong2str(-val, buf, len);
@@ -5615,7 +5615,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 #if IVSIZE >= 8
         case MYSQL_TYPE_LONGLONG:
           buffer_length= sizeof(imp_sth->fbind[idx].numeric_val.llval);
-          if (int_val > LLONG_MAX)
+          if (int_val >= 0 && (UV)int_val > (~(my_ulonglong)0 >> 1))
             buffer_is_unsigned = TRUE;
           if (buffer_is_unsigned)
             imp_sth->fbind[idx].numeric_val.llval= (UV)int_val;
@@ -5654,7 +5654,7 @@ int mariadb_st_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
           buf= SvPV_nomg_nolen(value);
           val= strtoll(buf, NULL, 10);
-          if (val == LLONG_MAX)
+          if (val == (~(my_ulonglong)0 >> 1))
           {
             val= strtoull(buf, NULL, 10);
             buffer_is_unsigned = TRUE;
