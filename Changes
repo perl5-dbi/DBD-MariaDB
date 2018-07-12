@@ -1,3 +1,12 @@
+1.00 2018-07-12
+ - Do not remove test name and line from test error messages
+ - Update documentation for mariadb_length and mariadb_max_length
+ - Fix retrieving ODBC attribute SQL_USER_NAME via $dbh->get_info()
+ - Do not show internal DBI packages on cpan
+ - Fix checking for error value from mariadb_embedded options
+ - Makefile.PL shows error message when no client library was specified
+ - Fix checking if integer value should be signed or unsigned
+
 0.90_01 2018-06-26 (beta)
  - This is a new DBD::MariaDB driver, fork of DBD::mysql 4.041 with fixes
  - Attributes and methods with mysql_* prefix were renamed to mariadb_*
