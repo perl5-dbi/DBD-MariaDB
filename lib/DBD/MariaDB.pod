@@ -1041,9 +1041,9 @@ DBD::MariaDB must provide information about the correct type.
 
 Moreover, DBI API for L<do|DBI/do>, L<execute|DBI/execute> and all
 L<select*|DBI/selectrow_array> methods binds all parameters as C<SQL_VARCHAR>
-type. Currently it is an API limitation which does not allow to specify the bind
-type. Varchar is a string and so DBD::MariaDB treats all of them as I<Unicode>
-strings.
+type. Currently it is an API limitation which does not allow one to specify the
+bind type. Varchar is a string and so DBD::MariaDB treats all of them as
+I<Unicode> strings.
 
 The only way how to specify a type in DBI is via the
 L<bind_param|DBI/bind_param> method. Its third argument takes C<SQL_*> constant
