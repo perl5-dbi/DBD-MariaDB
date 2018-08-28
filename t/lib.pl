@@ -3,7 +3,9 @@ use warnings;
 
 use Test::More;
 use FindBin qw($Bin);
-use vars qw($test_dsn $test_user $test_password);
+use vars qw($test_dsn $test_user $test_password $test_db);
+
+use DBD::MariaDB;
 
 $| = 1; # flush stdout asap to keep in sync with stderr
 
@@ -16,6 +18,15 @@ BAIL_OUT "Cannot execute $file: $@" if -e $file and not eval { require $file };
 $::test_dsn      = $::test_dsn      || $ENV{'DBI_DSN'}   || 'DBI:MariaDB:database=test';
 $::test_user     = $::test_user     || $ENV{'DBI_USER'}  || '';
 $::test_password = $::test_password || $ENV{'DBI_PASS'}  || '';
+
+BAIL_OUT "DBI test_dsn is not valid" unless $::test_dsn =~ /^[Dd][Bb][Ii]:MariaDB:/;
+
+if (not $::test_db) {
+    my $driver_dsn = $::test_dsn;
+    $driver_dsn =~ s/^[^:]*:[^:]*://;
+    $::test_db = DBD::MariaDB->parse_dsn($driver_dsn)->{database};
+    $::test_db = 'test' unless $::test_db;
+}
 
 sub DbiTestConnect {
     my $err;

@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More ;
 use DBI;
+use DBD::MariaDB;
 $|= 1;
 
 use vars qw($test_user $test_password $test_db $test_dsn);
@@ -10,8 +11,10 @@ use lib 't', '.';
 require 'lib.pl';
 
 # remove database from DSN
-my $test_dsn_without_db = $test_dsn;
-$test_dsn_without_db =~ s/^(DBI:[^:]+):(?:[^:;]+)([:;]?)/$1:$2/;
+my ($dbi_dsn, $driver_dsn) = ($test_dsn =~ /^([^:]*:[^:]*:)(.*)$/);
+my $attr_dsn = DBD::MariaDB->parse_dsn($driver_dsn);
+delete $attr_dsn->{database};
+my $test_dsn_without_db = $dbi_dsn . join ';', map { $_ . '=' . $attr_dsn->{$_} } sort keys %{$attr_dsn};
 
 sub fatal_error {
     my ($message) = @_;

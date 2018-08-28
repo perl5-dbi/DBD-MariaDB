@@ -3,12 +3,6 @@ use warnings;
 
 use Test::More tests => 6;
 
-#
-#   Include lib.pl
-#
-use lib 't', '.';
-require 'lib.pl';
-
 # Base DBD Driver Test
 BEGIN {
     my $tb = Test::More->builder;
