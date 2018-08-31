@@ -687,14 +687,17 @@ static char *parse_params(
     /* LIMIT should be the last part of the query, in most cases */
     if (! limit_flag)
     {
-      /*
-        it would be good to be able to handle any number of cases and orders
-      */
-      if ((*statement_ptr == 'l' || *statement_ptr == 'L') &&
-          (!strncmp(statement_ptr+1, "imit ?", 6) ||
-           !strncmp(statement_ptr+1, "IMIT ?", 6)))
+      if (statement_ptr+4 < statement_ptr_end)
       {
-        limit_flag = TRUE;
+        char *s = statement_ptr;
+        if ((s[0] == 'l' || s[0] == 'L') &&
+            (s[1] == 'i' || s[1] == 'I') &&
+            (s[2] == 'm' || s[2] == 'M') &&
+            (s[3] == 'i' || s[3] == 'I') &&
+            (s[4] == 't' || s[4] == 'T'))
+        {
+          limit_flag = TRUE;
+        }
       }
     }
     switch (*statement_ptr)
