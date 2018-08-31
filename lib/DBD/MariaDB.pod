@@ -426,7 +426,7 @@ server. If not specified C<[server]> and C<[embedded]> groups will be used.
 Example:
 
   my $dsn = 'DBI:MariaDB:host=embedded;database=test;'
-          . 'mariadb_embedded_groups=embedded_server,common";
+          . 'mariadb_embedded_groups=embedded_server,common';
 
 =item mariadb_conn_attrs
 
