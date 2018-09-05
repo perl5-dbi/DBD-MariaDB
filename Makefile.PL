@@ -18,18 +18,19 @@ my $TESTDB = "test";
 
 our $opt = { "help" => \&Usage, };
 
+my ($test_host, $test_port, $test_socket);
 {
 local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } and do {
-$opt->{'testhost'} = $::test_host;
-$opt->{'testport'} = $::test_port;
 $opt->{'testuser'} = $::test_user;
-$opt->{'testsocket'} = $::test_socket;
 $opt->{'testpassword'} = $::test_password;
 $opt->{'testdb'} = $::test_db;
 $opt->{'mysql_config'} = $::test_mysql_config;
 $opt->{'cflags'} = $::test_cflags;
 $opt->{'libs'} = $::test_libs;
+$test_host = $::test_host;
+$test_port = $::test_port;
+$test_socket = $::test_socket;
 }
 }
 
@@ -102,10 +103,37 @@ for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags
   Configure($opt, $source, $key);
 }
 
+if (!$opt->{testport} && (!$opt->{testhost} || $opt->{testhost} eq 'localhost') && !$opt->{testsocket} && $test_socket) {
+  $opt->{testsocket} = $test_socket;
+  $source->{testsocket} = "User's choice";
+  if ($test_host && $test_host eq 'localhost') {
+    $opt->{testhost} = 'localhost';
+    $source->{testhost} = "User's choice";
+  }
+}
+
+if (!$opt->{testsocket}) {
+  if (!$opt->{testhost} && $test_host) {
+    $opt->{testhost} = $test_host;
+    $source->{testhost} = "User's choice";
+  }
+  if (!$opt->{testport} && $test_port) {
+    $opt->{testport} = $test_port;
+    $source->{testport} = "User's choice";
+  }
+}
+
 #if we have a testport but no host, assume 127.0.0.1
 if ( $opt->{testport} && !$opt->{testhost} ) {
   $opt->{testhost} = '127.0.0.1';
   $source->{testhost} = 'guessed';
+}
+
+# testsocket makes sense only when testhost is localhost
+if ($opt->{testsocket} && $opt->{testhost} && $opt->{testhost} ne 'localhost') {
+  die << "MSG";
+Option --testport or --testhost different from localhost cannot be specified together with option --testsocket.
+MSG
 }
 
 # Separate libs and libdirs from ldflags
