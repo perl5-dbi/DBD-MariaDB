@@ -3184,14 +3184,17 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       result = serverinfo ? sv_2mortal(newSVpv(serverinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     } 
-#if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
     else if (memEQs(key, kl, "mariadb_ssl_cipher"))
     {
+#if ((MYSQL_VERSION_ID >= 50023 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50111)
       const char *ssl_cipher = imp_dbh->pmysql ? mysql_get_ssl_cipher(imp_dbh->pmysql) : NULL;
       result = ssl_cipher ? sv_2mortal(newSVpv(ssl_cipher, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
-    }
+#else
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Fetching mariadb_ssl_cipher is not supported", "HY000");
+      return Nullsv;
 #endif
+    }
     else if (memEQs(key, kl, "mariadb_serverversion"))
     {
 #ifndef MARIADB_BASE_VERSION
