@@ -540,6 +540,7 @@ int count_embedded_options(char *st)
 */
 int free_embedded_options(char ** options_list, int options_count)
 {
+  dTHX;
   int i;
 
   for (i= 0; i < options_count; i++)
