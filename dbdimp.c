@@ -545,9 +545,9 @@ int free_embedded_options(char ** options_list, int options_count)
   for (i= 0; i < options_count; i++)
   {
     if (options_list[i])
-      free(options_list[i]);
+      Safefree(options_list[i]);
   }
-  free(options_list);
+  Safefree(options_list);
 
   return 1;
 }
@@ -582,13 +582,9 @@ char **fill_out_embedded_options(PerlIO *stream,
   char c;
   char *ptr;
   char **options_list= NULL;
+  dTHX;
 
-  if (!(options_list= (char **) calloc(cnt, sizeof(char *))))
-  {
-    PerlIO_printf(stream,
-                  "Initialize embedded server. Out of memory \n");
-    return NULL;
-  }
+  Newz(908, options_list, cnt, char *);
 
   ptr= options;
   ind= 0;
@@ -602,9 +598,7 @@ char **fill_out_embedded_options(PerlIO *stream,
   if (options_type == 1)
   {
     /* first item in server_options list is ignored. fill it with \0 */
-    if (!(options_list[0]= calloc(1,sizeof(char))))
-      return NULL;
-
+    Newz(908, options_list[0], 1, char);
     ind++;
   }
 
@@ -616,10 +610,7 @@ char **fill_out_embedded_options(PerlIO *stream,
       len= ptr - options;
       if (c == ',')
         len--;
-      if (!(options_list[ind]=calloc(len+1,sizeof(char))))
-        return NULL;
-
-      strncpy(options_list[ind], options, len);
+      options_list[ind] = savepvn(options, len);
       ind++;
       options= ptr;
     }

@@ -308,7 +308,7 @@ do(dbh, statement, attr=Nullsv, ...)
     {
       /*  Handle binding supplied values to placeholders	   */
       /*  Assume user has passed the correct number of parameters  */
-      Newz(0, params, sizeof(*params)*num_params, struct imp_sth_ph_st);
+      Newz(0, params, num_params, struct imp_sth_ph_st);
       for (i= 0;  i < num_params;  i++)
       {
         SV *param= ST(i+3);
