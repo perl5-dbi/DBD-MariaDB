@@ -42,6 +42,11 @@
 #define MY_CS_PRIMARY 32
 #endif
 
+/* Macro is available in mysql_com.h, but not defined in older MySQL versions */
+#ifndef SERVER_STATUS_NO_BACKSLASH_ESCAPES
+#define SERVER_STATUS_NO_BACKSLASH_ESCAPES 512
+#endif
+
 /* Macro is not defined in some MariaDB versions */
 #ifndef CR_NO_RESULT_SET
 #define CR_NO_RESULT_SET 2053

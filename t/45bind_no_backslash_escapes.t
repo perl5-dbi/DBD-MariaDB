@@ -18,6 +18,10 @@ if ($dbh->{mariadb_serverversion} < 50001) {
     plan skip_all => "Servers < 5.0.1 do not support sql_mode NO_BACKSLASH_ESCAPES";
 }
 
+if ($dbh->{mariadb_clientversion} < 50001) {
+    $id2_quoted_no_backslash = q(X'737472696E675C737472696E6722737472696E6727737472696E67');
+}
+
 plan tests => 24;
 
 ok $dbh->do('CREATE TEMPORARY TABLE t(id VARCHAR(255), value TEXT)');
