@@ -662,7 +662,7 @@ static char *parse_params(
     if (!ph->value)
       alen += 4;  /* insert 'NULL' */
     else
-      alen += 2 + 2*ph->len; /* 2 bytes for quotes and in the worst case two bytes for each character */
+      alen += 3 + 2*ph->len; /* 2 bytes for quotes, one for 'X' and in the worst case two bytes for each character */
   }
 
   /* +1 for null term byte */
@@ -826,6 +826,17 @@ static char *parse_params(
 
           if (quote_value)
           {
+#if MYSQL_VERSION_ID < 50001
+            if (sock->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES)
+            {
+              *ptr++ = 'X';
+              *ptr++ = '\'';
+              ptr += mysql_hex_string(ptr, ph->value, ph->len);
+              *ptr++ = '\'';
+            }
+            else
+#endif
+            {
             *ptr++ = '\'';
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50706 && MYSQL_VERSION_ID != 60000
             ptr += mysql_real_escape_string_quote(sock, ptr, ph->value, ph->len, '\'');
@@ -833,6 +844,7 @@ static char *parse_params(
             ptr += mysql_real_escape_string(sock, ptr, ph->value, ph->len);
 #endif
             *ptr++ = '\'';
+            }
           }
           else
           {
@@ -6008,9 +6020,20 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
       }
 
       ptr = SvPVutf8_nomg(str, len);
-      result = newSV(len*2+3);
+      result = newSV(len*2+4);
       sptr = SvPVX(result);
 
+#if MYSQL_VERSION_ID < 50001
+      if (imp_dbh->pmysql->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES)
+      {
+        *sptr++ = 'X';
+        *sptr++ = '\'';
+        sptr += mysql_hex_string(sptr, ptr, len);
+        *sptr++ = '\'';
+      }
+      else
+#endif
+      {
       *sptr++ = '\'';
 #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50706 && MYSQL_VERSION_ID != 60000
       sptr += mysql_real_escape_string_quote(imp_dbh->pmysql, sptr, ptr, len, '\'');
@@ -6018,6 +6041,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
       sptr += mysql_real_escape_string(imp_dbh->pmysql, sptr, ptr, len);
 #endif
       *sptr++ = '\'';
+      }
     }
 
     SvPOK_on(result);
