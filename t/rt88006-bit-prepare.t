@@ -25,6 +25,10 @@ if ($dbh->{mariadb_serverversion} < 50026) {
   plan skip_all => "Servers < 5.0.26 do not support BIN() for BIT values";
 }
 
+if ($dbh->{mariadb_clientversion} < 50003) {
+  plan skip_all => "Clients < 5.0.3 do not support BIT type";
+}
+
 my $create = <<EOT;
 CREATE TEMPORARY TABLE `dbd_mysql_rt88006_bit_prep` (
   `id` bigint(20) NOT NULL auto_increment,
