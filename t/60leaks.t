@@ -28,6 +28,8 @@ if (!$have_pt_size) {
         plan skip_all => "module Proc::ProcessTable does not support size attribute on current platform\n";
 }
 
+plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'openbsd';
+
 my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                                             { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
