@@ -17,6 +17,10 @@ if ($dbh->{mariadb_serverversion} < 50025 or ($dbh->{mariadb_serverversion} >= 5
   plan skip_all => "Server has deadlock bug 16581";
 }
 
+if ($dbh->{mariadb_clientversion} < 50025 or ($dbh->{mariadb_clientversion} >= 50100 and $dbh->{mariadb_clientversion} < 50112)) {
+  plan skip_all => "Client has multiple-result-set detection deadlock bug 15752";
+}
+
 plan tests => 26;
 
 ok (defined $dbh, "Connected to database with multi statement support");
