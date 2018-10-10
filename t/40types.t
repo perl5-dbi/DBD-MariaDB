@@ -72,6 +72,9 @@ cmp_deeply($sth->{mariadb_type}, [ any(DBD::MariaDB::TYPE_VARCHAR, DBD::MariaDB:
 ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
+SKIP: {
+skip "Clients < 5.0.3 do not support new decimal type from servers >= 5.0.3", 6 if $dbh->{mariadb_serverversion} >= 50003 and $dbh->{mariadb_clientversion} < 50003;
+
 ok($dbh->do(qq{CREATE TABLE t_dbd_40types (d DECIMAL(5,2))}), "creating table");
 
 $sth= $dbh->prepare("SELECT * FROM t_dbd_40types WHERE 1 = 0");
@@ -82,6 +85,7 @@ cmp_deeply($sth->{mariadb_type}, [ any(DBD::MariaDB::TYPE_DECIMAL, DBD::MariaDB:
 
 ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
+}
 
 #
 # Bug #23936: bind_param() doesn't work with SQL_DOUBLE datatype
