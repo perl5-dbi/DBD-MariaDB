@@ -1695,9 +1695,9 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_connect_timeout", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_connect_timeout", FALSE)) && *svp && SvTRUE(*svp))
+        if ((svp = hv_fetchs(hv, "mariadb_connect_timeout", FALSE)) && *svp)
         {
-          UV uv = SvUV_nomg(*svp);
+          UV uv = SvUV(*svp);
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -1708,9 +1708,9 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_write_timeout", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_write_timeout", FALSE)) && *svp && SvTRUE(*svp))
+        if ((svp = hv_fetchs(hv, "mariadb_write_timeout", FALSE)) && *svp)
         {
-          UV uv = SvUV_nomg(*svp);
+          UV uv = SvUV(*svp);
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -1729,9 +1729,9 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_read_timeout", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_read_timeout", FALSE)) && *svp && SvTRUE(*svp))
+        if ((svp = hv_fetchs(hv, "mariadb_read_timeout", FALSE)) && *svp)
         {
-          UV uv = SvUV_nomg(*svp);
+          UV uv = SvUV(*svp);
           unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
