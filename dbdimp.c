@@ -1404,6 +1404,7 @@ static bool mariadb_dr_connect(
   unsigned int client_flag;
   bool client_supports_utf8mb4;
   bool connected;
+  unsigned int read_timeout, write_timeout;
   MYSQL *sock;
   dTHX;
   D_imp_xxh(dbh);
@@ -1411,7 +1412,8 @@ static bool mariadb_dr_connect(
   D_imp_drh_from_dbh;
 
 #ifdef MARIADB_PACKAGE_VERSION
-  bool broken_timeouts;
+  bool read_timeout_set = FALSE;
+  bool write_timeout_set = FALSE;
 #endif
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -1595,42 +1597,6 @@ static bool mariadb_dr_connect(
 
     client_flag = CLIENT_FOUND_ROWS;
 
-#ifdef MARIADB_PACKAGE_VERSION
-    {
-      /* Version is in format: "2.3.2" */
-      const char version[] = MARIADB_PACKAGE_VERSION;
-      if (version[0] != '2')
-        broken_timeouts = FALSE;
-      else if (sizeof(version) >= 3 && version[2] >= '0' && version[2] < '3')
-        broken_timeouts = TRUE;
-      else if (sizeof(version) >= 5 && version[2] == '3' && version[4] >= '0' && version[4] < '3')
-        broken_timeouts = TRUE;
-      else
-        broken_timeouts = FALSE;
-    }
-
-    if (broken_timeouts)
-    {
-      unsigned int timeout = 60;
-
-      /*
-        MariaDB Connector/C prior to version 2.3.3 has broken zero write timeout.
-        See file libmariadb/violite.c, function vio_write(). Variable vio->write_timeout
-        is signed and on some places zero value is tested as "boolean" and on some as "> 0".
-        Therefore we need to force non-zero timeout, otherwise some operation fail.
-       */
-      mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
-
-      /*
-        MariaDB Connector/C prior to version 2.3.3 has broken MYSQL_OPT_WRITE_TIMEOUT.
-        Write timeout is set by MYSQL_OPT_READ_TIMEOUT option.
-        See file libmariadb/libmariadb.c, line "vio_write_timeout(net->vio, mysql->options.read_timeout);".
-        Thereforw we need to set write timeout via read timeout option.
-      */
-      mysql_options(sock, MYSQL_OPT_READ_TIMEOUT, &timeout);
-    }
-#endif
-
       DBIc_set(imp_dbh, DBIcf_AutoCommit, TRUE);
 
       if (sv  &&  SvROK(sv))
@@ -1711,43 +1677,80 @@ static bool mariadb_dr_connect(
         if ((svp = hv_fetchs(hv, "mariadb_write_timeout", FALSE)) && *svp)
         {
           UV uv = SvUV(*svp);
-          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
+          write_timeout = (uv <= UINT_MAX ? uv : UINT_MAX);
+#ifdef MARIADB_PACKAGE_VERSION
+          write_timeout_set = TRUE;
+#endif
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting"
-                          " write timeout (%u).\n", to);
-#ifdef MARIADB_PACKAGE_VERSION
-          if (broken_timeouts)
-          {
-            mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: mariadb_write_timeout is broken", "HY000");
-            mariadb_db_disconnect(dbh, imp_dbh);
-            return FALSE;
-          }
-#endif
-          mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT,
-                        (const char *)&to);
+                          " write timeout (%u).\n", write_timeout);
+          mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT, (const char *)&write_timeout);
         }
 
         (void)hv_stores(processed, "mariadb_read_timeout", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_read_timeout", FALSE)) && *svp)
         {
           UV uv = SvUV(*svp);
-          unsigned int to = (uv <= UINT_MAX ? uv : UINT_MAX);
+          read_timeout = (uv <= UINT_MAX ? uv : UINT_MAX);
+#ifdef MARIADB_PACKAGE_VERSION
+          read_timeout_set = TRUE;
+#endif
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
             PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                           "imp_dbh->mariadb_dr_connect: Setting"
-                          " read timeout (%u).\n", to);
+                          " read timeout (%u).\n", read_timeout);
+          mysql_options(sock, MYSQL_OPT_READ_TIMEOUT, (const char *)&read_timeout);
+        }
+
 #ifdef MARIADB_PACKAGE_VERSION
+        {
+          /* Version is in format: "2.3.2" */
+          const char version[] = MARIADB_PACKAGE_VERSION;
+          bool broken_timeouts;
+
+          if (sizeof(version) != 6 || version[0] != '2' || version[1] != '.' || version[3] != '.' || version[5] != '\0')
+            broken_timeouts = FALSE;
+          else if (version[2] >= '0' && version[2] < '3' && version[4] >= '0' && version[4] <= '9')
+            broken_timeouts = TRUE;
+          else if (version[2] == '3' && version[4] >= '0' && version[4] < '3')
+            broken_timeouts = TRUE;
+          else
+            broken_timeouts = FALSE;
+
           if (broken_timeouts)
           {
-            mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: mariadb_read_timeout is broken", "HY000");
-            mariadb_db_disconnect(dbh, imp_dbh);
-            return FALSE;
+            /*
+              MariaDB Connector/C prior to version 2.3.3 has broken MYSQL_OPT_WRITE_TIMEOUT.
+              Write timeout is set by MYSQL_OPT_READ_TIMEOUT option.
+              See file libmariadb/libmariadb.c, line "vio_write_timeout(net->vio, mysql->options.read_timeout);".
+              Therefore specifying different read and write timeout is not possible.
+             */
+            if ((read_timeout_set || write_timeout_set) && (!read_timeout_set || !write_timeout_set || read_timeout != write_timeout))
+            {
+              mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: Specifying different mariadb_read_timeout and mariadb_write_timeout is broken by current version of MariaDB/MySQL client", "HY000");
+              mariadb_db_disconnect(dbh, imp_dbh);
+              return FALSE;
+            }
+
+            /*
+              MariaDB Connector/C prior to version 2.3.3 has broken zero write timeout.
+              See file libmariadb/violite.c, function vio_write(). Variable vio->write_timeout
+              is signed and on some places zero value is tested as "boolean" and on some as "> 0".
+              Therefore we need to force non-zero timeout, otherwise some operation fail.
+              Maximal possible value is INT_MAX/1000. So use it for simulation of infinite timeout.
+              Also set this timeout when no timeout was provided.
+             */
+            if ((!read_timeout_set || !write_timeout_set) || write_timeout == 0)
+            {
+              read_timeout = INT_MAX/1000;
+              write_timeout = INT_MAX/1000;
+              mysql_options(sock, MYSQL_OPT_READ_TIMEOUT, (const char *)&read_timeout);
+              mysql_options(sock, MYSQL_OPT_WRITE_TIMEOUT, (const char *)&write_timeout);
+            }
           }
-#endif
-          mysql_options(sock, MYSQL_OPT_READ_TIMEOUT,
-                        (const char *)&to);
         }
+#endif
 
         (void)hv_stores(processed, "mariadb_max_allowed_packet", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_max_allowed_packet", FALSE)) && *svp && SvTRUE(*svp))
