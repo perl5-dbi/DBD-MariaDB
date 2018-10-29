@@ -184,19 +184,19 @@ between client and server will be compressed.
 
 If your DSN contains the option C<mariadb_connect_timeout=##>, the connect
 request to the server will timeout if it has not been successful after the given
-number of seconds.
+number of seconds. Zero value means infinite timeout.
 
 =item mariadb_write_timeout
 
 If your DSN contains the option C<mariadb_write_timeout=##>, the write operation
 to the server will timeout if it has not been successful after the given number
-of seconds.
+of seconds. Zero value means infinite timeout.
 
 =item mariadb_read_timeout
 
 If your DSN contains the option C<mariadb_read_timeout=##>, the read operation
 to the server will timeout if it has not been successful after the given number
-of seconds.
+of seconds. Zero value means infinite timeout.
 
 =item mariadb_init_command
 
