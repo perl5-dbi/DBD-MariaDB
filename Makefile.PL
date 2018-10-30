@@ -263,6 +263,7 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
+	      "\$::test_dsn .= \";mariadb_connect_timeout=120;mariadb_read_timeout=120;mariadb_write_timeout=120\";\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
 	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
 	      "\$::test_libs = \$opt->{'libs'} if \$source->{'libs'} eq 'User\\'s choice';\n" .
