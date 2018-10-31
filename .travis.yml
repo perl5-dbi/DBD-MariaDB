@@ -323,6 +323,10 @@ matrix:
       env: DB=MySQL VERSION=5.6.38 CONC_DB=MySQL CONC_VERSION=6.1.11
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.30 CONC_DB=MariaDB CONC_VERSION=3.0.2
+    - perl: "5.22"
+      env: DB=MySQL VERSION=4.1.22 CONC_DB=MariaDB CONC_VERSION=3.0.6
+    - perl: "5.22"
+      env: DB=MySQL VERSION=4.1.22 SERVER=system
 
 addons:
   apt:
@@ -435,13 +439,13 @@ install:
     fi
 
 before_script:
-  - if [ -n "$DB" ]; then
+  - if [ -n "$DB" ] && [ "$SERVER" != "system" ]; then
       export DBD_MARIADB_TESTUSER=msandbox ;
       export DBD_MARIADB_TESTPASSWORD=msandbox ;
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3310 ;
       export DBD_MARIADB_TESTLANGDIR=`find $SANDBOX_HOME/* -name english | head -1` ;
-    elif [ -n "$CONC_DB" ]; then
+    elif [ -n "$CONC_DB" ] || [ "$SERVER" = "system" ]; then
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3306 ;
     fi
