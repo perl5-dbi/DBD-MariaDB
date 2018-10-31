@@ -9,6 +9,11 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
+my $tb = Test::More->builder;
+binmode $tb->output,         ":utf8";
+binmode $tb->failure_output, ":utf8";
+binmode $tb->todo_output,    ":utf8";
+
 sub skip_rt_102404 {
   skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", $_[0] unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
 }

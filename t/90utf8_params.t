@@ -13,6 +13,11 @@ use vars qw($COL_NULLABLE $COL_KEY);
 use lib 't', '.';
 require 'lib.pl';
 
+my $tb = Test::More->builder;
+binmode $tb->output,         ":utf8";
+binmode $tb->failure_output, ":utf8";
+binmode $tb->todo_output,    ":utf8";
+
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1 });
 
 my $nasty_unicode1 = "\N{U+C3}\N{U+BF}"; # looks like character 0xff, if you accidentally utf8 decode
