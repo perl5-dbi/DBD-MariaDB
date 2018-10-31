@@ -573,8 +573,7 @@ int print_embedded_options(PerlIO *stream, char ** options_list, int options_cou
 /*
 
 */
-char **fill_out_embedded_options(PerlIO *stream,
-                                 char *options,
+char **fill_out_embedded_options(char *options,
                                  int options_type,
                                  STRLEN slen, int cnt)
 {
@@ -1484,8 +1483,7 @@ static bool mariadb_dr_connect(
             if ((server_groups_cnt=count_embedded_options(options)))
             {
               /* number of server_groups always server_groups+1 */
-              server_groups=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 0, 
-                                                      options_len, ++server_groups_cnt);
+              server_groups = fill_out_embedded_options(options, 0, options_len, ++server_groups_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -1510,7 +1508,7 @@ static bool mariadb_dr_connect(
             if ((server_args_cnt=count_embedded_options(options)))
             {
               /* number of server_options always server_options+1 */
-              server_args=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 1, options_len, ++server_args_cnt);
+              server_args = fill_out_embedded_options(options, 1, options_len, ++server_args_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Server options passed to embedded server:\n");
