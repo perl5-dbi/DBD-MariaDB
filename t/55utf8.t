@@ -8,6 +8,11 @@ use vars qw($COL_NULLABLE $COL_KEY);
 use lib 't', '.';
 require 'lib.pl';
 
+my $tb = Test::More->builder;
+binmode $tb->output,         ":utf8";
+binmode $tb->failure_output, ":utf8";
+binmode $tb->todo_output,    ":utf8";
+
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
@@ -73,8 +78,9 @@ ok $sth->bind_param(7, $unicode_str2);
 ok $sth->execute() or die("Execute failed: ".$DBI::errstr);
 ok $sth->finish;
 
-cmp_ok($dbh->{mariadb_warning_count}, '==', 1, 'got warning for INSERT') or do { diag("SHOW WARNINGS:"); diag($_->[2]) foreach @{$dbh->selectall_arrayref("SHOW WARNINGS", { mariadb_server_prepare => 0 })}; };
-like($dbh->selectrow_arrayref("SHOW WARNINGS", { mariadb_server_prepare => 0 })->[2], qr/^(?:Incorrect string value: '\\xC4\\x80dam'|Data truncated) for column 'ascii' at row 1$/);
+cmp_ok($dbh->{mariadb_warning_count}, '==', 1, 'got warning for INSERT') or do { diag("SHOW WARNINGS:"); diag($_->[2]) foreach $dbh->selectall_array("SHOW WARNINGS", { mariadb_server_prepare => 0 }); };
+my (undef, undef, $warning) = $dbh->selectrow_array("SHOW WARNINGS", { mariadb_server_prepare => 0 });
+like($warning, qr/^(?:Incorrect string value: '\\xC4\\x80dam'|Data truncated) for column 'ascii' at row 1$/, 'warning is correct');
 
 # AsBinary() is deprecated as of MySQL 5.7.6, use ST_AsBinary() instead
 my $asbinary = $dbh->{mariadb_serverversion} >= 50706 ? 'ST_AsBinary' : 'AsBinary';
@@ -87,7 +93,7 @@ ok $sth->execute;
 my $ref;
 $ref = $sth->fetchrow_arrayref ;
 
-ok defined $ref;
+ok defined $ref, 'got data' or $ref = [];
 
 cmp_ok $ref->[0], 'eq', $unicode_str;
 cmp_ok $ref->[1], 'eq', $blob;
@@ -104,7 +110,7 @@ ok $sth->finish;
 my $prev_charset = $dbh->selectrow_array('SELECT @@character_set_results');
 ok $dbh->do("SET character_set_results='latin1'"), "SET character_set_results='latin1'";
 $ref = $dbh->selectrow_arrayref($query);
-ok defined $ref, 'got data';
+ok defined $ref, 'got data' or $ref = [];
 cmp_ok $ref->[0], 'eq', $ascii_str, 'utf8 data are returned as latin1 when @@character_set_results is latin1';
 cmp_ok $ref->[1], 'eq', $blob, 'blob is unchanged when @@character_set_results is latin1';
 cmp_ok $ref->[3], 'eq', $ascii_str, 'utf8 data are returned as latin1 when @@character_set_results is latin1';

@@ -7,6 +7,8 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
+use constant SHOW_PROGRESS => ($ENV{SHOW_PROGRESS} ? 1 : 0);
+
 my $COUNT_CONNECT = 4000;   # Number of connect/disconnect iterations
 
 my $have_storable;
@@ -31,6 +33,10 @@ plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'ope
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
 
 plan tests => 3;
+
+if (not SHOW_PROGRESS and $ENV{TEST_VERBOSE}) {
+    note "You can set \$ENV{SHOW_PROGRESS} to monitor the progress of slow tests";
+}
 
 sub size {
   my($p, $pt);
@@ -75,6 +81,9 @@ for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
             $size      = size();
         }
         $prev_size = $size;
+    }
+    if (SHOW_PROGRESS) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_CONNECT;
     }
 }
 

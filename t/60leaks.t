@@ -7,6 +7,8 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
+use constant SHOW_PROGRESS => ($ENV{SHOW_PROGRESS} ? 1 : 0);
+
 my $COUNT_CONNECT = 4000;     # Number of connect/disconnect iterations
 my $COUNT_PREPARE = 30000;    # Number of prepare/execute/finish iterations
 my $COUNT_BIND    = 10000;    # Number of bind_param iterations
@@ -35,6 +37,10 @@ $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                                             { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 $dbh->disconnect;
 plan tests => 30 * 2;
+
+if (not SHOW_PROGRESS and $ENV{TEST_VERBOSE}) {
+    note "You can set \$ENV{SHOW_PROGRESS} to monitor the progress of slow tests";
+}
 
 sub size {
     my($p, $pt);
@@ -98,6 +104,9 @@ for (my $i = 0;    $i < $COUNT_CONNECT;    $i++) {
         }
         $prev_size = $size;
     }
+    if (SHOW_PROGRESS) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_CONNECT;
+    }
 }
 $dbh2->disconnect;
 
@@ -138,6 +147,9 @@ for (my $i = 0; $i < $COUNT_CONNECT; $i++) {
         }
         $prev_size = $size;
     }
+    if (SHOW_PROGRESS) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_CONNECT;
+    }
 }
 $dbh2->disconnect;
 
@@ -173,6 +185,9 @@ for (my $i = 0; $i < $COUNT_PREPARE; $i++) {
             $size = size();
         }
         $prev_size = $size;
+    }
+    if (SHOW_PROGRESS and $i % 10 == 9) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_PREPARE;
     }
 }
 
@@ -210,6 +225,9 @@ undef $prev_size;
                 $size = size();
             }
             $prev_size = $size;
+        }
+        if (SHOW_PROGRESS and $i % 10 == 9) {
+            note sprintf "Progress: %5d/%5d", $i+1, $COUNT_PREPARE;
         }
     }
 }
@@ -250,6 +268,9 @@ undef $prev_size;
             }
             $prev_size = $size;
         }
+        if (SHOW_PROGRESS and $i % 10 == 9) {
+            note sprintf "Progress: %5d/%5d", $i+1, $COUNT_BIND;
+        }
     }
 }
 
@@ -263,7 +284,7 @@ $msg= "Possible memory leak in fetchrow_arrayref detected";
 $sth= $dbh->prepare("INSERT INTO dbd_mysql_t60leaks VALUES (?, ?)") ;
 
 my $dataref= [[1, 'Jochen Wiedmann'],
-    [2, 'Andreas König'],
+    [2, 'Andreas Konig'],
     [3, 'Tim Bunce'],
     [4, 'Alligator Descartes'],
     [5, 'Jonathan Leffler']];
@@ -302,6 +323,9 @@ for (my $i = 0; $i < $COUNT_PREPARE; $i++) {
         }
         $prev_size = $size;
     }
+    if (SHOW_PROGRESS and $i % 10 == 9) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_PREPARE;
+    }
 }
 
 ok $ok;
@@ -339,6 +363,9 @@ for (my $i = 0; $i < $COUNT_PREPARE; $i++) {
             $size = size();
         }
         $prev_size = $size;
+    }
+    if (SHOW_PROGRESS and $i % 10 == 9) {
+        note sprintf "Progress: %5d/%5d", $i+1, $COUNT_PREPARE;
     }
 }
 

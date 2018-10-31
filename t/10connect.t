@@ -80,7 +80,7 @@ my $result = $dbh->selectall_arrayref('select ' . $storage_engine);
 my $default_storage_engine = $result->[0]->[0] || 'unknown';
 diag "Default storage engine is: $default_storage_engine";
 
-my $res = $dbh->selectrow_hashref('SELECT @@character_set_client, @@character_set_results, @@character_set_connection, @@character_set_server, @@character_set_database, @@collation_connection, @@collation_database');
+my $res = $dbh->selectrow_hashref('SELECT @@character_set_client, @@character_set_results, @@character_set_connection, @@character_set_server, @@character_set_database, @@collation_connection, @@collation_server, @@collation_database');
 foreach (sort keys %{$res}) {
     like($res->{$_}, qr/^utf8/, "Value of $_ is UTF-8");
     diag("$_ is: ". $res->{$_});

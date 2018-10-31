@@ -10,6 +10,7 @@ use lib 't', '.';
 require 'lib.pl';
 
 my $tb = Test::More->builder;
+binmode $tb->output,         ":utf8";
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
