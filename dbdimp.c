@@ -54,7 +54,7 @@ typedef struct sql_type_info_s
 /*
 
   This function manually counts the number of placeholders in an SQL statement,
-  used for emulated prepare statements < 4.1.3
+  used for emulated prepare statements.
 
 */
 static unsigned long int
