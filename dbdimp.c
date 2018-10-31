@@ -5937,27 +5937,6 @@ AV *mariadb_db_type_info_all(void)
   return av;
 }
 
-#if MYSQL_VERSION_ID < 40107
-/* MySQL client prior to version 4.1.7 does not implement mysql_hex_string() */
-static unsigned long mysql_hex_string(char *to, const char *from, unsigned long len)
-{
-  char *start = to;
-  const char hexdigits[] = "0123456789ABCDEF";
-
-  while (len--)
-  {
-    *to++ = hexdigits[((unsigned char)*from) >> 4];
-    *to++ = hexdigits[((unsigned char)*from) & 0x0F];
-    from++;
-  }
-  *to = 0;
-  return (unsigned long)(to - start);
-}
-#elif MYSQL_VERSION_ID < 40108
-/* MySQL client prior to version 4.1.8 does not declare mysql_hex_string() in header files */
-unsigned long mysql_hex_string(char *to, const char *from, unsigned long len);
-#endif
-
 /*
   mariadb_db_quote
 
