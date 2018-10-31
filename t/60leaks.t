@@ -263,7 +263,7 @@ $msg= "Possible memory leak in fetchrow_arrayref detected";
 $sth= $dbh->prepare("INSERT INTO dbd_mysql_t60leaks VALUES (?, ?)") ;
 
 my $dataref= [[1, 'Jochen Wiedmann'],
-    [2, 'Andreas König'],
+    [2, 'Andreas Konig'],
     [3, 'Tim Bunce'],
     [4, 'Alligator Descartes'],
     [5, 'Jonathan Leffler']];
