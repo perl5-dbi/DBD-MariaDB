@@ -47,6 +47,11 @@
 #define SERVER_STATUS_NO_BACKSLASH_ESCAPES 512
 #endif
 
+/* Macro is not defined in older MySQL versions */
+#ifndef CR_NO_STMT_METADATA
+#define CR_NO_STMT_METADATA 2052
+#endif
+
 /* Macro is not defined in some MariaDB versions */
 #ifndef CR_NO_RESULT_SET
 #define CR_NO_RESULT_SET 2053
