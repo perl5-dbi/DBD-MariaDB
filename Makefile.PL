@@ -213,11 +213,11 @@ check_lib(
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
   header => 'mysql.h',
-  function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (MYSQL_VERSION_ID >= 40103) ? 0 : 1;\n",
+  function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (MYSQL_VERSION_ID >= 40108) ? 0 : 1;\n",
 ) or die <<"MSG";
 
 ERROR: Wrong version or unable to check version of MariaDB/MySQL include files.
-To build DBD::MariaDB it is needed MariaDB or MySQL client >= 4.1.3.
+To build DBD::MariaDB it is needed MariaDB or MySQL client >= 4.1.8.
 
 MSG
 
