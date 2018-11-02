@@ -54,7 +54,7 @@ typedef struct sql_type_info_s
 /*
 
   This function manually counts the number of placeholders in an SQL statement,
-  used for emulated prepare statements < 4.1.3
+  used for emulated prepare statements.
 
 */
 static unsigned long int
@@ -573,8 +573,7 @@ int print_embedded_options(PerlIO *stream, char ** options_list, int options_cou
 /*
 
 */
-char **fill_out_embedded_options(PerlIO *stream,
-                                 char *options,
+char **fill_out_embedded_options(char *options,
                                  int options_type,
                                  STRLEN slen, int cnt)
 {
@@ -1484,8 +1483,7 @@ static bool mariadb_dr_connect(
             if ((server_groups_cnt=count_embedded_options(options)))
             {
               /* number of server_groups always server_groups+1 */
-              server_groups=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 0, 
-                                                      options_len, ++server_groups_cnt);
+              server_groups = fill_out_embedded_options(options, 0, options_len, ++server_groups_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -1510,7 +1508,7 @@ static bool mariadb_dr_connect(
             if ((server_args_cnt=count_embedded_options(options)))
             {
               /* number of server_options always server_options+1 */
-              server_args=fill_out_embedded_options(DBIc_LOGPIO(imp_xxh), options, 1, options_len, ++server_args_cnt);
+              server_args = fill_out_embedded_options(options, 1, options_len, ++server_args_cnt);
               if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
               {
                 PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Server options passed to embedded server:\n");
@@ -5938,27 +5936,6 @@ AV *mariadb_db_type_info_all(void)
   }
   return av;
 }
-
-#if MYSQL_VERSION_ID < 40107
-/* MySQL client prior to version 4.1.7 does not implement mysql_hex_string() */
-static unsigned long mysql_hex_string(char *to, const char *from, unsigned long len)
-{
-  char *start = to;
-  const char hexdigits[] = "0123456789ABCDEF";
-
-  while (len--)
-  {
-    *to++ = hexdigits[((unsigned char)*from) >> 4];
-    *to++ = hexdigits[((unsigned char)*from) & 0x0F];
-    from++;
-  }
-  *to = 0;
-  return (unsigned long)(to - start);
-}
-#elif MYSQL_VERSION_ID < 40108
-/* MySQL client prior to version 4.1.8 does not declare mysql_hex_string() in header files */
-unsigned long mysql_hex_string(char *to, const char *from, unsigned long len);
-#endif
 
 /*
   mariadb_db_quote

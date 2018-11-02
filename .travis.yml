@@ -74,6 +74,10 @@ matrix:
     - perl: "5.22"
       env: DB=MySQL VERSION=5.5.60
     - perl: "5.22"
+      env: DB=MySQL VERSION=5.5.61
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.5.62
+    - perl: "5.22"
       env: DB=MySQL VERSION=5.6.10
     - perl: "5.22"
       env: DB=MySQL VERSION=5.6.30
@@ -89,6 +93,10 @@ matrix:
       env: DB=MySQL VERSION=5.6.39
     - perl: "5.22"
       env: DB=MySQL VERSION=5.6.40
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.41
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.6.42
     - perl: "5.22"
       env: DB=MySQL VERSION=5.7.8-rc
     - perl: "5.22"
@@ -108,6 +116,10 @@ matrix:
     - perl: "5.22"
       env: DB=MySQL VERSION=5.7.22
     - perl: "5.22"
+      env: DB=MySQL VERSION=5.7.23
+    - perl: "5.22"
+      env: DB=MySQL VERSION=5.7.24
+    - perl: "5.22"
       env: DB=MySQL VERSION=8.0.0-dmr
     - perl: "5.22"
       env: DB=MySQL VERSION=8.0.1-dmr
@@ -119,6 +131,10 @@ matrix:
       env: DB=MySQL VERSION=8.0.4-rc
     - perl: "5.22"
       env: DB=MySQL VERSION=8.0.11
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.12
+    - perl: "5.22"
+      env: DB=MySQL VERSION=8.0.13
     - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.40
     - perl: "5.22"
@@ -142,6 +158,10 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=5.5.60
     - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.61
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=5.5.62
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.14
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.20
@@ -162,6 +182,8 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.0.35
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.0.36
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.2
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.8
@@ -179,6 +201,8 @@ matrix:
       env: DB=MariaDB VERSION=10.1.31
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.33
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.1.36
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.0
     - perl: "5.22"
@@ -211,6 +235,8 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.15
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.18
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.0
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.1
@@ -224,6 +250,10 @@ matrix:
       env: DB=MariaDB VERSION=10.3.6
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.7
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.8
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.10
     - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.0-beta
     - perl: "5.22"
@@ -255,6 +285,10 @@ matrix:
       env: CONC_DB=MariaDB CONC_VERSION=2.3.4
     - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=2.3.5
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.6
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=2.3.7
 # Incompatible, client library freeze
 #    - perl: "5.22"
 #      env: CONC_DB=MariaDB CONC_VERSION=3.0.0-alpha
@@ -267,6 +301,10 @@ matrix:
       env: CONC_DB=MariaDB CONC_VERSION=3.0.3
     - perl: "5.22"
       env: CONC_DB=MariaDB CONC_VERSION=3.0.4
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=3.0.5
+    - perl: "5.22"
+      env: CONC_DB=MariaDB CONC_VERSION=3.0.6
     - perl: "5.22"
       env: DB=MySQL VERSION=5.0.96 CONC_DB=MariaDB CONC_VERSION=2.3.4
     - perl: "5.22"
@@ -285,6 +323,10 @@ matrix:
       env: DB=MySQL VERSION=5.6.38 CONC_DB=MySQL CONC_VERSION=6.1.11
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.1.30 CONC_DB=MariaDB CONC_VERSION=3.0.2
+    - perl: "5.22"
+      env: DB=MySQL VERSION=4.1.22 CONC_DB=MariaDB CONC_VERSION=3.0.6
+    - perl: "5.22"
+      env: DB=MySQL VERSION=4.1.22 SERVER=system
 
 addons:
   apt:
@@ -315,7 +357,8 @@ before_install:
         5.6.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
         5.7.19*|5.7.[2]*) SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
         5.7.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
-        8.0.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+        8.0.?-*|8.0.11)   SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+        8.0.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.xz ;;
         *)                echo "Unsupported MySQL version '$VERSION'"; exit 1 ;;
       esac ;
       SANDBOX_CACHE_FILE="$HOME/cache/$(basename "$SANDBOX_URL")" ;
@@ -370,6 +413,10 @@ install:
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
   - if [ -n "$DB" ]; then
       cpanm --quiet --notest --skip-satisfied MySQL::Sandbox || exit 1 ;
+      if [[ $SANDBOX_FILE =~ .xz$ ]]; then
+        unxz < "$SANDBOX_FILE" | gzip -1 > "${SANDBOX_FILE%.xz}.gz" ;
+        SANDBOX_FILE="${SANDBOX_FILE%.xz}.gz" ;
+      fi ;
       make_sandbox --export_binaries "$SANDBOX_FILE" -- --sandbox_port 3310 --sandbox_directory msb --no_confirm --verbose $SANDBOX_OPTIONS || exit 1 ;
       mysqladmin -u root shutdown || exit 1 ;
       sed 's/-lzlib //g' -i $SANDBOX_HOME/*/bin/mysql_config ;
@@ -392,13 +439,13 @@ install:
     fi
 
 before_script:
-  - if [ -n "$DB" ]; then
+  - if [ -n "$DB" ] && [ "$SERVER" != "system" ]; then
       export DBD_MARIADB_TESTUSER=msandbox ;
       export DBD_MARIADB_TESTPASSWORD=msandbox ;
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3310 ;
       export DBD_MARIADB_TESTLANGDIR=`find $SANDBOX_HOME/* -name english | head -1` ;
-    elif [ -n "$CONC_DB" ]; then
+    elif [ -n "$CONC_DB" ] || [ "$SERVER" = "system" ]; then
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3306 ;
     fi

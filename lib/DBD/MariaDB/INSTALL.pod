@@ -38,7 +38,7 @@ L<Strawberry Perl|http://www.strawberryperl.com>.
 You need not install the actual MariaDB or MySQL database server, the client
 files and the development files are sufficient. They are distributed either in
 I<Connector/C> package or as part of server package. You need at least MySQL
-version 4.1.3.
+version 4.1.8.
 
 For example, Fedora, RedHat, CentOS Linux distribution comes with RPM files
 (using YUM) C<mariadb-devel>, C<mariadb-embedded-devel>, C<mysql-devel> or
