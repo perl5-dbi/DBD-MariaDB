@@ -3991,7 +3991,7 @@ my_ulonglong mariadb_st_internal_execute(
  *  Inputs:  h - object handle, for storing error messages
  *           statement - query being executed
  *           attribs - statement attributes, currently ignored
- *           num_params - number of parameters being bound
+ *           has_params - non-zero parameters being bound
  *           params - parameter array
  *           result - where to store results, if any
  *           svsock - socket connected to the database
@@ -4002,7 +4002,7 @@ my_ulonglong mariadb_st_internal_execute41(
                                          SV *sth,
                                          char *sbuf,
                                          STRLEN slen,
-                                         int num_params,
+                                         bool has_params,
                                          MYSQL_RES **result,
                                          MYSQL_STMT **stmt_ptr,
                                          MYSQL_BIND *bind,
@@ -4034,7 +4034,7 @@ my_ulonglong mariadb_st_internal_execute41(
     we have to rebind them
   */
 
-  if (num_params > 0 && !(*has_been_bound))
+  if (has_params && !(*has_been_bound))
   {
     if (mysql_stmt_bind_param(stmt,bind) == 0)
     {
@@ -4049,9 +4049,7 @@ my_ulonglong mariadb_st_internal_execute41(
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "\t\tmariadb_st_internal_execute41 calling mysql_execute with %d num_params\n",
-                  num_params);
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_internal_execute41 calling mysql_execute\n");
 
   if (!reconnected)
   {
@@ -4076,7 +4074,7 @@ my_ulonglong mariadb_st_internal_execute41(
     }
     mysql_stmt_close(*stmt_ptr);
     *stmt_ptr = stmt;
-    if (num_params > 0)
+    if (has_params)
     {
       if (mysql_stmt_bind_param(stmt,bind))
         goto error;
@@ -4234,7 +4232,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                     sth,
                                                     imp_sth->statement,
                                                     imp_sth->statement_len,
-                                                    DBIc_NUM_PARAMS(imp_sth),
+                                                    !!(DBIc_NUM_PARAMS(imp_sth) > 0),
                                                     &imp_sth->result,
                                                     &imp_sth->stmt,
                                                     imp_sth->bind,
