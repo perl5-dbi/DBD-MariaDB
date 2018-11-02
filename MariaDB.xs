@@ -16,9 +16,6 @@
 
 #include "dbdimp.h"
 
-#include <errno.h>
-#include <string.h>
-
 #define ASYNC_CHECK_XS(h)\
   if(imp_dbh->async_query_in_flight) {\
       mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling a synchronous function on an asynchronous handle", "HY000");\
@@ -93,276 +90,27 @@ type_info_all(dbh)
 }
 
 
-SV *
+#ifndef HAVE_DBI_1_642
+
+IV
 do(dbh, statement, attr=Nullsv, ...)
-  SV *        dbh
-  SV *	statement
-  SV *        attr
-  CODE:
+  SV *dbh
+  SV *statement
+  SV *attr
+CODE:
 {
+  /* Compatibility for DBI version prior to 1.642 which does not support dbd_db_do6 API */
   D_imp_dbh(dbh);
-  I32 num_params= (items > 3 ? items - 3 : 0);
-  I32 i;
-  my_ulonglong retval;
-  STRLEN slen;
-  char *str_ptr;
-  struct imp_sth_ph_st* params= NULL;
-  MYSQL_RES* result= NULL;
-  bool async= FALSE;
-  int next_result_rc;
-  bool failed = FALSE;
-  bool            has_been_bound = FALSE;
-  bool            use_server_side_prepare = FALSE;
-  bool            disable_fallback_for_server_prepare = FALSE;
-  MYSQL_STMT      *stmt= NULL;
-  MYSQL_BIND      *bind= NULL;
-  STRLEN          blen;
-    ASYNC_CHECK_XS(dbh);
-    if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
-    {
-      mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
-      XSRETURN_UNDEF;
-    }
-    while (mysql_next_result(imp_dbh->pmysql)==0)
-    {
-      MYSQL_RES* res = mysql_use_result(imp_dbh->pmysql);
-      if (res)
-        mysql_free_result(res);
-      }
-  if (SvMAGICAL(statement))
-    mg_get(statement);
-  for (i = 0; i < num_params; i++)
-  {
-    SV *param= ST(i+3);
-    if (SvMAGICAL(param))
-      mg_get(param);
-  }
-  (void)hv_stores((HV*)SvRV(dbh), "Statement", SvREFCNT_inc(statement));
-  str_ptr = SvPVutf8_nomg(statement, slen);
-  /*
-   * Globally enabled using of server side prepared statement
-   * for dbh->do() statements. It is possible to force driver
-   * to use server side prepared statement mechanism by adding
-   * 'mariadb_server_prepare' attribute to do() method localy:
-   * $dbh->do($stmt, {mariadb_server_prepare=>1});
-  */
-  use_server_side_prepare = imp_dbh->use_server_side_prepare;
-  DBD_ATTRIBS_CHECK("do", dbh, attr);
-  if (attr)
-  {
-    HV *hv;
-    HE *he;
-    SV **svp;
-    HV *processed;
-    processed = newHV();
-    sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
-    (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
-    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare");
-    use_server_side_prepare = (svp) ?
-      SvTRUE(*svp) : imp_dbh->use_server_side_prepare;
-    (void)hv_stores(processed, "mariadb_server_prepare_disable_fallback", &PL_sv_yes);
-    svp = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_server_prepare_disable_fallback");
-    disable_fallback_for_server_prepare = (svp) ?
-      SvTRUE(*svp) : imp_dbh->disable_fallback_for_server_prepare;
-    (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
-    svp   = MARIADB_DR_ATTRIB_GET_SVPS(attr, "mariadb_async");
-    async = (svp) ? SvTRUE(*svp) : FALSE;
-    hv = (HV*) SvRV(attr);
-    hv_iterinit(hv);
-    while ((he = hv_iternext(hv)) != NULL)
-    {
-      I32 len;
-      const char *key;
-      key = hv_iterkey(he, &len);
-      if (hv_exists(processed, key, len))
-        continue;
-      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
-      XSRETURN_UNDEF;
-    }
-  }
-  if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh),
-                  "mysql.xs do() use_server_side_prepare %d\n",
-                  use_server_side_prepare ? 1 : 0);
-  if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh),
-                  "mysql.xs do() async %d\n",
-                  (async ? 1 : 0));
-  if(async) {
-    if (disable_fallback_for_server_prepare)
-    {
-      mariadb_dr_do_error(dbh, ER_UNSUPPORTED_PS,
-               "Async option not supported with server side prepare", "HY000");
-      XSRETURN_UNDEF;
-    }
-    use_server_side_prepare = FALSE; /* for now */
-    imp_dbh->async_query_in_flight = imp_dbh;
-  }
-  if (use_server_side_prepare)
-  {
-    stmt= mysql_stmt_init(imp_dbh->pmysql);
-
-    if (stmt && mysql_stmt_prepare(stmt, str_ptr, slen))
-    {
-      if (mariadb_db_reconnect(dbh, stmt))
-      {
-        mysql_stmt_close(stmt);
-        stmt = mysql_stmt_init(imp_dbh->pmysql);
-        if (stmt && mysql_stmt_prepare(stmt, str_ptr, slen))
-          failed = TRUE;
-      }
-      else
-      {
-        failed = TRUE;
-      }
-    }
-
-    if (!stmt)
-    {
-      mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
-      retval = (my_ulonglong)-1;
-    }
-    else if (failed)
-    {
-      /* For commands that are not supported by server side prepared statement
-         mechanism lets try to pass them through regular API */
-      if (!disable_fallback_for_server_prepare &&
-          (mysql_stmt_errno(stmt) == ER_UNSUPPORTED_PS ||
-          /* And also fallback when placeholder is used in unsupported
-           * construction with old server versions (e.g. LIMIT ?) */
-          (mysql_stmt_errno(stmt) == ER_PARSE_ERROR &&
-           mysql_get_server_version(imp_dbh->pmysql) < 50007 &&
-           strstr(mysql_stmt_error(stmt), "'?"))))
-      {
-        use_server_side_prepare = FALSE;
-      }
-      else
-      {
-        mariadb_dr_do_error(dbh, mysql_stmt_errno(stmt), mysql_stmt_error(stmt)
-                 ,mysql_stmt_sqlstate(stmt));
-        retval = (my_ulonglong)-1;
-      }
-      mysql_stmt_close(stmt);
-      stmt= NULL;
-    }
-    else
-    {
-      /*
-        'items' is the number of arguments passed to XSUB, supplied
-        by xsubpp compiler, as listed in manpage for perlxs
-      */
-      if (items > 3)
-      {
-        /*
-          Handle binding supplied values to placeholders assume user has
-          passed the correct number of parameters
-        */
-        Newz(0, bind, num_params, MYSQL_BIND);
-
-        for (i = 0; i < num_params; i++)
-        {
-          SV *param= ST(i+3);
-          if (SvOK(param))
-          {
-            bind[i].buffer= SvPVutf8_nomg(param, blen);
-            bind[i].buffer_length= blen;
-            bind[i].buffer_type= MYSQL_TYPE_STRING;
-          }
-          else
-          {
-            bind[i].buffer= NULL;
-            bind[i].buffer_length= 0;
-            bind[i].buffer_type= MYSQL_TYPE_NULL;
-          }
-        }
-      }
-      retval = mariadb_st_internal_execute41(dbh,
-                                           str_ptr,
-                                           slen,
-                                           num_params,
-                                           &result,
-                                           &stmt,
-                                           bind,
-                                           &imp_dbh->pmysql,
-                                           &has_been_bound);
-      if (bind)
-        Safefree(bind);
-
-      mysql_stmt_close(stmt);
-      stmt= NULL;
-
-      if (retval == (my_ulonglong)-1) /* -1 means error */
-      {
-        SV *err = DBIc_ERR(imp_dbh);
-        if (!disable_fallback_for_server_prepare && SvIV(err) == ER_UNSUPPORTED_PS)
-        {
-          use_server_side_prepare = FALSE;
-        }
-      }
-    }
-  }
-
-  if (! use_server_side_prepare)
-  {
-    if (items > 3)
-    {
-      /*  Handle binding supplied values to placeholders	   */
-      /*  Assume user has passed the correct number of parameters  */
-      Newz(0, params, num_params, struct imp_sth_ph_st);
-      for (i= 0;  i < num_params;  i++)
-      {
-        SV *param= ST(i+3);
-        if (SvOK(param))
-          params[i].value= SvPVutf8_nomg(param, params[i].len);
-        else
-          params[i].value= NULL;
-        params[i].type= SQL_VARCHAR;
-      }
-    }
-    retval = mariadb_st_internal_execute(dbh, str_ptr, slen, num_params,
-                                       params, &result, &imp_dbh->pmysql, FALSE);
-  }
-  if (params)
-    Safefree(params);
-
-  if (result)
-  {
-    mysql_free_result(result);
-    result = NULL;
-  }
-  if (retval != (my_ulonglong)-1 && !async) /* -1 means error */
-    {
-      /* more results? -1 = no, >0 = error, 0 = yes (keep looping) */
-      while ((next_result_rc= mysql_next_result(imp_dbh->pmysql)) == 0)
-      {
-        result = mysql_use_result(imp_dbh->pmysql);
-          if (result)
-            mysql_free_result(result);
-            result = NULL;
-          }
-          if (next_result_rc > 0)
-          {
-            if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-              PerlIO_printf(DBIc_LOGPIO(imp_dbh),
-                            "\t<- do() ERROR: %s\n",
-                            mysql_error(imp_dbh->pmysql));
-
-              mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql),
-                       mysql_error(imp_dbh->pmysql),
-                       mysql_sqlstate(imp_dbh->pmysql));
-              retval = (my_ulonglong)-1;
-          }
-    }
-
-  if (retval == 0)                      /* ok with no rows affected     */
-    XSRETURN_PV("0E0");                 /* (true but zero)              */
-  else if (retval == (my_ulonglong)-1)  /* -1 means error               */
+  RETVAL = mariadb_db_do6(dbh, imp_dbh, statement, attr, items-3, ax+3);
+  if (RETVAL == 0)              /* ok with no rows affected     */
+    XSRETURN_PV("0E0");         /* (true but zero)              */
+  else if (RETVAL < -1)         /* -1 == unknown number of rows */
     XSRETURN_UNDEF;
-
-  RETVAL = my_ulonglong2sv(retval);
 }
-  OUTPUT:
-    RETVAL
+OUTPUT:
+  RETVAL
+
+#endif
 
 
 bool

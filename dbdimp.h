@@ -577,6 +577,7 @@ struct imp_sth_st {
 #define dbd_discon_all		mariadb_dr_discon_all
 #define dbd_take_imp_data	mariadb_db_take_imp_data
 #define dbd_db_login6_sv	mariadb_db_login6_sv
+#define dbd_db_do6		mariadb_db_do6
 #define dbd_db_commit		mariadb_db_commit
 #define dbd_db_rollback		mariadb_db_rollback
 #define dbd_db_disconnect	mariadb_db_disconnect
@@ -608,6 +609,10 @@ PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   else         /* overflow */
     return -1; /* -1 is unknown number of rows */
 }
+#endif
+
+#ifndef HAVE_DBI_1_642
+IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement, SV *attribs, I32 items, I32 ax);
 #endif
 
 #define MARIADB_DR_ATTRIB_GET_SVPS(attribs, key) DBD_ATTRIB_GET_SVP((attribs), "" key "", sizeof((key))-1)
