@@ -6342,7 +6342,6 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
     return Nullsv;
   }
 
-  ASYNC_CHECK_RETURN(dbh, &PL_sv_undef);
   return sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
 }
 

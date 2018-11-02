@@ -18,11 +18,11 @@ private_attribute_info trace trace_msg
 push @common_safe_methods, 'visit_child_handles' if DBI::db->can("visit_child_handles");
 
 my @db_safe_methods   = (@common_safe_methods, qw/
-clone mariadb_async_ready get_info quote_identifier type_info type_info_all
+clone mariadb_async_ready get_info quote_identifier type_info type_info_all last_insert_id
 /);
 
 my @db_unsafe_methods = qw/
-data_sources       do                 last_insert_id     selectrow_array
+data_sources       do                 selectrow_array
 selectrow_arrayref selectrow_hashref  selectall_arrayref selectall_hashref
 selectcol_arrayref prepare            prepare_cached     commit
 rollback           begin_work         ping
