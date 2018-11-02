@@ -33,6 +33,7 @@ foreign_key_info   statistics_info    tables             quote
 my @st_safe_methods   = qw/
 fetchrow_arrayref fetch            fetchrow_array fetchrow_hashref
 fetchall_arrayref fetchall_hashref finish         rows
+last_insert_id
 /;
 
 my @st_unsafe_methods = qw/

@@ -247,6 +247,26 @@ rows(sth)
   OUTPUT:
     RETVAL
 
+#ifndef HAVE_DBI_1_642
+
+void
+last_insert_id(sth, catalog=&PL_sv_undef, schema=&PL_sv_undef, table=&PL_sv_undef, field=&PL_sv_undef, attr=Nullsv)
+  SV *sth
+  SV *catalog
+  SV *schema
+  SV *table
+  SV *field
+  SV *attr
+PPCODE:
+{
+  /* Compatibility for DBI version prior to 1.642 which does not support dbd_st_last_insert_id API */
+  D_imp_sth(sth);
+  ST(0) = mariadb_st_last_insert_id(sth, imp_sth, catalog, schema, table, field, attr);
+  XSRETURN(1);
+}
+
+#endif
+
 SV *
 mariadb_async_result(sth)
     SV* sth

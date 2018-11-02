@@ -45,6 +45,13 @@ sub driver{
 	DBD::MariaDB::st->install_method('mariadb_async_result');
 	DBD::MariaDB::st->install_method('mariadb_async_ready');
 
+        # for older DBI versions register our last_insert_id statement method
+        if (not eval { DBI->VERSION(1.642) }) {
+            # disable warning: method name prefix 'last_' is not associated with a registered driver
+            local $SIG{__WARN__} = sub {};
+            DBD::MariaDB::st->install_method('last_insert_id');
+        }
+
 	$methods_are_installed++;
     }
 

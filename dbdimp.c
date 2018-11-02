@@ -5715,6 +5715,21 @@ SV* mariadb_st_FETCH_attrib(
 }
 
 
+SV *mariadb_st_last_insert_id(SV *sth, imp_sth_t *imp_sth,
+        SV *catalog, SV *schema, SV *table, SV *field, SV *attr)
+{
+  dTHX;
+  PERL_UNUSED_ARG(sth);
+  PERL_UNUSED_ARG(catalog);
+  PERL_UNUSED_ARG(schema);
+  PERL_UNUSED_ARG(table);
+  PERL_UNUSED_ARG(field);
+  PERL_UNUSED_ARG(attr);
+
+  return sv_2mortal(my_ulonglong2sv(imp_sth->insertid));
+}
+
+
 /***************************************************************************
  *
  *  Name:    mariadb_st_blob_read
