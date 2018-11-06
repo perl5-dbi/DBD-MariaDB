@@ -4288,12 +4288,17 @@ my_ulonglong mariadb_st_internal_execute41(
                                         )
 {
   dTHX;
+  int store_retval;
   int execute_retval;
   unsigned int i, num_fields;
   MYSQL_STMT *stmt = *stmt_ptr;
   my_ulonglong rows=0;
   bool reconnected = FALSE;
   D_imp_xxh(h);
+
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
+  my_ulonglong insertid;
+#endif
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4337,6 +4342,18 @@ my_ulonglong mariadb_st_internal_execute41(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_internal_execute41 calling mysql_execute\n");
+
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
+  /*
+   * mysql_insert_id() returns incorrect value after SELECT operation.
+   * As a workaround prior to issuing mysql query we store value of
+   * last insert id. If query returns result set then we know that it
+   * was SELECT operation and so after that we restore previous value
+   * of last insert id. Restoring needs to be done after call to the
+   * mysql_stmt_store_result() function as it may clear insert id.
+   */
+  insertid = mysql_insert_id(*svsock);
+#endif
 
   if (!reconnected)
   {
@@ -4407,11 +4424,14 @@ my_ulonglong mariadb_st_internal_execute41(
         break;
       }
     }
-    /* Get the total rows affected and return */
-    if (mysql_stmt_store_result(stmt))
+    store_retval = mysql_stmt_store_result(stmt);
+#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
+    (*svsock)->insert_id = insertid;
+#endif
+    if (store_retval)
       goto error;
-    else
-      rows= mysql_stmt_num_rows(stmt);
+    /* Get the total rows affected and return */
+    rows = mysql_stmt_num_rows(stmt);
   }
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
