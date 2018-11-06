@@ -4306,12 +4306,22 @@ my_ulonglong mariadb_st_internal_execute41(
     *result = NULL;
   }
 
+  if (!*svsock)
+  {
+    if (!mariadb_db_reconnect(h, NULL))
+    {
+      mariadb_dr_do_error(h, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+      return -1;
+    }
+    reconnected = TRUE;
+  }
+
   /*
     If were performed any changes with ph variables
     we have to rebind them
   */
 
-  if (has_params && !(*has_been_bound))
+  if (!reconnected && has_params && !(*has_been_bound))
   {
     if (mysql_stmt_bind_param(stmt,bind) == 0)
     {
