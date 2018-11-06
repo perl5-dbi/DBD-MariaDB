@@ -577,6 +577,7 @@ struct imp_sth_st {
 #define dbd_discon_all		mariadb_dr_discon_all
 #define dbd_take_imp_data	mariadb_db_take_imp_data
 #define dbd_db_login6_sv	mariadb_db_login6_sv
+#define dbd_db_do6		mariadb_db_do6
 #define dbd_db_commit		mariadb_db_commit
 #define dbd_db_rollback		mariadb_db_rollback
 #define dbd_db_disconnect	mariadb_db_disconnect
@@ -593,6 +594,7 @@ struct imp_sth_st {
 #define dbd_st_blob_read	mariadb_st_blob_read
 #define dbd_st_STORE_attrib	mariadb_st_STORE_attrib
 #define dbd_st_FETCH_attrib	mariadb_st_FETCH_attrib
+#define dbd_st_last_insert_id	mariadb_st_last_insert_id
 #define dbd_bind_ph		mariadb_st_bind_ph
 
 #include <dbd_xsh.h>
@@ -608,6 +610,11 @@ PERL_STATIC_INLINE int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   else         /* overflow */
     return -1; /* -1 is unknown number of rows */
 }
+#endif
+
+#ifndef HAVE_DBI_1_642
+IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement, SV *attribs, I32 items, I32 ax);
+SV *mariadb_st_last_insert_id(SV *sth, imp_sth_t *imp_sth, SV *catalog, SV *schema, SV *table, SV *field, SV *attr);
 #endif
 
 #define MARIADB_DR_ATTRIB_GET_SVPS(attribs, key) DBD_ATTRIB_GET_SVP((attribs), "" key "", sizeof((key))-1)
@@ -629,7 +636,7 @@ my_ulonglong mariadb_st_internal_execute(SV *,
 my_ulonglong mariadb_st_internal_execute41(SV *,
                                          char *,
                                          STRLEN,
-                                         int,
+                                         bool,
                                          MYSQL_RES **,
                                          MYSQL_STMT **,
                                          MYSQL_BIND *,

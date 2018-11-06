@@ -273,6 +273,7 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 
 my $cflags = "-I\$(DBI_INSTARCH_DIR) $opt->{'cflags'}";
 $cflags .= " -DHAVE_DBI_1_634" if eval { DBI->VERSION(1.634) };
+$cflags .= " -DHAVE_DBI_1_642" if eval { DBI->VERSION(1.642) };
 $cflags .= " -DHAVE_EMBEDDED" if $have_embedded;
 $cflags .= " -DHAVE_GET_CHARSET_NUMBER" if $have_get_charset_number;
 $cflags .= " -DHAVE_GET_OPTION" if $have_get_option;

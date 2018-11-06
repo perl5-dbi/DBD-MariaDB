@@ -558,7 +558,8 @@ L<C<< $dbh->errstr() >>|DBI/errstr> for error number and string,
 C<< $dbh->get_info($GetInfoType{SQL_SERVER_NAME}) >> for server host name,
 C<< $dbh->get_info($GetInfoType{SQL_DBMS_NAME}) >> and
 C<< $dbh->get_info($GetInfoType{SQL_DBMS_VER}) >> for server database name and
-version, L<C<< $dbh->last_insert_id() >>|DBI/last_insert_id> for insert id.
+version, L<C<< $dbh->last_insert_id() >>|DBI/last_insert_id> or
+C<< $sth->last_insert_id() >> for insert id.
 
 =over 2
 
@@ -874,7 +875,10 @@ can also be accessed via C<< $dbh->{mariadb_insertid} >> but this can easily
 produce incorrect results in case one database handle is shared.
 
 Portable DBI applications should not use I<mariadb_insertid>. Instead they
-should use DBI method L<C<< $dbh->last_insert_id() >>|DBI/last_insert_id>.
+should use DBI method L<C<< $dbh->last_insert_id() >>|DBI/last_insert_id>
+or statement DBI method C<< $sth->last_insert_id() >>. Statement method was
+introduced in DBI version 1.642, but DBD::MariaDB implements it also for older
+DBI versions.
 
 =item mariadb_is_blob
 

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 # Base DBD Driver Test
 BEGIN {
@@ -23,6 +23,9 @@ BEGIN {
     $tb->failure_output($fo);
 }
 
+ok eval { DBI->VERSION(1.608) }, "DBI version is OK";
+diag "DBI version is $DBI::VERSION";
+
 my $switch = DBI->internal;
 cmp_ok ref $switch, 'eq', 'DBI::dr', 'Internal set';
 
@@ -33,5 +36,5 @@ ok $drh, 'Install driver';
 
 cmp_ok ref $drh, 'eq', 'DBI::dr', 'DBI::dr set';
 
-ok $drh->{Version}, "Version $drh->{Version}";
-diag "Driver version is ", $drh->{Version}, "\n";
+ok $drh->{Version}, "Driver version is OK";
+diag "Driver version is $drh->{Version}";

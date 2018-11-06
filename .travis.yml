@@ -44,6 +44,8 @@ matrix:
     - perl: "5.16.3"
       env: DBI_VERSION=1.627
     - perl: "5.22"
+      env: DBI_VERSION=1.641
+    - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22
     - perl: "5.22"
       env: DB=MySQL VERSION=5.0.15
