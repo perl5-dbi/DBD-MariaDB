@@ -4276,7 +4276,7 @@ my_ulonglong mariadb_st_internal_execute(
  **************************************************************************/
 
 my_ulonglong mariadb_st_internal_execute41(
-                                         SV *sth,
+                                         SV *h,
                                          char *sbuf,
                                          STRLEN slen,
                                          bool has_params,
@@ -4293,7 +4293,7 @@ my_ulonglong mariadb_st_internal_execute41(
   MYSQL_STMT *stmt = *stmt_ptr;
   my_ulonglong rows=0;
   bool reconnected = FALSE;
-  D_imp_xxh(sth);
+  D_imp_xxh(h);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4319,7 +4319,7 @@ my_ulonglong mariadb_st_internal_execute41(
     }
     else
     {
-      if (!mariadb_db_reconnect(sth, stmt))
+      if (!mariadb_db_reconnect(h, stmt))
         goto error;
       reconnected = TRUE;
     }
@@ -4331,7 +4331,7 @@ my_ulonglong mariadb_st_internal_execute41(
   if (!reconnected)
   {
     execute_retval = mysql_stmt_execute(stmt);
-    if (execute_retval && mariadb_db_reconnect(sth, stmt))
+    if (execute_retval && mariadb_db_reconnect(h, stmt))
       reconnected = TRUE;
   }
   if (reconnected)
@@ -4340,12 +4340,12 @@ my_ulonglong mariadb_st_internal_execute41(
     stmt = mysql_stmt_init(*svsock);
     if (!stmt)
     {
-      mariadb_dr_do_error(sth, mysql_errno(*svsock), mysql_error(*svsock), mysql_sqlstate(*svsock));
+      mariadb_dr_do_error(h, mysql_errno(*svsock), mysql_error(*svsock), mysql_sqlstate(*svsock));
       return -1;
     }
     if (mysql_stmt_prepare(stmt, sbuf, slen))
     {
-      mariadb_dr_do_error(sth, mysql_stmt_errno(stmt), mysql_stmt_error(stmt), mysql_stmt_sqlstate(stmt));
+      mariadb_dr_do_error(h, mysql_stmt_errno(stmt), mysql_stmt_error(stmt), mysql_stmt_sqlstate(stmt));
       mysql_stmt_close(stmt);
       return -1;
     }
@@ -4420,7 +4420,7 @@ error:
                   "     errno %d err message %s\n",
                   mysql_stmt_errno(stmt),
                   mysql_stmt_error(stmt));
-  mariadb_dr_do_error(sth, mysql_stmt_errno(stmt), mysql_stmt_error(stmt),
+  mariadb_dr_do_error(h, mysql_stmt_errno(stmt), mysql_stmt_error(stmt),
            mysql_stmt_sqlstate(stmt));
   mysql_stmt_reset(stmt);
 
