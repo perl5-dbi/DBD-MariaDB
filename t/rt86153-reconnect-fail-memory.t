@@ -60,7 +60,7 @@ $prev_size= undef;
 
 # run reconnect with a bad password
 for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
-    eval { $dbh2 = DBI->connect($test_dsn, $test_user, "$test_password ",
+    eval { $dbh2 = DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
                                { RaiseError => 1, 
                                  PrintError => 1,
                                  AutoCommit => 0 });};
