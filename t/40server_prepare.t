@@ -5,7 +5,7 @@ use Test::More;
 use DBI;
 use lib 't', '.';
 require 'lib.pl';
-use vars qw($test_dsn $test_user $test_password);
+use vars qw($test_dsn $test_user $test_password $test_db);
 
 $|= 1;
 
@@ -74,18 +74,16 @@ ok($sth3->execute(1, 2), "insert t3");
 
 is_deeply($dbh->selectall_arrayref('SELECT id, mydata FROM t3'), [[1, 2]]);
 
-my $dbname = $dbh->selectrow_arrayref("SELECT DATABASE()")->[0];
-
 $dbh->{mariadb_server_prepare_disable_fallback} = 1;
 my $error_handler_called = 0;
 $dbh->{HandleError} = sub { $error_handler_called = 1; die $_[0]; };
-eval { $dbh->prepare("USE $dbname") };
+eval { $dbh->prepare("USE " . $dbh->quote_identifier($test_db)) };
 $dbh->{HandleError} = undef;
 ok($error_handler_called, 'USE is not supported with mariadb_server_prepare_disable_fallback=1');
 
 $dbh->{mariadb_server_prepare_disable_fallback} = 0;
 my $sth4;
-ok($sth4 = $dbh->prepare("USE $dbname"), 'USE is supported with mariadb_server_prepare_disable_fallback=0');
+ok($sth4 = $dbh->prepare("USE " . $dbh->quote_identifier($test_db)), 'USE is supported with mariadb_server_prepare_disable_fallback=0');
 ok($sth4->execute());
 ok($sth4->finish());
 
