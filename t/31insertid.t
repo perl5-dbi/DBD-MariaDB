@@ -11,13 +11,17 @@ require "lib.pl";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 			    {RaiseError => 1});
 
-plan tests => 33;
+plan tests => 3 + 2*30;
 
 SKIP: {
     skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
     ok $dbh->do('SET @@auto_increment_offset = 1');
     ok $dbh->do('SET @@auto_increment_increment = 1');
 }
+
+for my $mariadb_server_prepare (0, 1) {
+
+$dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
 
 my $create = <<EOT;
 CREATE TEMPORARY TABLE dbd_mysql_t31 (
@@ -79,5 +83,7 @@ ok $sth->finish();
 ok $sth2->finish();
 
 ok $dbh->do('DROP TABLE dbd_mysql_t31');
+
+}
 
 ok $dbh->disconnect();
