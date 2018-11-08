@@ -5,7 +5,7 @@ use Test::More;
 use DBI;
 use File::Temp;
 
-use vars qw($test_dsn $test_user $test_password $test_db);
+use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 

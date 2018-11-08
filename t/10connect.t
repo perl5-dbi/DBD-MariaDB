@@ -6,7 +6,7 @@ use DBI;
 use DBI::Const::GetInfoType;
 $|= 1;
 
-use vars qw($test_dsn $test_user $test_password $test_db);
+use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
