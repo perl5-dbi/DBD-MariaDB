@@ -32,11 +32,14 @@ sub DbiTestConnect {
     my $err;
     my $dbh = eval { DBI->connect(@_) };
     if ( $dbh ) {
-            my $current_charset = $dbh->selectrow_array('SELECT @@character_set_database');
-            my $expected_charset = $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'") ? 'utf8mb4' : 'utf8';
-            if ($current_charset ne $expected_charset) {
-                $err = "Database charset is not $expected_charset, but $current_charset";
-            }
+        my ($current_charset, $current_collation) = $dbh->selectrow_array('SELECT @@character_set_database, @@collation_database');
+        my $expected_charset = $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'") ? 'utf8mb4' : 'utf8';
+        my $expected_collation = "${expected_charset}_unicode_ci";
+        if ($current_charset ne $expected_charset) {
+            $err = "Database charset is not $expected_charset, but $current_charset";
+        } elsif ($current_collation ne $expected_collation) {
+            $err = "Database collation is not $expected_collation, but $current_collation";
+        }
     } else {
         if ( $@ ) {
             $err = $@;
