@@ -45,7 +45,7 @@ if (not $dbh) {
     fatal_error "Cannot connect to '$test_dsn_without_db' server" unless $dbh;
     diag "Connected to server '$test_dsn_without_db'";
 
-    my $failed = not eval { $dbh->do("CREATE DATABASE IF NOT EXISTS $test_db") };
+    my $failed = not eval { $dbh->do("CREATE DATABASE IF NOT EXISTS " . $dbh->quote_identifier($test_db)) };
     fatal_error "Cannot create database '$test_db' on '$test_dsn_without_db' for user '$test_user'" if $failed;
     diag "Created database '$test_db'";
 
@@ -64,7 +64,7 @@ diag "Database '$test_db' has charset '$charset'";
 if ($charset ne 'utf8mb4') {
     my $newcharset = $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'") ? 'utf8mb4' : 'utf8';
     if ($newcharset ne $charset) {
-        my $failed = not eval { $dbh->do("ALTER DATABASE $test_db CHARSET '$newcharset'") };
+        my $failed = not eval { $dbh->do("ALTER DATABASE " . $dbh->quote_identifier($test_db) . " CHARACTER SET '$newcharset'") };
         fatal_error "No permission to change charset for '$test_db' database on '$test_dsn' for user '$test_user'" if $failed;
         diag "Changed charset for '$test_db' database to '$newcharset'";
     }

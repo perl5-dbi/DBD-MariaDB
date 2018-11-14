@@ -4,13 +4,13 @@ use warnings;
 use Test::More;
 use DBI;
 
-use vars qw($test_dsn $test_user $test_password);
+use vars qw($test_dsn $test_user $test_password $test_db);
 use lib 't', '.';
 require "lib.pl";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1, AutoCommit => 0, mariadb_server_prepare => 1, mariadb_server_prepare_disable_fallback => 1 });
 
-plan tests => 45;
+plan tests => 44;
 
 my $sth;
 
@@ -78,8 +78,7 @@ ok $sth->finish();
 ok $dbh->do("SELECT 1 FROM t WHERE i = ?" . (" OR i = ?" x 10000), {}, (1) x (10001));
 
 # $sth2 is statement that cannot be executed as mysql server side prepared statement, so fallback must be allowed
-ok my $dbname = $dbh->selectrow_arrayref("SELECT DATABASE()")->[0];
-ok my $sth2 = $dbh->prepare("USE $dbname", { mariadb_server_prepare_disable_fallback => 0 });
+ok my $sth2 = $dbh->prepare("USE " . $dbh->quote_identifier($test_db), { mariadb_server_prepare_disable_fallback => 0 });
 ok $sth2->execute();
 
 # disconnect from mysql server, free $dbh and internal libmysqlclient.so structures

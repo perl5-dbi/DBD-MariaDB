@@ -1994,7 +1994,9 @@ static bool mariadb_dr_connect(
   #endif
 	    my_bool ssl_enforce = TRUE;
 	    my_bool ssl_verify = FALSE;
+  #ifndef HAVE_SSL_MODE
 	    my_bool ssl_verify_set = FALSE;
+  #endif
 
 	    if ((svp = hv_fetchs(hv, "mariadb_ssl_optional", FALSE)) && *svp)
 	      ssl_enforce = !SvTRUE(*svp);
@@ -2004,7 +2006,9 @@ static bool mariadb_dr_connect(
 	    {
   #if defined(HAVE_SSL_VERIFY) || defined(HAVE_SSL_MODE)
 	      ssl_verify = SvTRUE(*svp);
+    #ifndef HAVE_SSL_MODE
 	      ssl_verify_set = TRUE;
+    #endif
   #else
 	      mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, "SSL connection error: mariadb_ssl_verify_server_cert=1 is not supported", "HY000");
 	      mariadb_db_disconnect(dbh, imp_dbh);

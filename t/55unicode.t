@@ -5,7 +5,7 @@ use utf8;
 use Test::More;
 use DBI;
 
-use vars qw($test_user $test_password $test_db $test_dsn);
+use vars qw($test_user $test_password $test_dsn);
 use lib 't', '.';
 require 'lib.pl';
 
