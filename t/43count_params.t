@@ -10,7 +10,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 33*2+1;
+plan tests => 37*2+1;
 
 for my $mariadb_server_prepare (0, 1) {
 
@@ -89,6 +89,14 @@ ok $sth->bind_param(1, 12);
 ok $sth->bind_param(2, "Charles de Batz de Castelmore, comte d'Artagnan");
 
 ok !defined eval { $sth->bind_param(3, 10) };
+
+ok !defined eval { $dbh->do("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)") };
+
+ok !defined eval { $dbh->do("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)", undef) };
+
+ok !defined eval { $dbh->do("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)", undef, 9) };
+
+ok !defined eval { $dbh->do("INSERT INTO dbd_mysql_t43count_params (id, name) VALUES (?, ?)", undef, 10, "Charles de Batz de Castelmore, comte d'Artagnan", 10) };
 
 is_deeply (
     $dbh->selectall_arrayref("SELECT id, name FROM dbd_mysql_t43count_params"),

@@ -2567,6 +2567,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   MYSQL_BIND *bind = NULL;
   MYSQL_RES *res;
   STRLEN blen;
+  unsigned long int num_params;
 
   ASYNC_CHECK_RETURN(dbh, -2);
 
@@ -2577,6 +2578,9 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   }
 
   SvGETMAGIC(statement_sv);
+
+  if (items < 0)
+    items = 0;
 
   for (i = 0; i < items; i++)
   {
@@ -2707,6 +2711,20 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     }
     else
     {
+      num_params = mysql_stmt_param_count(stmt);
+      if (num_params > INT_MAX)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Statement contains too many placeholders", "HY000");
+        mysql_stmt_close(stmt);
+        return -2;
+      }
+      else if ((int)num_params != items)
+      {
+        mariadb_dr_do_error(dbh, ER_WRONG_ARGUMENTS, "Wrong number of bind parameters", "HY000");
+        mysql_stmt_close(stmt);
+        return -2;
+      }
+
       if (items > 0)
       {
         Newz(0, bind, items, MYSQL_BIND);
@@ -2750,6 +2768,18 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
   if (!use_server_side_prepare)
   {
+    num_params = count_params(imp_dbh, aTHX_ statement, statement_len, imp_dbh->bind_comment_placeholders);
+    if (num_params > INT_MAX || num_params == ULONG_MAX)
+    {
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Statement contains too many placeholders", "HY000");
+      return -2;
+    }
+    else if ((int)num_params != items)
+    {
+      mariadb_dr_do_error(dbh, ER_WRONG_ARGUMENTS, "Wrong number of bind parameters", "HY000");
+      return -2;
+    }
+
     if (items > 0)
     {
       Newz(0, params, items, struct imp_sth_ph_st);
