@@ -58,7 +58,7 @@ typedef struct sql_type_info_s
 
 */
 static unsigned long int
-count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bool bind_comment_placeholders)
+count_params(imp_dbh_t *imp_dbh, pTHX_ char *statement, STRLEN statement_len, bool bind_comment_placeholders)
 {
   bool comment_end = FALSE;
   char* ptr= statement;
@@ -67,8 +67,8 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
   char *end = statement + statement_len;
   char c;
 
-  if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), ">count_params statement %.1000s%s\n", statement, statement_len > 1000 ? "..." : "");
+  if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), ">count_params statement %.1000s%s\n", statement, statement_len > 1000 ? "..." : "");
 
   while (ptr < end)
   {
@@ -94,8 +94,8 @@ count_params(imp_xxh_t *imp_xxh, pTHX_ char *statement, STRLEN statement_len, bo
                   while (ptr < end)
                   {
                       c = *ptr++;
-                      if (DBIc_DBISTATE(imp_xxh)->debug >= 2)
-                          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%c\n", c);
+                      if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
+                          PerlIO_printf(DBIc_LOGPIO(imp_dbh), "%c\n", c);
                       comment_length++;
                       if (c == '\n')
                       {
@@ -3876,7 +3876,7 @@ mariadb_st_prepare_sv(
   /* Count the number of parameters (driver, vs server-side) */
   if (!imp_sth->use_server_side_prepare)
   {
-    num_params = count_params((imp_xxh_t *)imp_dbh, aTHX_ statement, statement_len,
+    num_params = count_params(imp_dbh, aTHX_ statement, statement_len,
                                             imp_dbh->bind_comment_placeholders);
     if (num_params > INT_MAX || num_params == ULONG_MAX)
     {
