@@ -67,7 +67,19 @@ if ($charset ne 'utf8mb4') {
         my $failed = not eval { $dbh->do("ALTER DATABASE " . $dbh->quote_identifier($test_db) . " CHARACTER SET '$newcharset'") };
         fatal_error "No permission to change charset for '$test_db' database on '$test_dsn' for user '$test_user'" if $failed;
         diag "Changed charset for '$test_db' database to '$newcharset'";
+        $charset = $newcharset;
     }
+}
+
+my $collation = $dbh->selectrow_array('SELECT @@collation_database');
+diag "Database '$test_db' has collation '$collation'";
+
+if ($collation ne "${charset}_unicode_ci") {
+    my $newcollation = "${charset}_unicode_ci";
+    my $failed = not eval { $dbh->do("ALTER DATABASE " . $dbh->quote_identifier($test_db) . " COLLATE '$newcollation'") };
+    fatal_error "No permission to change collation for '$test_db' database on '$test_dsn' for user '$test_user'" if $failed;
+    diag "Changed collation for '$test_db' database to '$newcollation'";
+    $collation = $newcollation;
 }
 
 $dbh->disconnect();

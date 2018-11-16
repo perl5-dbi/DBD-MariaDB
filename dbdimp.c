@@ -2212,6 +2212,7 @@ static bool mariadb_dr_connect(
       Some clients provides function get_charset_number() to check if charset is supported.
       If MySQL client does not support specified charset it used to print error message to stdout or stderr.
       DBD::MariaDB expects that whole communication with server is encoded in UTF-8.
+      By default broken utf8mb4_general_ci collation is used. So change it to utf8mb4_unicode_ci which is according to the Unicode 4.0.0.
     */
 #ifdef HAVE_GET_CHARSET_NUMBER
     client_supports_utf8mb4 = get_charset_number("utf8mb4", MY_CS_PRIMARY) ? TRUE : FALSE;
@@ -2265,7 +2266,19 @@ static bool mariadb_dr_connect(
         return FALSE;
       }
       if (mysql_query(sock, "SET NAMES 'utf8'") != 0 ||
-          mysql_query(sock, "SET character_set_server = 'utf8'") != 0)
+          mysql_query(sock, "SET character_set_server = 'utf8'") != 0 ||
+          mysql_query(sock, "SET collation_connection = 'utf8_unicode_ci'") != 0 ||
+          mysql_query(sock, "SET collation_server = 'utf8_unicode_ci'") != 0)
+      {
+        mariadb_dr_do_error(dbh, mysql_errno(sock), mysql_error(sock), mysql_sqlstate(sock));
+        mariadb_db_disconnect(dbh, imp_dbh);
+        return FALSE;
+      }
+    }
+    else
+    {
+      if (mysql_query(sock, "SET collation_connection = 'utf8mb4_unicode_ci'") != 0 ||
+          mysql_query(sock, "SET collation_server = 'utf8mb4_unicode_ci'") != 0)
       {
         mariadb_dr_do_error(dbh, mysql_errno(sock), mysql_error(sock), mysql_sqlstate(sock));
         mariadb_db_disconnect(dbh, imp_dbh);
