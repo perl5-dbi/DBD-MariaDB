@@ -113,6 +113,7 @@ sub connect {
     my($port);
     my($cWarn);
     my $connect_ref= { 'Name' => $dsn };
+    $attrhash = {} unless defined $attrhash;
 
     # create a 'blank' dbh
     my $attr_dsn = DBD::MariaDB->parse_dsn($dsn);
@@ -125,7 +126,7 @@ sub connect {
 	'password' => $password
     };
 
-    if (defined $attrhash) {
+    if (exists $attrhash->{dbi_imp_data}) {
       $connect_ref->{'dbi_imp_data'} = $attrhash->{dbi_imp_data};
     }
 
