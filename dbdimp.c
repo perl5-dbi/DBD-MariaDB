@@ -1593,7 +1593,7 @@ static bool mariadb_dr_connect(
   }
   imp_drh->instances++;
 
-    client_flag = CLIENT_FOUND_ROWS;
+  client_flag = CLIENT_FOUND_ROWS | CLIENT_MULTI_RESULTS;
 
       DBIc_set(imp_dbh, DBIcf_AutoCommit, TRUE);
 
@@ -1938,21 +1938,8 @@ static bool mariadb_dr_connect(
 	}
 
         (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
-	/* took out  client_flag |= CLIENT_PROTOCOL_41; */
-	/* because libmysql.c already sets this no matter what */
 	if ((svp = hv_fetchs(hv, "mariadb_server_prepare", FALSE)) && *svp)
-        {
-	  if (SvTRUE(*svp))
-          {
-	    client_flag |= CLIENT_PROTOCOL_41;
-            imp_dbh->use_server_side_prepare = TRUE;
-	  }
-          else
-          {
-	    client_flag &= ~CLIENT_PROTOCOL_41;
-            imp_dbh->use_server_side_prepare = FALSE;
-	  }
-	}
+          imp_dbh->use_server_side_prepare = SvTRUE(*svp);
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                         "imp_dbh->use_server_side_prepare: %d\n",
@@ -2159,8 +2146,6 @@ static bool mariadb_dr_connect(
 	    }
 
   #endif
-
-	    client_flag |= CLIENT_SSL;
 	  }
 	else
 	  {
@@ -2197,8 +2182,6 @@ static bool mariadb_dr_connect(
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: client_flags = %d\n",
 		    client_flag);
-
-    client_flag|= CLIENT_MULTI_RESULTS;
 
     /*
       MySQL's "utf8mb4" charset is capable of handling 4-byte UTF-8 characters.
@@ -2301,10 +2284,6 @@ static bool mariadb_dr_connect(
 #else
       sock->reconnect = FALSE;
 #endif
-
-      /* connection succeeded. */
-      if (!(sock->client_flag & CLIENT_PROTOCOL_41))
-        imp_dbh->use_server_side_prepare = FALSE;
 
           imp_dbh->async_query_in_flight = NULL;
 
