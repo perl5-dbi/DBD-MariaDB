@@ -2207,7 +2207,9 @@ static bool mariadb_dr_connect(
       If MySQL's "utf8mb4" is not supported by server, fallback to MySQL's "utf8".
       If MySQL's "utf8mb4" is not supported by client, connect with "utf8" and issue SET NAMES 'utf8mb4'.
       MYSQL_SET_CHARSET_NAME option (prior to establishing connection) sets client's charset.
-      Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different. So issue SET NAMES.
+      Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different.
+      This problem was reported in MariaDB bug tracker https://jira.mariadb.org/browse/CONC-342
+      but problem is not going to be fixed. So always manually issue SET NAMES to prevent misbehave.
       To enable UTF-8 storage on server it is needed to configure it via session variable character_set_server.
       Some clients provides function get_charset_number() to check if charset is supported.
       If MySQL client does not support specified charset it used to print error message to stdout or stderr.
