@@ -5583,9 +5583,10 @@ static SV* mariadb_st_fetch_internal(
       switch(what) {
       case AV_ATTRIB_NAME:
         length = curField->name_length;
-#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
-        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
-         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 100204 && MYSQL_VERSION_ID < 100219) || (MYSQL_VERSION_ID >= 100300 && MYSQL_VERSION_ID < 100309))) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 20306 || (MARIADB_PACKAGE_VERSION_ID >= 30000 && MARIADB_PACKAGE_VERSION_ID < 30005)))
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C clients prior to 2.3.6 and 3.0.5
+         * fill uninitialized value for length in prepared statements, so calculate length it manually
+         * See: https://jira.mariadb.org/browse/CONC-334 */
         if (imp_sth->stmt)
           length = strlen(curField->name);
 #endif
@@ -5596,9 +5597,10 @@ static SV* mariadb_st_fetch_internal(
 
       case AV_ATTRIB_TABLE:
         length = curField->table_length;
-#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
-        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
-         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 100204 && MYSQL_VERSION_ID < 100219) || (MYSQL_VERSION_ID >= 100300 && MYSQL_VERSION_ID < 100309))) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 20306 || (MARIADB_PACKAGE_VERSION_ID >= 30000 && MARIADB_PACKAGE_VERSION_ID < 30005)))
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C clients prior to 2.3.6 and 3.0.5
+         * fill uninitialized value for length in prepared statements, so calculate length it manually
+         * See: https://jira.mariadb.org/browse/CONC-334 */
         if (imp_sth->stmt)
           length = strlen(curField->table);
 #endif
