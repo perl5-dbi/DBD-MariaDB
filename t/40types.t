@@ -15,7 +15,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
-plan tests => 72*2;
+plan tests => 78*2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
@@ -164,6 +164,15 @@ ok(!($sv->FLAGS & (SVf_NOK|SVf_POK)), "scalar is not double or string");
 is_deeply($sth->{TYPE}, [ DBI::SQL_INTEGER ], "checking column type");
 is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG ], "checking mariadb column type");
 
+ok($sth->finish);
+ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
+
+# https://github.com/gooddata/DBD-MariaDB/issues/109: Check DBI::SQL_BIGINT type
+ok($dbh->do(qq{CREATE TABLE t_dbd_40types (num BIGINT)}), "creating table for bigint");
+$sth = $dbh->prepare("SELECT * FROM t_dbd_40types");
+ok($sth->execute());
+is_deeply($sth->{TYPE}, [ DBI::SQL_BIGINT ], "checking column type of bigint");
+is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONGLONG ], "checking mariadb column type of bigint");
 ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
