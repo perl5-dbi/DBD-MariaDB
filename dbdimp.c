@@ -1423,11 +1423,13 @@ static bool mariadb_dr_connect(
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****");
 
+#if !defined(HAVE_EMBEDDED) && defined(HAVE_BROKEN_INIT)
   if (imp_drh->non_embedded_finished)
   {
     mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: Method disconnect_all() was already called and library functions unloaded", "HY000");
     return FALSE;
   }
+#endif
 
   /* host=localhost means to connect via unix socket, host=embedded means to use embedded server, so do not allow specifying port */
   if (port && host && (strcmp(host, "localhost") == 0 || strcmp(host, "embedded") == 0))
@@ -2190,7 +2192,9 @@ static bool mariadb_dr_connect(
       If MySQL's "utf8mb4" is not supported by server, fallback to MySQL's "utf8".
       If MySQL's "utf8mb4" is not supported by client, connect with "utf8" and issue SET NAMES 'utf8mb4'.
       MYSQL_SET_CHARSET_NAME option (prior to establishing connection) sets client's charset.
-      Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different. So issue SET NAMES.
+      Some clients think that they were connected with MYSQL_SET_CHARSET_NAME, but reality can be different.
+      This problem was reported in MariaDB bug tracker https://jira.mariadb.org/browse/CONC-342
+      but problem is not going to be fixed. So always manually issue SET NAMES to prevent misbehave.
       To enable UTF-8 storage on server it is needed to configure it via session variable character_set_server.
       Some clients provides function get_charset_number() to check if charset is supported.
       If MySQL client does not support specified charset it used to print error message to stdout or stderr.
@@ -2894,7 +2898,16 @@ static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
      * - inability to successfully initialize a new network connection, even after mysql_server_init()
      * - infinite loop when calling mysql_server_end() more then once in case Embedded server was not started
      * Therefore do not call mysql_server_end() when Embedded server was not in used.
+     * These bugs were fixed in MariaDB Connector/C 3.0.5, see: https://jira.mariadb.org/browse/CONC-336
+     * But remains in MariaDB Embedded server, see: https://jira.mariadb.org/browse/MDEV-16578
      */
+#ifndef HAVE_BROKEN_INIT
+    if (imp_drh->non_embedded_started)
+    {
+      mysql_server_end();
+      imp_drh->non_embedded_started = FALSE;
+    }
+#endif
     if (imp_drh->embedded_started)
     {
       mysql_server_end();
@@ -3081,9 +3094,14 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 #ifndef HAVE_EMBEDDED
   if (imp_drh->non_embedded_started)
   {
+  #ifndef HAVE_BROKEN_INIT
+    warn("DBD::MariaDB disconnect_all: Client library was not properly deinitialized (possible bug in driver)");
+    ret = 0;
+  #else
     mysql_server_end();
     imp_drh->non_embedded_started = FALSE;
     imp_drh->non_embedded_finished = TRUE;
+  #endif
   }
 #endif
 
@@ -5544,9 +5562,10 @@ static SV* mariadb_st_fetch_internal(
       switch(what) {
       case AV_ATTRIB_NAME:
         length = curField->name_length;
-#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
-        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
-         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 100204 && MYSQL_VERSION_ID < 100219) || (MYSQL_VERSION_ID >= 100300 && MYSQL_VERSION_ID < 100309))) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 20306 || (MARIADB_PACKAGE_VERSION_ID >= 30000 && MARIADB_PACKAGE_VERSION_ID < 30005)))
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C clients prior to 2.3.6 and 3.0.5
+         * fill uninitialized value for length in prepared statements, so calculate length it manually
+         * See: https://jira.mariadb.org/browse/CONC-334 */
         if (imp_sth->stmt)
           length = strlen(curField->name);
 #endif
@@ -5557,9 +5576,10 @@ static SV* mariadb_st_fetch_internal(
 
       case AV_ATTRIB_TABLE:
         length = curField->table_length;
-#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204) || defined(MARIADB_PACKAGE_VERSION)
-        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ and all MariaDB Connector/C clients
-         * fill uninitialized value for length in prepared statements, so calculate length it manually */
+#if MYSQL_VERSION_ID < 50500 || (defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 100204 && MYSQL_VERSION_ID < 100219) || (MYSQL_VERSION_ID >= 100300 && MYSQL_VERSION_ID < 100309))) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 20306 || (MARIADB_PACKAGE_VERSION_ID >= 30000 && MARIADB_PACKAGE_VERSION_ID < 30005)))
+        /* MySQL clients prior to 5.5.0, MariaDB clients 10.2.4+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C clients prior to 2.3.6 and 3.0.5
+         * fill uninitialized value for length in prepared statements, so calculate length it manually
+         * See: https://jira.mariadb.org/browse/CONC-334 */
         if (imp_sth->stmt)
           length = strlen(curField->table);
 #endif
