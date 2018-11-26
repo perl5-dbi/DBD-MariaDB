@@ -5593,7 +5593,7 @@ static SV* mariadb_st_fetch_internal(
         break;
 
       case AV_ATTRIB_SQL_TYPE:
-        sv= newSVuv(native2sql(curField->type)->data_type);
+        sv= newSViv(native2sql(curField->type)->data_type);
         break;
       case AV_ATTRIB_IS_PRI_KEY:
         sv= boolSV(IS_PRI_KEY(curField->flags));
