@@ -118,31 +118,16 @@ ping(dbh)
     SV* dbh;
   CODE:
     {
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
-      /*
-       * mysql_insert_id() returns incorrect value after mysql_ping() C function.
-       * As a workaround prior to calling mysql_ping() function we store value
-       * of last insert id. After function finish we restore previous value of
-       * last insert id.
-       */
-      my_ulonglong insertid;
-#endif
       D_imp_dbh(dbh);
       ASYNC_CHECK_XS(dbh);
       if (!imp_dbh->pmysql)
         XSRETURN_NO;
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
-      insertid = mysql_insert_id(imp_dbh->pmysql);
-#endif
       RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       if (!RETVAL)
       {
         if (mariadb_db_reconnect(dbh, NULL))
           RETVAL = (mysql_ping(imp_dbh->pmysql) == 0);
       }
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_PING
-      imp_dbh->pmysql->insert_id = insertid;
-#endif
     }
   OUTPUT:
     RETVAL

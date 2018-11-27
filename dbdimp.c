@@ -2784,6 +2784,12 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   if (params)
     Safefree(params);
 
+  /* Some MySQL client versions return correct value from mysql_insert_id()
+   * function only after non-SELECT operation. So store insert id into dbh
+   * cache and later read it only from cache. */
+  if (retval != (my_ulonglong)-1 && !async && !result)
+    imp_dbh->insertid = mysql_insert_id(imp_dbh->pmysql);
+
   if (result)
   {
     mysql_free_result(result);
@@ -2796,6 +2802,8 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     while ((next_result_rc = mysql_next_result(imp_dbh->pmysql)) == 0)
     {
       result = mysql_use_result(imp_dbh->pmysql);
+      if (!result) /* Next statement without result set, new insert id */
+        imp_dbh->insertid = mysql_insert_id(imp_dbh->pmysql);
       if (result)
         mysql_free_result(result);
       result = NULL;
@@ -3472,7 +3480,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_insertid"))
     {
       /* We cannot return an IV, because the insertid is a long. */
-      result = imp_dbh->pmysql ? sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql))) : &PL_sv_undef;
+      result = sv_2mortal(my_ulonglong2sv(imp_dbh->insertid));
     }
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
@@ -4254,17 +4262,6 @@ my_ulonglong mariadb_st_internal_execute(
         rows = 0;
     }
   } else {
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-      /*
-       * mysql_insert_id() returns incorrect value after SELECT operation.
-       * As a workaround prior to issuing mysql query we store value of
-       * last insert id. If query returns result set then we know that it
-       * was SELECT operation and so after that we restore previous value
-       * of last insert id.
-       */
-      my_ulonglong insertid = mysql_insert_id(*svsock);
-#endif
-
       if ((mysql_real_query(*svsock, sbuf, slen))  &&
           (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(*svsock, sbuf, slen))))
@@ -4282,11 +4279,6 @@ my_ulonglong mariadb_st_internal_execute(
           else {
             rows = mysql_affected_rows(*svsock);
           }
-
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-          if (*result)
-            (*svsock)->insert_id = insertid;
-#endif
       }
   }
 
@@ -4340,10 +4332,6 @@ my_ulonglong mariadb_st_internal_execute41(
   bool reconnected = FALSE;
   D_imp_xxh(h);
 
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-  my_ulonglong insertid;
-#endif
-
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "\t-> mariadb_st_internal_execute41\n");
@@ -4386,18 +4374,6 @@ my_ulonglong mariadb_st_internal_execute41(
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_internal_execute41 calling mysql_execute\n");
-
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-  /*
-   * mysql_insert_id() returns incorrect value after SELECT operation.
-   * As a workaround prior to issuing mysql query we store value of
-   * last insert id. If query returns result set then we know that it
-   * was SELECT operation and so after that we restore previous value
-   * of last insert id. Restoring needs to be done after call to the
-   * mysql_stmt_store_result() function as it may clear insert id.
-   */
-  insertid = mysql_insert_id(*svsock);
-#endif
 
   if (!reconnected)
   {
@@ -4469,9 +4445,6 @@ my_ulonglong mariadb_st_internal_execute41(
       }
     }
     store_retval = mysql_stmt_store_result(stmt);
-#ifdef HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-    (*svsock)->insert_id = insertid;
-#endif
     if (store_retval)
       goto error;
     /* Get the total rows affected and return */
@@ -4623,7 +4596,10 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
   {
     if (!imp_sth->result)
     {
-      imp_sth->insertid= mysql_insert_id(imp_dbh->pmysql);
+      /* Some MySQL client versions return correct value from mysql_insert_id()
+       * function only after non-SELECT operation. So store insert id into dbh
+       * cache and later read it only from cache. */
+      imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
       if (mysql_more_results(imp_dbh->pmysql))
         DBIc_ACTIVE_on(imp_sth);
     }
@@ -6412,13 +6388,7 @@ SV *mariadb_db_last_insert_id(SV *dbh, imp_dbh_t *imp_dbh,
   PERL_UNUSED_ARG(field);
   PERL_UNUSED_ARG(attr);
 
-  if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
-  {
-    mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
-    return Nullsv;
-  }
-
-  return sv_2mortal(my_ulonglong2sv(mysql_insert_id(imp_dbh->pmysql)));
+  return sv_2mortal(my_ulonglong2sv(imp_dbh->insertid));
 }
 
 my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
@@ -6489,7 +6459,10 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 
       if (retval != (my_ulonglong)-1) {
         if(! *resp) {
-          imp_sth->insertid= mysql_insert_id(svsock);
+          /* Some MySQL client versions return correct value from mysql_insert_id()
+           * function only after non-SELECT operation. So store insert id into dbh
+           * cache and later read it only from cache. */
+          imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(svsock);
           if(! mysql_more_results(svsock))
             DBIc_ACTIVE_off(imp_sth);
         } else {
