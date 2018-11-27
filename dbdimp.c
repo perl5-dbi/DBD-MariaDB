@@ -4106,6 +4106,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
     if (imp_sth->result == NULL)
     {
+      imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
       /* No "real" rowset*/
       DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
 			               sv_2mortal(newSViv(0)));

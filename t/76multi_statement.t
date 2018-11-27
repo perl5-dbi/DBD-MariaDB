@@ -21,7 +21,7 @@ if ($dbh->{mariadb_clientversion} < 50025 or ($dbh->{mariadb_clientversion} >= 5
   plan skip_all => "Client has multiple-result-set detection deadlock bug 15752";
 }
 
-plan tests => 26;
+plan tests => 36;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
@@ -69,5 +69,17 @@ $dbh->{mariadb_server_prepare}= 0;
   ok(!$sth->more_results());
   ok($sth->err(), "Err was set after more_results");
   ok $dbh->do("DROP TABLE dbd_mysql_t76multi");
+
+  # Check that last_insert_id works for more_results too
+  ok($dbh->do("CREATE TEMPORARY TABLE dbd_mysql_t76multi2 (a INT AUTO_INCREMENT PRIMARY KEY)"));
+  ok($sth = $dbh->prepare("INSERT INTO dbd_mysql_t76multi2 VALUES(); INSERT INTO dbd_mysql_t76multi2 VALUES();"));
+  ok($sth->execute());
+  is($sth->last_insert_id(), 1);
+  is($dbh->last_insert_id(undef, undef, undef, undef), 1);
+  ok($sth->more_results());
+  is($sth->last_insert_id(), 2);
+  is($dbh->last_insert_id(undef, undef, undef, undef), 2);
+  ok(not $sth->more_results());
+  ok($sth->finish());
 
 $dbh->disconnect();
