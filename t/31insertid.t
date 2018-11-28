@@ -11,7 +11,7 @@ require "lib.pl";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 			    {RaiseError => 1});
 
-plan tests => 3 + 2*30;
+plan tests => 3 + 2*37;
 
 SKIP: {
     skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
@@ -78,6 +78,14 @@ is $sth->last_insert_id(), 2, "second insert id == \$sth->last_insert_id()";
 is $dbh->{mariadb_insertid}, 3, "third insert id == $dbh->{mariadb_insertid}";
 is $sth3->last_insert_id(), 3, "third insert id == \$sth3->last_insert_id()";
 is $dbh->last_insert_id(undef, undef, undef, undef), 3, "third insert id == \$dbh->last_insert_id()";
+
+ok $dbh->do($query, undef, "Name 2"), "inserting fourth value via \$dbh->do()";
+is $dbh->{mariadb_insertid}, 4, "fourth insert id == $dbh->{mariadb_insertid}";
+is $dbh->last_insert_id(undef, undef, undef, undef), 4, "fourth insert id == \$dbh->last_insert_id()";
+is $sth->{mariadb_insertid}, 2, "second insert id == \$sth->{mariadb_insertid}";
+is $sth->last_insert_id(), 2, "second insert id == \$sth->last_insert_id()";
+is $sth3->{mariadb_insertid}, 3, "third insert id == \$sth3->{mariadb_insertid}";
+is $sth3->last_insert_id(), 3, "third insert id == \$sth3->last_insert_id()";
 
 ok $sth->finish();
 ok $sth2->finish();

@@ -323,25 +323,6 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #endif
 
 /*
- * MySQL 5.7 below 5.7.18 and MySQL 8.0.0 are affected by Bug #78778.
- * mysql_insert_id() is reset to 0 after performing SELECT operation.
- * https://bugs.mysql.com/bug.php?id=78778
- */
-#if !defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 50700 && MYSQL_VERSION_ID <= 50717) || MYSQL_VERSION_ID == 80000)
-#define HAVE_BROKEN_INSERT_ID_AFTER_SELECT
-#endif
-
-/*
- * MySQL 5.7, MySQL 8.0, MySQL Connector/C 6.1.5 and higher are affected by Bug #89139.
- * mysql_insert_id() is reset to 0 after calling mysql_ping() C function.
- * Once Bug #89139 is fixed we can adjust the upper bound of this check.
- * https://bugs.mysql.com/bug.php?id=89139
- */
-#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50700 && (MYSQL_VERSION_ID < 60100 || MYSQL_VERSION_ID >= 60105)
-#define HAVE_BROKEN_INSERT_ID_AFTER_PING
-#endif
-
-/*
  * MySQL and MariaDB Embedded are affected by https://jira.mariadb.org/browse/MDEV-16578
  * MariaDB 10.2.2+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C prior to 3.0.5 are affected by https://jira.mariadb.org/browse/CONC-336
  * MySQL 8.0.4+ is affected too by https://bugs.mysql.com/bug.php?id=93276
@@ -476,6 +457,7 @@ struct imp_dbh_st {
     bool use_server_side_prepare;
     bool disable_fallback_for_server_prepare;
     void* async_query_in_flight;
+    my_ulonglong insertid;
     struct {
 	    unsigned int auto_reconnects_ok;
 	    unsigned int auto_reconnects_failed;
