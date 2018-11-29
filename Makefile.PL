@@ -113,11 +113,11 @@ if (!$opt->{testport} && (!$opt->{testhost} || $opt->{testhost} eq 'localhost') 
 }
 
 if (!$opt->{testsocket}) {
-  if (!$opt->{testhost} && $test_host) {
+  if (!$opt->{testhost} && $test_host && (!$opt->{testport} || $test_host ne 'localhost')) {
     $opt->{testhost} = $test_host;
     $source->{testhost} = "User's choice";
   }
-  if (!$opt->{testport} && $test_port) {
+  if (!$opt->{testport} && $test_port && (!$opt->{testhost} || $opt->{testhost} ne 'localhost')) {
     $opt->{testport} = $test_port;
     $source->{testport} = "User's choice";
   }
@@ -133,6 +133,20 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
 if ($opt->{testsocket} && $opt->{testhost} && $opt->{testhost} ne 'localhost') {
   die << "MSG";
 Option --testport or --testhost different from localhost cannot be specified together with option --testsocket.
+MSG
+}
+
+# testport cannot be specified when host is localhost
+if ($opt->{testport} && $opt->{testhost} && $opt->{testhost} eq 'localhost') {
+  die << "MSG";
+Option --testport cannot be specified when --testhost is localhost.
+MSG
+}
+
+# testhost cannot be embedded
+if ($opt->{testhost} && $opt->{testhost} eq 'embedded') {
+  die << "MSG";
+Option --testhost cannot be embedded.
 MSG
 }
 
