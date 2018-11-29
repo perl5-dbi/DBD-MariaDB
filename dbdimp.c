@@ -2513,6 +2513,9 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 }
 
 
+static my_ulonglong mariadb_st_internal_execute(SV *h, char *sbuf, STRLEN slen, int num_params, imp_sth_ph_t *params, MYSQL_RES **result, MYSQL **svsock, bool use_mysql_use_result);
+static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, bool has_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
+
 /**************************************************************************
  *
  *  Name:    mariadb_db_do6
@@ -3561,9 +3564,9 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
       result = boolSV(imp_dbh->disable_fallback_for_server_prepare);
     else if (memEQs(key, kl, "mariadb_thread_id"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(mysql_thread_id(imp_dbh->pmysql))) : &PL_sv_undef;
+      result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_thread_id(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_warning_count"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
+      result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_use_result"))
       result = boolSV(imp_dbh->use_mysql_use_result);
     else
@@ -4171,7 +4174,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
  **************************************************************************/
 
 
-my_ulonglong mariadb_st_internal_execute(
+static my_ulonglong mariadb_st_internal_execute(
                                        SV *h, /* could be sth or dbh */
                                        char *sbuf,
                                        STRLEN slen,
@@ -4312,7 +4315,7 @@ my_ulonglong mariadb_st_internal_execute(
  *
  **************************************************************************/
 
-my_ulonglong mariadb_st_internal_execute41(
+static my_ulonglong mariadb_st_internal_execute41(
                                          SV *h,
                                          char *sbuf,
                                          STRLEN slen,
