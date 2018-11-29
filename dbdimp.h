@@ -617,25 +617,6 @@ SV* mariadb_dr_my_ulonglong2sv(pTHX_ my_ulonglong val);
 
 void    mariadb_dr_do_error (SV* h, unsigned int rc, const char *what, const char *sqlstate);
 
-my_ulonglong mariadb_st_internal_execute(SV *,
-                                       char *,
-                                       STRLEN,
-                                       int,
-                                       imp_sth_ph_t *,
-                                       MYSQL_RES **,
-                                       MYSQL **,
-                                       bool);
-
-my_ulonglong mariadb_st_internal_execute41(SV *,
-                                         char *,
-                                         STRLEN,
-                                         bool,
-                                         MYSQL_RES **,
-                                         MYSQL_STMT **,
-                                         MYSQL_BIND *,
-                                         MYSQL **,
-                                         bool *);
-
 bool mariadb_st_more_results(SV*, imp_sth_t*);
 
 AV* mariadb_db_type_info_all(void);

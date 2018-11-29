@@ -2513,6 +2513,9 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 }
 
 
+static my_ulonglong mariadb_st_internal_execute(SV *h, char *sbuf, STRLEN slen, int num_params, imp_sth_ph_t *params, MYSQL_RES **result, MYSQL **svsock, bool use_mysql_use_result);
+static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, bool has_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
+
 /**************************************************************************
  *
  *  Name:    mariadb_db_do6
@@ -4171,7 +4174,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
  **************************************************************************/
 
 
-my_ulonglong mariadb_st_internal_execute(
+static my_ulonglong mariadb_st_internal_execute(
                                        SV *h, /* could be sth or dbh */
                                        char *sbuf,
                                        STRLEN slen,
@@ -4312,7 +4315,7 @@ my_ulonglong mariadb_st_internal_execute(
  *
  **************************************************************************/
 
-my_ulonglong mariadb_st_internal_execute41(
+static my_ulonglong mariadb_st_internal_execute41(
                                          SV *h,
                                          char *sbuf,
                                          STRLEN slen,
