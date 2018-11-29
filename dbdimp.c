@@ -3561,9 +3561,9 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_server_prepare_disable_fallback"))
       result = boolSV(imp_dbh->disable_fallback_for_server_prepare);
     else if (memEQs(key, kl, "mariadb_thread_id"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(mysql_thread_id(imp_dbh->pmysql))) : &PL_sv_undef;
+      result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_thread_id(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_warning_count"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
+      result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_use_result"))
       result = boolSV(imp_dbh->use_mysql_use_result);
     else
