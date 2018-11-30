@@ -37,16 +37,16 @@ $test_socket = $::test_socket;
 Getopt::Long::GetOptions(
     $opt,
     "help",
-    "testdb=s",
-    "testhost=s",
-    "testport=s",
-    "testuser=s",
-    "testpassword=s",
-    "testsocket=s",
-    "cflags=s",
-    "libs=s",
-    "mysql_config=s",
-    "mariadb_config=s",
+    "testdb:s",
+    "testhost:s",
+    "testport:s",
+    "testuser:s",
+    "testpassword:s",
+    "testsocket:s",
+    "cflags:s",
+    "libs:s",
+    "mysql_config:s",
+    "mariadb_config:s",
     ) || die Usage();
 
 $opt->{mysql_config} = delete $opt->{mariadb_config} if exists $opt->{mariadb_config};
@@ -103,23 +103,24 @@ for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags
   Configure($opt, $source, $key);
 }
 
-if (!$opt->{testport} && (!$opt->{testhost} || $opt->{testhost} eq 'localhost') && !$opt->{testsocket} && $test_socket) {
+if (!$opt->{testport} && (!$opt->{testhost} || $opt->{testhost} eq 'localhost') && !defined $opt->{testsocket} && $test_socket) {
   $opt->{testsocket} = $test_socket;
   $source->{testsocket} = "User's choice";
-  if ($test_host && $test_host eq 'localhost') {
-    $opt->{testhost} = 'localhost';
-    $source->{testhost} = "User's choice";
-  }
 }
 
 if (!$opt->{testsocket}) {
-  if (!$opt->{testhost} && $test_host && (!$opt->{testport} || $test_host ne 'localhost')) {
+  if (!defined $opt->{testhost} && $test_host && (!$opt->{testport} || $test_host ne 'localhost')) {
     $opt->{testhost} = $test_host;
     $source->{testhost} = "User's choice";
   }
-  if (!$opt->{testport} && $test_port && (!$opt->{testhost} || $opt->{testhost} ne 'localhost')) {
+  if (!defined $opt->{testport} && $test_port && (!$opt->{testhost} || $opt->{testhost} ne 'localhost')) {
     $opt->{testport} = $test_port;
     $source->{testport} = "User's choice";
+  }
+} else {
+  if (!defined $opt->{testhost} && $test_host && $test_host eq 'localhost') {
+    $opt->{testhost} = 'localhost';
+    $source->{testhost} = "User's choice";
   }
 }
 
@@ -127,6 +128,12 @@ if (!$opt->{testsocket}) {
 if ( $opt->{testport} && !$opt->{testhost} ) {
   $opt->{testhost} = '127.0.0.1';
   $source->{testhost} = 'guessed';
+}
+
+foreach (qw(testhost testport testsocket)) {
+  next if defined $opt->{$_};
+  $opt->{$_} = '';
+  $source->{$_} = 'default';
 }
 
 # testsocket makes sense only when testhost is localhost
@@ -538,7 +545,7 @@ sub ParseMySQLConfig {
 
 sub Configure {
     my($opt, $source, $param) = @_;
-    if (defined($opt->{$param}) and length($opt->{$param})) {
+    if (defined($opt->{$param})) {
         $source->{$param} = "User's choice";
         return;
     }
@@ -657,8 +664,7 @@ perl Makefile.PL --testuser=username
       $source->{$param} = "default";
       $opt->{$param} = $TESTDB;
     }
-    elsif ($param eq "testhost" || $param eq "testport"  ||
-        $param eq "testpassword" || $param eq "testsocket" ) {
+    elsif ($param eq "testpassword") {
       $source->{$param} = "default";
       $opt->{$param} = "";
     }
@@ -703,6 +709,9 @@ section "Linker flags" or type
 
   perl Makefile.PL --help
 MSG
+    }
+    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket") {
+      # known parameter, but do nothing
     }
     else {
       die "Unknown configuration parameter: $param";
