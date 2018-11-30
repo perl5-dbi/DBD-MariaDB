@@ -32,6 +32,14 @@ plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'ope
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
 
+if (not eval { $dbh->do('SHOW GRANTS') }) {
+    plan skip_all => $dbh->errstr();
+}
+
+if (eval { DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo', { RaiseError => 1, PrintError => 0 }) }) {
+    plan skip_all => 'Server accepts connections with invalid user/password';
+}
+
 plan tests => 3;
 
 if (not SHOW_PROGRESS and $ENV{TEST_VERBOSE}) {
