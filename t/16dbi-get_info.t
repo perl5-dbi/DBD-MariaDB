@@ -11,7 +11,7 @@ use lib 't', '.';
 require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+  { RaiseError => 1, PrintError => 0 });
 
 # DBI documentation states:
 # Because some DBI methods make use of get_info(), drivers are strongly

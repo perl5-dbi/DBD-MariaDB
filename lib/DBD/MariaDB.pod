@@ -367,7 +367,7 @@ I<mariadb_server_prepare> in the connect:
       'DBI:MariaDB:database=test;host=localhost;mariadb_server_prepare=1',
       'user',
       'password',
-      { RaiseError => 1, PrintError => 0, AutoCommit => 1 },
+      { RaiseError => 1, PrintError => 0 },
   );
 
 or:
@@ -376,7 +376,7 @@ or:
       'DBI:MariaDB:database=test;host=localhost',
       'user',
       'password',
-      { RaiseError => 1, PrintError => 0, AutoCommit => 1, mariadb_server_prepare => 1 },
+      { RaiseError => 1, PrintError => 0, mariadb_server_prepare => 1 },
   );
 
 There are many benefits to using server side prepare statements, mostly if you

@@ -10,7 +10,7 @@ require 'lib.pl';
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+                      { RaiseError => 1, PrintError => 0 });
 
 if ($dbh->{mariadb_serverversion} < 50002) {
     plan skip_all =>

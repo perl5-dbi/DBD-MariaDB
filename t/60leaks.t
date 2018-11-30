@@ -124,7 +124,6 @@ undef $prev_size;
 $dbh2 = DBI->connect($test_dsn, $test_user, $test_password,
                      { RaiseError => 1,
                        PrintError => 0,
-                       AutoCommit => 1,
                        mariadb_server_prepare => $mariadb_server_prepare,
                        mariadb_auto_reconnect => 1,
                      });

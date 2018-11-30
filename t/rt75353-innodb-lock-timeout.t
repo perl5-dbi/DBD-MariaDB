@@ -8,9 +8,9 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
-my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+my $dbh2 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
 my @ilwtenabled = $dbh1->selectrow_array("SHOW VARIABLES LIKE 'innodb_lock_wait_timeout'");
 if (!@ilwtenabled) {

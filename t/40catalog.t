@@ -12,7 +12,6 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError            => 1,
                         PrintError            => 0,
-                        AutoCommit            => 1,
                         mariadb_server_prepare  => 0 });
 
 plan tests => 78;

@@ -30,7 +30,7 @@ if (!$have_pt_size) {
 
 plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'openbsd';
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
 if (not eval { $dbh->do('SHOW GRANTS') }) {
     plan skip_all => $dbh->errstr();

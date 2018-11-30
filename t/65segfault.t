@@ -14,7 +14,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                           mariadb_auto_reconnect  => 1,
                           RaiseError => 1,
                           PrintError => 0,
-                          AutoCommit => 1 });
+                      });
 
 my $dbh2= DbiTestConnect($test_dsn, $test_user, $test_password,
                       {

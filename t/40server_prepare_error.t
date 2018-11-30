@@ -10,7 +10,7 @@ use vars qw($test_dsn $test_user $test_password);
 
 $test_dsn.= ";mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+  { RaiseError => 1, PrintError => 0 });
 
 plan tests => 3;
 

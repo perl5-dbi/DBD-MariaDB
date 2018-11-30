@@ -8,7 +8,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1, mariadb_server_prepare => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, mariadb_server_prepare => 1 });
 
 plan skip_all => "CREATE PROCEDURE is supported since MySQL version 5.0" if $dbh->{mariadb_serverversion} < 50000;
 

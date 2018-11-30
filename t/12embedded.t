@@ -39,7 +39,7 @@ sub connect_to_embedded_server {
     my $lang_arg = $ENV{DBD_MARIADB_TESTLANGDIR} ? ",--language=$ENV{DBD_MARIADB_TESTLANGDIR}" : '';
     my $emb_dsn = "DBI:MariaDB:host=embedded;mariadb_embedded_options=--datadir=$tmpdir$lang_arg;";
     $emb_dsn .= "database=$database" if defined $database;
-    return eval { DBI->connect($emb_dsn, undef, undef, { RaiseError => 1, PrintError => 0, AutoCommit => 1 }) };
+    return eval { DBI->connect($emb_dsn, undef, undef, { RaiseError => 1, PrintError => 0 }) };
 }
 
 sub connect_to_real_server {

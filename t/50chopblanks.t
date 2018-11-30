@@ -9,14 +9,14 @@ require 'lib.pl';
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+                      { RaiseError => 1, PrintError => 0 });
 $dbh->disconnect;
 
 plan tests => (8 + ((5 + 8 + 8) * 4)) * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh = DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+                      { RaiseError => 1, PrintError => 0 });
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t50chopblanks"), "drop table if exists dbd_mysql_t50chopblanks";
 

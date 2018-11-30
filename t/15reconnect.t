@@ -13,7 +13,7 @@ my $dbh;
 my $sth;
 
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+  { RaiseError => 1, PrintError => 0 });
 $dbh->disconnect();
 
 plan tests => 18 * 2;
