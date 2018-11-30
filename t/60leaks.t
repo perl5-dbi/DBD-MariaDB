@@ -34,7 +34,7 @@ plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'ope
 
 my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                                            { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                                            { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 $dbh->disconnect;
 plan tests => 30 * 2;
 
@@ -59,7 +59,7 @@ for my $mariadb_server_prepare (0, 1) {
 note "Testing memory leaks with mariadb_server_prepare=$mariadb_server_prepare\n";
 
 $dbh = DBI->connect($test_dsn, $test_user, $test_password,
-                   { RaiseError => 1, PrintError => 1, AutoCommit => 0, mariadb_server_prepare => $mariadb_server_prepare, mariadb_server_prepare_disable_fallback => 1 });
+                   { RaiseError => 1, PrintError => 0, AutoCommit => 0, mariadb_server_prepare => $mariadb_server_prepare, mariadb_server_prepare_disable_fallback => 1 });
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t60leaks");
 
@@ -83,7 +83,7 @@ $prev_size= undef;
 for (my $i = 0;    $i < $COUNT_CONNECT;    $i++) {
     $dbh2 = DBI->connect($test_dsn, $test_user, $test_password,
                                { RaiseError => 1, 
-                                 PrintError => 1,
+                                 PrintError => 0,
                                  AutoCommit => 0,
                                  mariadb_server_prepare => $mariadb_server_prepare,
                                });
@@ -123,7 +123,7 @@ undef $prev_size;
 
 $dbh2 = DBI->connect($test_dsn, $test_user, $test_password,
                      { RaiseError => 1,
-                       PrintError => 1,
+                       PrintError => 0,
                        AutoCommit => 1,
                        mariadb_server_prepare => $mariadb_server_prepare,
                        mariadb_auto_reconnect => 1,

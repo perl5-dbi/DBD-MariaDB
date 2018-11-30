@@ -9,7 +9,7 @@ use lib 't', '.';
 require "lib.pl";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-			    {RaiseError => 1});
+                         { RaiseError => 1, PrintError => 0 });
 
 plan tests => 3 + 2*37;
 

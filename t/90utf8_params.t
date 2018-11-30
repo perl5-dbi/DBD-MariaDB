@@ -18,7 +18,7 @@ binmode $tb->output,         ":utf8";
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
 my $nasty_unicode1 = "\N{U+C3}\N{U+BF}"; # looks like character 0xff, if you accidentally utf8 decode
 utf8::downgrade($nasty_unicode1);
@@ -40,7 +40,7 @@ is($nasty_unicode2, $nasty_bytes2, "Perl does not distinguish between bytes and 
 foreach my $server_prepare (0, 1) {
 
     my $enable_str = "mariadb_server_prepare=$server_prepare";
-    my $enable_hash = { mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
+    my $enable_hash = { RaiseError => 1, PrintError => 0, mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
 
     $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash);
 

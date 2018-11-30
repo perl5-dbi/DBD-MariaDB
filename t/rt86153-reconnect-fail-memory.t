@@ -30,7 +30,7 @@ if (!$have_pt_size) {
 
 plan skip_all => 'this test is not supported on OpenBSD platform' if $^O eq 'openbsd';
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
 
 if (not eval { $dbh->do('SHOW GRANTS') }) {
     plan skip_all => $dbh->errstr();
@@ -70,7 +70,7 @@ $prev_size= undef;
 for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
     eval { $dbh2 = DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
                                { RaiseError => 1, 
-                                 PrintError => 1,
+                                 PrintError => 0,
                                  AutoCommit => 0 });};
 
     if ($i % 100  ==  99) {

@@ -10,7 +10,7 @@ $|= 1;
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
 if ($dbh->{mariadb_serverversion} < 50025 or ($dbh->{mariadb_serverversion} >= 50100 and $dbh->{mariadb_serverversion} < 50112)) {

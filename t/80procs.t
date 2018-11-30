@@ -9,7 +9,7 @@ use vars qw($test_dsn $test_user $test_password);
 
 my ($row, $vers, $test_procs, $dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, AutoCommit => 1});
+  { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
 
 #
 # DROP/CREATE PROCEDURE will give syntax error
@@ -30,7 +30,7 @@ plan tests => 31;
 $dbh->disconnect();
 
 ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, AutoCommit => 1}));
+  { RaiseError => 1, PrintError => 0, AutoCommit => 1 }));
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t80procs");
 

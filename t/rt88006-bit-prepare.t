@@ -7,7 +7,7 @@ use Test::More;
 use lib 't', '.';
 require 'lib.pl';
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 1});
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1});
 
 if ($dbh->{mariadb_serverversion} < 50008) {
   plan skip_all => "Servers < 5.0.8 do not support b'' syntax";
@@ -30,7 +30,7 @@ my $sth;
 my $dsn = $test_dsn;
 $dsn .= ';mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1' if $scenario eq 'prepare';
 $dbh = DBI->connect($dsn, $test_user, $test_password,
-  { RaiseError => 1, AutoCommit => 1});
+  { RaiseError => 1, PrintError => 0, AutoCommit => 1});
 
 my $create = <<EOT;
 CREATE TEMPORARY TABLE `dbd_mysql_rt88006_bit_prep` (

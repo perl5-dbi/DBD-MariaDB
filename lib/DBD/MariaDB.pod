@@ -32,7 +32,7 @@ DBD::MariaDB - MariaDB and MySQL driver for the Perl5 Database Interface (DBI)
   # Connect to the database.
   my $dbh = DBI->connect('DBI:MariaDB:database=test;host=localhost',
                          'joe', q(joe's password),
-                         {'RaiseError' => 1});
+                         { RaiseError => 1, PrintError => 0 });
 
   # Drop table 'foo'. This may fail, if 'foo' doesn't exist
   # Thus we put an eval around it.
@@ -83,7 +83,8 @@ types of objects are available: database handles and statement handles. Perl
 returns a database handle to the connect method like so:
 
   my $dbh = DBI->connect("DBI:MariaDB:database=$db;host=$host",
-                         $user, $password, {RaiseError => 1});
+                         $user, $password,
+                         { RaiseError => 1, PrintError => 0 });
 
 Once you have connected to a database, you can execute SQL statements with:
 
@@ -366,7 +367,7 @@ I<mariadb_server_prepare> in the connect:
       'DBI:MariaDB:database=test;host=localhost;mariadb_server_prepare=1',
       'user',
       'password',
-      { RaiseError => 1, AutoCommit => 1 },
+      { RaiseError => 1, PrintError => 0, AutoCommit => 1 },
   );
 
 or:
@@ -375,7 +376,7 @@ or:
       'DBI:MariaDB:database=test;host=localhost',
       'user',
       'password',
-      { RaiseError => 1, AutoCommit => 1, mariadb_server_prepare => 1 },
+      { RaiseError => 1, PrintError => 0, AutoCommit => 1, mariadb_server_prepare => 1 },
   );
 
 There are many benefits to using server side prepare statements, mostly if you

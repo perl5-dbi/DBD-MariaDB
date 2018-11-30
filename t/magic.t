@@ -13,7 +13,7 @@ binmode $tb->output,         ":utf8";
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, AutoCommit => 0, mariadb_server_prepare_disable_fallback => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0, mariadb_server_prepare_disable_fallback => 1 });
 
 plan tests => 152*2;
 

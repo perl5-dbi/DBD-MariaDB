@@ -13,7 +13,7 @@ $| = 1;
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-  { RaiseError => 1, AutoCommit => 1});
+  { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
 
 my $drh    = $dbh->{Driver};
 if (! defined $drh) {
@@ -34,7 +34,7 @@ my $imp_data = $dbh->take_imp_data;
 is $drh->{Kids},       0, "no kids";
 is $drh->{ActiveKids}, 0, "no active kids";
 $dbh = DBI->connect( $test_dsn, $test_user, $test_password,
-      { dbi_imp_data => $imp_data } );
+      { RaiseError => 1, PrintError => 0, dbi_imp_data => $imp_data } );
 my $connection_id2 = connection_id($dbh);
 is $connection_id1, $connection_id2, "got same session";
 

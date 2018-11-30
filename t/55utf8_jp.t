@@ -18,13 +18,10 @@ sub skip_rt_102404 {
   skip "(Perl 5.13.1 and DBI 1.635) or DBI 1.639 is required due to bug RT 102404", $_[0] unless ($] >= 5.013001 and eval { DBI->VERSION(1.635) }) or eval { DBI->VERSION(1.639) };
 }
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1 });
 
 eval {
-  $dbh->{PrintError} = 0;
   $dbh->do("SET lc_messages = 'ja_JP'");
-  $dbh->{PrintError} = 1;
-  1;
 } or do {
   $dbh->disconnect();
   plan skip_all => "Server lc_messages ja_JP are needed for this test";
@@ -94,6 +91,7 @@ SKIP : {
 $failed = 0;
 $warn = undef;
 $dieerr = undef;
+$dbh->{PrintError} = 1;
 $SIG{__WARN__} = sub { $warn = $_[0] };
 eval {
   $sth = $dbh->prepare("foo");
@@ -103,6 +101,7 @@ eval {
   $dieerr = $@;
   $failed = 1;
 };
+$dbh->{PrintError} = 0;
 $SIG{__WARN__} = 'default';
 
 ok($failed);

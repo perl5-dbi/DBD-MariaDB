@@ -10,7 +10,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
-my $dbh = eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 0 }) };
+my $dbh = eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0 }) };
 if (not defined $dbh) {
     my $err = $@;
     $err = "unknown error" unless $err;
@@ -105,14 +105,14 @@ skip 'Server accepts connections with invalid user/password', 2
 # see https://rt.cpan.org/Ticket/Display.html?id=89835
 
 my $failed = not eval { DBI->connect($test_dsn, $test_user, $test_password,
-   { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+   { RaiseError => 1, PrintError => 0, AutoCommit => 0,
      Username => '4yZ73s9qeECdWi', Password => '64heUGwAsVoNqo' });};
 ok($failed, 'Username and Password attributes override');
 
 my $success = eval { DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
-   { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+   { RaiseError => 1, PrintError => 0, AutoCommit => 0,
      Username => $test_user, Password => $test_password });};
-ok($success, 'Username and Password attributes override');
+ok($success, 'Username and Password attributes override') or diag(DBI->errstr());
 
 }
 

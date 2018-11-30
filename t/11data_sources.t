@@ -18,7 +18,7 @@ $attributes{user} = $test_user;
 $attributes{password} = $test_password;
 delete $attributes{database};
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 plan tests => 2;
 
