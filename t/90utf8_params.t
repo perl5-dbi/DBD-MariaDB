@@ -46,7 +46,6 @@ foreach my $server_prepare (0, 1) {
 
     foreach my $charset ("latin1", "utf8") {
 
-        $dbh->do("DROP TABLE IF EXISTS unicode_test");
         $dbh->do(qq{
             CREATE TEMPORARY TABLE unicode_test (
                 payload VARCHAR(20),
@@ -138,10 +137,10 @@ foreach my $server_prepare (0, 1) {
             is($out, "\N{U+C3}\N{U+BF}", "unicode / $trials[$i] / utf8::upgrade / $charset / $enable_str");
         }
 
+        $dbh->do("DROP TEMPORARY TABLE unicode_test");
 
 
 
-        $dbh->do("DROP TABLE IF EXISTS blob_test");
         $dbh->do(qq{
             CREATE TEMPORARY TABLE blob_test (
                 payload BLOB,
@@ -211,6 +210,8 @@ foreach my $server_prepare (0, 1) {
             ($out) = $dbh->selectrow_array("SELECT payload FROM blob_test WHERE id = $id2");
             is($out, chr(0xc3).chr(0xbf), "blob / $trials[$i] / utf8::upgrade / $charset / $enable_str");
         }
+
+        $dbh->do("DROP TEMPORARY TABLE blob_test");
 
     }
 

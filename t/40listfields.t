@@ -81,7 +81,7 @@ if (!$sth->execute) {
     die "Error:" . $sth->errstr . "\n";
 }
 
-ok ($sth= $dbh->prepare("DROP TABLE dbd_mysql_40listfields"));
+ok ($sth= $dbh->prepare("DROP TEMPORARY TABLE dbd_mysql_40listfields"));
 
 ok($sth->execute);
 

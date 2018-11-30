@@ -90,7 +90,7 @@ is $sth3->last_insert_id(), 3, "third insert id == \$sth3->last_insert_id()";
 ok $sth->finish();
 ok $sth2->finish();
 
-ok $dbh->do('DROP TABLE dbd_mysql_t31');
+ok $dbh->do('DROP TEMPORARY TABLE dbd_mysql_t31');
 
 }
 

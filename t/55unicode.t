@@ -31,7 +31,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins without bind");
             $sth->finish();
-            $dbh->do("DROP TABLE t");
+            $dbh->do("DROP TEMPORARY TABLE t");
         }
         SKIP: {
             skip 'Server does not support utf8mb4', 1 if $ins =~ /[^\x{0000}-\x{FFFF}]/ and not $utf8mb4;
@@ -41,7 +41,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins with bind");
             $sth->finish();
-            $dbh->do("DROP TABLE t");
+            $dbh->do("DROP TEMPORARY TABLE t");
         }
     }
 }
