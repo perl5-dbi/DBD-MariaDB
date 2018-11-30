@@ -409,6 +409,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
           recommends => {
             'Proc::ProcessTable' => 0,
             'TAP::Harness' => '3.31',
+            'CPAN::Meta::YAML' => 0,
           },
           suggests => {
             'Storable' => 0,
