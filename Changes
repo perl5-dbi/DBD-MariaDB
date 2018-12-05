@@ -1,3 +1,28 @@
+1.10 2018-12-05
+ - Fix spelling error (https://github.com/gooddata/DBD-MariaDB/issues/82)
+ - Fix MinGW build (https://github.com/gooddata/DBD-MariaDB/issues/91)
+ - Fix DBI SQL types (https://github.com/gooddata/DBD-MariaDB/issues/109)
+ - Fix overflow in mariadb_thread_id and mariadb_warning_count attributes
+ - Fix parsing LIMIT keyword (case-insensitive + allow whitespaces around)
+ - Fix allocating and releasing memory when using Embedded Server
+ - Fix escaping placeholders when sql_mode is NO_BACKSLASH_ESCAPES
+ - Fix output from Unicode related tests
+ - Fix setting client_flag for mysql_real_connect()
+ - Fix calling DBI->data_sources() without second argument
+ - Fix $dbh->last_insert_id() for multi and prepared server side statements
+ - Use dbd_db_do6 API from DBI 1.642 when available
+ - Add support for a new DBI method call $sth->last_insert_id()
+ - Add sanity check for Makefile.PL --testsocket, --testhost and --testport
+ - Report error when $dbh->{mariadb_ssl_cipher} attribute is not supported
+ - Check that correct number of bind parameters are in $dbh->do()
+ - Update workarounds for bugs in MariaDB client library (some were fixed)
+ - Allow to set zero read, write and connect timeout (which means infinite)
+ - Set default session collation to utf8mb4_unicode_ci for real Unicode
+ - Change minimal MySQL client version to 4.1.8 (older is incompatible)
+ - Skip tests which cannot be started on current system/architecture
+ - Move testrules.yml to t/ directory
+ - Miscellaneous fixes in tests
+
 1.00 2018-07-12
  - Do not remove test name and line from test error messages
  - Update documentation for mariadb_length and mariadb_max_length
