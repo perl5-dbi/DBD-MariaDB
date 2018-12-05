@@ -12,7 +12,7 @@ $|= 1;
 $test_dsn.= ";mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 plan tests => 31;
 

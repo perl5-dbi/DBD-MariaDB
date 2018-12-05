@@ -13,7 +13,7 @@ my $quoted;
 my $create;
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 plan tests => 25;
 
@@ -81,7 +81,7 @@ if (!$sth->execute) {
     die "Error:" . $sth->errstr . "\n";
 }
 
-ok ($sth= $dbh->prepare("DROP TABLE dbd_mysql_40listfields"));
+ok ($sth= $dbh->prepare("DROP TEMPORARY TABLE dbd_mysql_40listfields"));
 
 ok($sth->execute);
 

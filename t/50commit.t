@@ -9,7 +9,7 @@ require 'lib.pl';
 use vars qw($got_warning $test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 sub catch_warning ($) {
     $got_warning = 1;
@@ -89,7 +89,7 @@ EOT
 
   ok $dbh->disconnect;
 
-  ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password));
+  ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 }));
 
   ok $dbh, "connected" or die;
 
@@ -122,7 +122,7 @@ EOT
 
   ok $dbh->disconnect;
 
-  ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password));
+  ok ($dbh = DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 }));
 
   $msg = num_rows($dbh, 'dbd_mysql_t50commit', 1);
   ok !$msg;

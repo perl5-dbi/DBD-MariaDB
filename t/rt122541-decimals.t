@@ -8,7 +8,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1 });
 
 plan tests => 2;
 

@@ -14,13 +14,13 @@ binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 plan tests => 42 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t55utf8");
 

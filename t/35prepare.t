@@ -11,7 +11,7 @@ my ($def, $rows, $errstr, $ret_ref);
 use vars qw($test_dsn $test_user $test_password);
 
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-    { RaiseError => 1, AutoCommit => 1});
+    { RaiseError => 1, PrintError => 0 });
 
 plan tests => 50;
 

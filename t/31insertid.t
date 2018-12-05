@@ -9,7 +9,7 @@ use lib 't', '.';
 require "lib.pl";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-			    {RaiseError => 1});
+                         { RaiseError => 1, PrintError => 0 });
 
 plan tests => 3 + 2*37;
 
@@ -90,7 +90,7 @@ is $sth3->last_insert_id(), 3, "third insert id == \$sth3->last_insert_id()";
 ok $sth->finish();
 ok $sth2->finish();
 
-ok $dbh->do('DROP TABLE dbd_mysql_t31');
+ok $dbh->do('DROP TEMPORARY TABLE dbd_mysql_t31');
 
 }
 

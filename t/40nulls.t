@@ -9,7 +9,7 @@ require 'lib.pl';
 
 my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 plan tests => 10;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t40nulls"), "DROP TABLE IF EXISTS dbd_mysql_t40nulls";

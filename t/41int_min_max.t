@@ -10,7 +10,7 @@ require 'lib.pl';
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 1 });
+                      { RaiseError => 1, PrintError => 0 });
 
 if ($dbh->{mariadb_serverversion} < 50002) {
     plan skip_all =>
@@ -71,7 +71,6 @@ sub test_int_type ($$$$) {
     ########################################
     ok($store->bind_param( 1, ($min-1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding less than minimal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
-        local $store->{PrintError} = 0;
         ok !defined eval{$store->execute()};
         like($store->errstr(), qr/Out of range value (?:adjusted )?for column 'val'/)
         or note("Error, you stored ".($min-1)." into $mariadb_type, mode=$mode\n".
@@ -93,7 +92,6 @@ sub test_int_type ($$$$) {
     ########################################
     ok($store->bind_param( 1, ($max+1)->bstr(), $dbh->{mariadb_server_prepare} ? DBI::SQL_VARCHAR : $perl_type ), "binding more than maximal $mariadb_type, mode=$mode");
     if ($mode eq 'strict') {
-        local $store->{PrintError} = 0;
         ok !defined eval{$store->execute()};
         like($store->errstr(), qr/Out of range value (?:adjusted )?for column 'val'/)
         or note("Error, you stored ".($max+1)." into $mariadb_type, mode=$mode\n".
@@ -115,7 +113,7 @@ $dbh->disconnect;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect($test_dsn . ';mariadb_server_prepare=' . $mariadb_server_prepare, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 # Set strict SQL mode
 ok($dbh->do("SET SQL_MODE='STRICT_ALL_TABLES'"),"Enter strict SQL mode.");

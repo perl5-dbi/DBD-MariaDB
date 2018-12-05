@@ -32,11 +32,11 @@ sub fatal_error {
 }
 
 sub connect_to_server {
-    return eval { DBI->connect($test_dsn_without_db, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 }) };
+    return eval { DBI->connect($test_dsn_without_db, $test_user, $test_password, { RaiseError => 1, PrintError => 0 }) };
 }
 
 sub connect_to_database {
-    return eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 1 }) };
+    return eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 }) };
 }
 
 my $dbh = connect_to_database();

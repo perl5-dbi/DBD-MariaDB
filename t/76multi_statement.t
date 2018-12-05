@@ -10,7 +10,7 @@ $|= 1;
 use vars qw($test_dsn $test_user $test_password);
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
 if ($dbh->{mariadb_serverversion} < 50025 or ($dbh->{mariadb_serverversion} >= 50100 and $dbh->{mariadb_serverversion} < 50112)) {
@@ -59,14 +59,13 @@ $dbh->{mariadb_server_prepare}= 0;
   is($dbh->do("DELETE FROM dbd_mysql_t76multi"), 4, "Delete all rows");
 
   # Test that do() reports errors from all result sets
-  $dbh->{RaiseError} = $dbh->{PrintError} = 0;
-  ok(!$dbh->do("INSERT INTO dbd_mysql_t76multi VALUES (1); INSERT INTO bad_dbd_mysql_t76multi VALUES (2);"), "do() reports errors");
+  ok(!eval { $dbh->do("INSERT INTO dbd_mysql_t76multi VALUES (1); INSERT INTO bad_dbd_mysql_t76multi VALUES (2);") }, "do() reports errors");
 
   # Test that execute() reports errors from only the first result set
   ok($sth = $dbh->prepare("UPDATE dbd_mysql_t76multi SET a=2; UPDATE bad_dbd_mysql_t76multi SET a=3"));
   ok($sth->execute(), "Execute updates");
   ok(!$sth->err(), "Err was not set after execute");
-  ok(!$sth->more_results());
+  ok(!eval { $sth->more_results(); 1 });
   ok($sth->err(), "Err was set after more_results");
   ok $dbh->do("DROP TABLE dbd_mysql_t76multi");
 

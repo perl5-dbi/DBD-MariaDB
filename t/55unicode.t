@@ -14,7 +14,7 @@ binmode $tb->output,         ":utf8";
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 my $utf8mb4 = $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'") ? 1 : 0;
 
@@ -31,7 +31,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins without bind");
             $sth->finish();
-            $dbh->do("DROP TABLE t");
+            $dbh->do("DROP TEMPORARY TABLE t");
         }
         SKIP: {
             skip 'Server does not support utf8mb4', 1 if $ins =~ /[^\x{0000}-\x{FFFF}]/ and not $utf8mb4;
@@ -41,7 +41,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins with bind");
             $sth->finish();
-            $dbh->do("DROP TABLE t");
+            $dbh->do("DROP TEMPORARY TABLE t");
         }
     }
 }

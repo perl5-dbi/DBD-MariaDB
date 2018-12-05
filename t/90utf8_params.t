@@ -18,7 +18,7 @@ binmode $tb->output,         ":utf8";
 binmode $tb->failure_output, ":utf8";
 binmode $tb->todo_output,    ":utf8";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
 my $nasty_unicode1 = "\N{U+C3}\N{U+BF}"; # looks like character 0xff, if you accidentally utf8 decode
 utf8::downgrade($nasty_unicode1);
@@ -40,13 +40,12 @@ is($nasty_unicode2, $nasty_bytes2, "Perl does not distinguish between bytes and 
 foreach my $server_prepare (0, 1) {
 
     my $enable_str = "mariadb_server_prepare=$server_prepare";
-    my $enable_hash = { mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
+    my $enable_hash = { RaiseError => 1, PrintError => 0, mariadb_server_prepare => $server_prepare, mariadb_server_prepare_disable_fallback => 1 };
 
     $dbh = DBI->connect($test_dsn, $test_user, $test_password, $enable_hash);
 
     foreach my $charset ("latin1", "utf8") {
 
-        $dbh->do("DROP TABLE IF EXISTS unicode_test");
         $dbh->do(qq{
             CREATE TEMPORARY TABLE unicode_test (
                 payload VARCHAR(20),
@@ -138,10 +137,10 @@ foreach my $server_prepare (0, 1) {
             is($out, "\N{U+C3}\N{U+BF}", "unicode / $trials[$i] / utf8::upgrade / $charset / $enable_str");
         }
 
+        $dbh->do("DROP TEMPORARY TABLE unicode_test");
 
 
 
-        $dbh->do("DROP TABLE IF EXISTS blob_test");
         $dbh->do(qq{
             CREATE TEMPORARY TABLE blob_test (
                 payload BLOB,
@@ -211,6 +210,8 @@ foreach my $server_prepare (0, 1) {
             ($out) = $dbh->selectrow_array("SELECT payload FROM blob_test WHERE id = $id2");
             is($out, chr(0xc3).chr(0xbf), "blob / $trials[$i] / utf8::upgrade / $charset / $enable_str");
         }
+
+        $dbh->do("DROP TEMPORARY TABLE blob_test");
 
     }
 

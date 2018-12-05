@@ -8,7 +8,7 @@ use vars qw($test_dsn $test_user $test_password $test_db);
 use lib 't', '.';
 require "lib.pl";
 
-my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 1, AutoCommit => 0, mariadb_server_prepare => 1, mariadb_server_prepare_disable_fallback => 1 });
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1, AutoCommit => 0, mariadb_server_prepare => 1, mariadb_server_prepare_disable_fallback => 1 });
 
 plan tests => 44;
 

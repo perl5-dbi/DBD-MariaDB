@@ -9,7 +9,7 @@ require 'lib.pl';
 use utf8;
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
 plan skip_all => "no support for utf8mb4"
     unless $dbh->selectrow_array("SHOW CHARSET LIKE 'utf8mb4'");

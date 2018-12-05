@@ -10,7 +10,7 @@ use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
 require 'lib.pl';
 
-my $dbh = eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 1, AutoCommit => 0 }) };
+my $dbh = eval { DBI->connect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0 }) };
 if (not defined $dbh) {
     my $err = $@;
     $err = "unknown error" unless $err;
@@ -92,7 +92,11 @@ foreach (sort keys %{$info_hashref}) {
     diag("$_ is: ". $info_hashref->{$_});
 }
 
-ok($dbh->disconnect(), 'Disconnected');
+SKIP: {
+
+skip $dbh->errstr(), 2 unless eval { $dbh->do('SHOW GRANTS') };
+skip 'Server accepts connections with invalid user/password', 2
+  if eval { DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo', { RaiseError => 1, PrintError => 0 }) };
 
 # dbi docs state:
 # The username and password can also be specified using the attributes
@@ -100,14 +104,18 @@ ok($dbh->disconnect(), 'Disconnected');
 # and $password parameters.
 # see https://rt.cpan.org/Ticket/Display.html?id=89835
 
-my $failed = not eval {$dbh= DBI->connect($test_dsn, $test_user, $test_password,
-   { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+my $failed = not eval { DBI->connect($test_dsn, $test_user, $test_password,
+   { RaiseError => 1, PrintError => 0, AutoCommit => 0,
      Username => '4yZ73s9qeECdWi', Password => '64heUGwAsVoNqo' });};
 ok($failed, 'Username and Password attributes override');
 
-my $success = eval {$dbh= DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
-   { RaiseError => 1, PrintError => 1, AutoCommit => 0,
+my $success = eval { DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo',
+   { RaiseError => 1, PrintError => 0, AutoCommit => 0,
      Username => $test_user, Password => $test_password });};
-ok($success, 'Username and Password attributes override');
+ok($success, 'Username and Password attributes override') or diag(DBI->errstr());
+
+}
+
+ok($dbh->disconnect(), 'Disconnected');
 
 done_testing;
