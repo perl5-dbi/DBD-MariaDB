@@ -1,3 +1,7 @@
+1.11 2019-01-02
+ - Fix breakage of Net::SSLeay / OpenSSL library after DBI disconnect
+   (https://github.com/gooddata/DBD-MariaDB/issues/119)
+
 1.10 2018-12-05
  - Fix spelling error (https://github.com/gooddata/DBD-MariaDB/issues/82)
  - Fix MinGW build (https://github.com/gooddata/DBD-MariaDB/issues/91)
