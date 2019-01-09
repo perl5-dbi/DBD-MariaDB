@@ -101,7 +101,7 @@ foreach my $method (@db_safe_methods) {
     $dbh->do('SELECT 1', { mariadb_async => 1 });
     my $args = $dbh_args{$method} || [];
     $dbh->$method(@$args);
-    ok !$dbh->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
+    ok !$dbh->err, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
 
     ok defined($dbh->mariadb_async_result);
 }
@@ -123,7 +123,7 @@ foreach my $method (@common_safe_methods) {
     $sth->execute;
     my $args = $dbh_args{$method} || []; # they're common methods, so this should be ok!
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
+    ok !$sth->err, "Testing method '$method' on DBD::MariaDB::db during asynchronous operation";
     ok defined($sth->mariadb_async_result);
     ok defined($sth->mariadb_async_result);
 }
@@ -133,7 +133,7 @@ foreach my $method (@st_safe_methods) {
     $sth->execute;
     my $args = $sth_args{$method} || [];
     $sth->$method(@$args);
-    ok !$sth->errstr, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
+    ok !$sth->err, "Testing method '$method' on DBD::MariaDB::st during asynchronous operation";
 
     # statement safe methods cache async result and mariadb_async_result can be called multiple times
     ok defined($sth->mariadb_async_result), "Testing DBD::MariaDB::st method '$method' for async result";
@@ -145,9 +145,9 @@ foreach my $method (@st_safe_methods) {
     my $async_sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
     $dbh->do('SELECT 1', { mariadb_async => 1 });
     ok !$sync_sth->execute;
-    ok $sync_sth->errstr;
+    ok $sync_sth->err;
     ok !$async_sth->execute;
-    ok $async_sth->errstr;
+    ok $async_sth->err;
     $dbh->mariadb_async_result;
 }
 
@@ -155,7 +155,7 @@ foreach my $method (@db_unsafe_methods) {
     my $sth = $dbh->prepare('SELECT 1', { mariadb_async => 1 });
     $sth->execute;
     ok !$dbh->do('SELECT 1', { mariadb_async => 1 });
-    ok $dbh->errstr;
+    ok $dbh->err;
     $sth->mariadb_async_result;
 }
 

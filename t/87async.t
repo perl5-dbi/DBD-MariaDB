@@ -152,10 +152,10 @@ cmp_ok(($end - $start), '>=', 1.9);
 $rows = $dbh->do('INSERT INTO async_test VALUES(SLEEP(2), ?, ?', { mariadb_async => 1 }, 1, 2);
 
 ok $rows;
-ok !$dbh->errstr;
+ok !$dbh->err;
 $rows = $dbh->mariadb_async_result;
 ok !$rows;
-ok $dbh->errstr;
+ok $dbh->err;
 
 $dbh->do('DELETE FROM async_test');
 

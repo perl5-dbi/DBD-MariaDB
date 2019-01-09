@@ -6,11 +6,9 @@ use DBI;
 use lib 't', '.';
 require 'lib.pl';
 
-my ($row, $sth, $dbh);
-my ($table, $def, $rows, $errstr, $ret_ref);
-use vars qw($table $test_dsn $test_user $test_password);
+use vars qw($test_dsn $test_user $test_password);
 
-$dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
+my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
     { RaiseError => 1, PrintError => 0 });
 
 ok(defined $dbh, "Connected to database");

@@ -13,7 +13,6 @@ $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 plan tests => 10;
 
-my ($rows, $errstr, $ret_ref);
 ok $dbh->do("drop table if exists dbd_mysql_41bindparam"), "drop table dbd_mysql_41bindparam";
 
 ok $dbh->do("create table dbd_mysql_41bindparam (a int not null, primary key (a))"), "create table dbd_mysql_41bindparam";

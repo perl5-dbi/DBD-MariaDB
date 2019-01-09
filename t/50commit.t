@@ -41,7 +41,7 @@ my $engines = $dbh->selectall_hashref('SHOW ENGINES', 'Engine');
 my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
 my $have_myisam = exists $engines->{MyISAM} && $engines->{MyISAM}->{Support} ne 'NO';
 
-plan tests => 1 + ($have_myisam ? 12 : 0) + ($have_innodb ? 22 : 0);
+plan tests => 1 + ($have_myisam ? 12 : 0) + ($have_innodb ? 21 : 0);
 
 if ($have_innodb) {
 
@@ -59,7 +59,6 @@ EOT
 
   $dbh->{AutoCommit} = 0;
   ok !$dbh->err;
-  ok !$dbh->errstr;
   ok !$dbh->{AutoCommit};
 
   ok $dbh->do("INSERT INTO dbd_mysql_t50commit VALUES (1, 'Jochen')"),

@@ -36,14 +36,14 @@ ok !$sth1->{Active};
 ok !$sth2->{Active};
 
 ok !defined($sth1->mariadb_async_ready);
-ok $sth1->errstr;
+ok $sth1->err;
 ok !defined($sth1->mariadb_async_result);
-ok $sth1->errstr;
+ok $sth1->err;
 
 ok defined($sth0->mariadb_async_ready);
-ok !$sth1->errstr;
+ok !$sth1->err;
 ok defined($sth0->mariadb_async_result);
-ok !$sth1->errstr;
+ok !$sth1->err;
 
 ok !$sth0->{Active};
 ok !$sth1->{Active};

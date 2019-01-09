@@ -18,8 +18,7 @@ plan tests => 3;
 my $q = "select select select";	# invalid SQL
 my $sth;
 eval {$sth = $dbh->prepare($q);};
-ok defined($DBI::errstr);
-cmp_ok $DBI::errstr, 'ne', '';
+ok $dbh->err;
+ok $dbh->errstr and note 'errstr: ' . $dbh->errstr;
 
-note "errstr $DBI::errstr\n" if $DBI::errstr;
 ok $dbh->disconnect();

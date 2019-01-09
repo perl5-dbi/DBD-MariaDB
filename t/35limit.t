@@ -38,9 +38,9 @@ ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35 LIMIT ?, ?"),
 
 ok($sth->execute(20, 50), 'testing exec of bind vars for limit');
 
-my ($row, $errstr, $array_ref);
+my ($array_ref);
 ok( (defined($array_ref = $sth->fetchall_arrayref) &&
-  (!defined($errstr = $sth->errstr) || $sth->errstr eq '')));
+  (!$sth->err)));
 
 ok(@$array_ref == 50);
 
