@@ -68,7 +68,10 @@ BOOT:
    * See: https://github.com/gooddata/DBD-MariaDB/issues/119 */
   mariadb_deinitialize_ssl = 0;
 #endif
+#ifndef _WIN32
+  /* Calling mysql_thread_init() on WIN32 cause crash */
   mysql_thread_init();
+#endif
 }
 
 MODULE = DBD::MariaDB    PACKAGE = DBD::MariaDB::db
