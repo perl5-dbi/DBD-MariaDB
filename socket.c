@@ -6,13 +6,9 @@
 #include <windows.h>
 #include <winsock.h>
 #endif
-
 #include <mysql.h>
-
-#ifndef _WIN32
-#include <poll.h>
+#include <stddef.h>
 #include <errno.h>
-#endif
 
 /*
  * Warning: Native socket code must be outside of dbdimp.c and dbdimp.h because
@@ -22,12 +18,9 @@
 
 int mariadb_dr_socket_ready(my_socket fd)
 {
-  int retval;
-
-#ifdef _WIN32
-  /* Windows does not have poll(), so use select() instead */
   struct timeval timeout;
   fd_set fds;
+  int retval;
 
   FD_ZERO(&fds);
   FD_SET(fd, &fds);
@@ -36,15 +29,6 @@ int mariadb_dr_socket_ready(my_socket fd)
   timeout.tv_usec = 0;
 
   retval = select(fd+1, &fds, NULL, NULL, &timeout);
-#else
-  struct pollfd fds;
-
-  fds.fd = fd;
-  fds.events = POLLIN;
-
-  retval = poll(&fds, 1, 0);
-#endif
-
   if (retval < 0) {
 #ifdef _WIN32
     /* Windows does not update errno */
