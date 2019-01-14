@@ -422,7 +422,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       prereqs => {
         test => {
           recommends => {
-            'Net::SSLeay' => 0,
+            'Net::SSLeay' => '1.43',
             'Proc::ProcessTable' => 0,
             'TAP::Harness' => '3.31',
             'CPAN::Meta::YAML' => 0,
