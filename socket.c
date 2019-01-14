@@ -1,14 +1,18 @@
+/*
+ * On WIN32 windows.h and winsock.h need to be included before mysql.h
+ * Otherwise SOCKET type which is needed for mysql.h is not defined
+ */
 #ifdef _WIN32
-#include "windows.h"
-#include "winsock.h"
+#include <windows.h>
+#include <winsock.h>
 #endif
+
+#include <mysql.h>
 
 #ifndef _WIN32
 #include <poll.h>
 #include <errno.h>
 #endif
-
-#include <mysql.h>
 
 /*
  * Warning: Native socket code must be outside of dbdimp.c and dbdimp.h because
