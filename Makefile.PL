@@ -68,7 +68,7 @@ my $source = {};
     if ($opt->{'mysql_config'} ne 'skip') {
     $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
         if $^O eq 'MSWin32';
-    if (! defined `$opt->{'mysql_config'} 2>&1`)
+    if (!CanExecute($opt->{'mysql_config'}))
     {
       die <<"MSG";
 
@@ -80,11 +80,11 @@ MSG
   }
   else
   {
-    if (defined `mariadb_config 2>&1`)
+    if (CanExecute("mariadb_config"))
     {
       $opt->{'mysql_config'} = "mariadb_config";
     }
-    elsif (defined `mysql_config 2>&1`)
+    elsif (CanExecute("mysql_config"))
     {
       $opt->{'mysql_config'} = "mysql_config";
     }
@@ -525,13 +525,23 @@ USAGE
 }
 
 
+sub CanExecute {
+  my ($command) = @_;
+  return MM->maybe_command($command) if File::Spec->file_name_is_absolute($command);
+  foreach my $dir (File::Spec->path) {
+    return 1 if MM->maybe_command(File::Spec->catfile($dir, $command));
+  }
+  return 0;
+}
+
+
 my %ParsedCache;
 sub ParseMySQLConfig {
   my ($opt, $param) = @_;
   return $ParsedCache{$param} if exists $ParsedCache{$param};
   return undef unless $opt->{'mysql_config'} and $opt->{'mysql_config'} ne 'skip';
   my $output = `$opt->{'mysql_config'} --$param 2>&1`;
-  if (defined $output and $output !~ /Options:|Usage:|unrecognized option/) {
+  if ($? == 0 and defined $output and $output !~ /Options:|Usage:|unrecognized option/) {
     $output =~ s/\s+$//s;
     $output =~ s/^\s+//s;
     $ParsedCache{$param} = $output;
