@@ -1996,6 +1996,7 @@ static bool mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_multi_statements", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_multi_statements", FALSE)) && *svp && SvTRUE(*svp))
         {
+          imp_dbh->use_multi_statements = TRUE;
           client_flag |= CLIENT_MULTI_STATEMENTS;
         }
 
@@ -3463,6 +3464,17 @@ mariadb_db_STORE_attrib(
       return 0;
 #endif
     }
+    else if (memEQs(key, kl, "mariadb_multi_statements"))
+    {
+      if (!imp_dbh->connected) /* When not connected, it is handled in mariadb_dr_connect() */
+        return 0;
+      if (mysql_set_server_option(imp_dbh->pmysql, bool_value ? MYSQL_OPTION_MULTI_STATEMENTS_ON : MYSQL_OPTION_MULTI_STATEMENTS_OFF) != 0)
+      {
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+        return 0;
+      }
+      imp_dbh->use_multi_statements = bool_value;
+    }
     else
     {
       if (imp_dbh->connected) /* Ignore unknown attributes passed by DBI->connect, they are handled in mariadb_dr_connect() */
@@ -3724,6 +3736,8 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_use_result"))
       result = boolSV(imp_dbh->use_mysql_use_result);
+    else if (memEQs(key, kl, "mariadb_multi_statements"))
+      result = boolSV(imp_dbh->use_multi_statements);
     else
     {
       error_unknown_attribute(dbh, key);

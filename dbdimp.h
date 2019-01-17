@@ -537,6 +537,7 @@ struct imp_dbh_st {
                                */
     bool use_server_side_prepare;
     bool disable_fallback_for_server_prepare;
+    bool use_multi_statements;
     void* async_query_in_flight;
     my_ulonglong insertid;
     struct {
