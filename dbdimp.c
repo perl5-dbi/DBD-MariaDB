@@ -1994,13 +1994,10 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_multi_statements", &PL_sv_yes);
-	if ((svp = hv_fetchs(hv, "mariadb_multi_statements", FALSE)) && *svp)
+        if ((svp = hv_fetchs(hv, "mariadb_multi_statements", FALSE)) && *svp && SvTRUE(*svp))
         {
-	  if (SvTRUE(*svp))
-	    client_flag |= CLIENT_MULTI_STATEMENTS;
-          else
-            client_flag &= ~CLIENT_MULTI_STATEMENTS;
-	}
+          client_flag |= CLIENT_MULTI_STATEMENTS;
+        }
 
         (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
 	if ((svp = hv_fetchs(hv, "mariadb_server_prepare", FALSE)) && *svp)
