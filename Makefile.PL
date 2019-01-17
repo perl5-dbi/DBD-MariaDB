@@ -16,6 +16,12 @@ require DBI::DBD;
 
 my $TESTDB = "test";
 
+# On WIN32 windows.h and winsock.h need to be included before mysql.h
+# Otherwise SOCKET type which is needed for mysql.h is not defined
+my @mysql_headers;
+push @mysql_headers, 'windows.h', 'winsock.h' if $^O eq 'MSWin32';
+push @mysql_headers, 'mysql.h';
+
 our $opt = { "help" => \&Usage, };
 
 my ($test_host, $test_port, $test_socket);
@@ -68,7 +74,7 @@ my $source = {};
     if ($opt->{'mysql_config'} ne 'skip') {
     $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
         if $^O eq 'MSWin32';
-    if (! defined `$opt->{'mysql_config'} 2>&1`)
+    if (!CanExecute($opt->{'mysql_config'}))
     {
       die <<"MSG";
 
@@ -80,11 +86,11 @@ MSG
   }
   else
   {
-    if (defined `mariadb_config 2>&1`)
+    if (CanExecute("mariadb_config"))
     {
       $opt->{'mysql_config'} = "mariadb_config";
     }
-    elsif (defined `mysql_config 2>&1`)
+    elsif (CanExecute("mysql_config"))
     {
       $opt->{'mysql_config'} = "mysql_config";
     }
@@ -223,7 +229,7 @@ assert_lib(
   LIBS => (join ' ', @libdirs, $main_lib, @libs),
   ccflags => (join ' ', $opt->{cflags}, ($Config{usedl} ? $Config{cccdlflags} : ())),
   ldflags => (join ' ', @libdirs, @ldflags, ($Config{usedl} ? $Config{lddlflags} : ())),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   not_execute => 1,
 );
 
@@ -233,7 +239,7 @@ check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   function => "\n#ifndef MYSQL_VERSION_ID\n#include <mysql_version.h>\n#endif\nreturn (MYSQL_VERSION_ID >= 40108) ? 0 : 1;\n",
 ) or die <<"MSG";
 
@@ -248,7 +254,7 @@ my $have_embedded = check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   function => 'return mysql_embedded() ? 0 : 1;',
 );
 
@@ -258,7 +264,7 @@ my $have_get_charset_number = check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   function => 'unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags); mysql_server_init(-1, 0, 0); get_charset_number("utf8", 32); return 0;',
 );
 
@@ -266,7 +272,7 @@ my $have_get_option = check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   function => 'MYSQL mysql; char buf[1024]; mysql_server_init(-1, 0, 0); mysql_init(&mysql); mysql_get_option(&mysql, 0, &buf); return 0;',
 );
 
@@ -274,7 +280,7 @@ my $have_deinitialize_ssl = check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
-  header => 'mysql.h',
+  header => \@mysql_headers,
   function => 'mariadb_deinitialize_ssl = 0; return 0;',
 );
 
@@ -416,7 +422,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       prereqs => {
         test => {
           recommends => {
-            'Net::SSLeay' => 0,
+            'Net::SSLeay' => '1.43',
             'Proc::ProcessTable' => 0,
             'TAP::Harness' => '3.31',
             'CPAN::Meta::YAML' => 0,
@@ -525,13 +531,23 @@ USAGE
 }
 
 
+sub CanExecute {
+  my ($command) = @_;
+  return MM->maybe_command($command) if File::Spec->file_name_is_absolute($command);
+  foreach my $dir (File::Spec->path) {
+    return 1 if MM->maybe_command(File::Spec->catfile($dir, $command));
+  }
+  return 0;
+}
+
+
 my %ParsedCache;
 sub ParseMySQLConfig {
   my ($opt, $param) = @_;
   return $ParsedCache{$param} if exists $ParsedCache{$param};
   return undef unless $opt->{'mysql_config'} and $opt->{'mysql_config'} ne 'skip';
   my $output = `$opt->{'mysql_config'} --$param 2>&1`;
-  if (defined $output and $output !~ /Options:|Usage:|unrecognized option/) {
+  if ($? == 0 and defined $output and $output !~ /Options:|Usage:|unrecognized option/) {
     $output =~ s/\s+$//s;
     $output =~ s/^\s+//s;
     $ParsedCache{$param} = $output;
@@ -611,7 +627,7 @@ sub Configure {
                             LIBS => (join ' ', @libdirs, $main_lib),
                             ldflags => (join ' ', @libdirs, $ldflags, $Config{lddlflags}),
                             ccflags => (join ' ', $opt->{cflags}, $Config{cccdlflags}),
-                            header => 'mysql.h',
+                            header => \@mysql_headers,
                             function => $function,
                             not_execute => 1,
                         ) or next;
@@ -621,7 +637,7 @@ sub Configure {
                         LIBS => (join ' ', @libdirs, $main_lib),
                         ldflags => (join ' ', @libdirs, $ldflags),
                         ccflags => $opt->{cflags},
-                        header => 'mysql.h',
+                        header => \@mysql_headers,
                         function => $function,
                     ) or next;
                     $str .= ' ' . $add_ldflags if defined $add_ldflags;

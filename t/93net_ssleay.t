@@ -7,7 +7,12 @@ use DBI;
 use DBD::MariaDB;
 
 BEGIN {
-    plan skip_all => 'Net::SSLeay is required for this test' unless eval { require Net::SSLeay };
+    eval {
+        require Net::SSLeay;
+        Net::SSLeay->VERSION(1.43); # for Net::SSLeay::initialize()
+    } or do {
+        plan skip_all => 'Net::SSLeay 1.43 is required for this test';
+    };
     Net::SSLeay->import();
 }
 

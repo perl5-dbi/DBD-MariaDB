@@ -6,35 +6,55 @@ cache:
 
 environment:
   matrix:
+    - perl: "5.8.9.5"
+    - perl: "5.10.1.5"
+    - perl: "5.12.3.20180709"
     - perl: "5.14.4.1"
     - perl: "5.16.3.20170202"
     - perl: "5.18.4.1"
     - perl: "5.20.3.3"
     - perl: "5.22.3.1"
-    - perl: "5.24.1.1"
-    - perl: "5.26.0.1"
+    - perl: "5.24.4.1"
+    - perl: "5.26.2.1"
+    - perl: "5.28.0.1"
 
 platform:
   - x86
   - x64
 
+matrix:
+  exclude:
+    - platform: x64
+      perl: "5.8.9.5"
+    - platform: x64
+      perl: "5.10.1.5"
+
 services:
   - mysql
 
 install:
+  - ren C:\MinGW MinGW_do_not_use
+  - ren C:\Perl Perl_do_not_use
+  - ren "C:\\Program Files\\Git\\usr\\bin\\perl.exe" perl.exe_do_not_use
   - if /I %PLATFORM% == x86 (set x86=--forcex86) else (set "x86= ")
   - choco config set cacheLocation C:\ProgramData\chocolatey\cache
   - cinst StrawberryPerl --version %perl% %x86% --allow-empty-checksums
-  - path C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;C:\strawberry\c\bin;%PATH%
+  - refreshenv
   - perl -V
   - cpan -T App::cpanminus
-  - cpanm --quiet --notest --skip-satisfied Devel::CheckLib
+  - perl -MExtUtils::MakeMaker=6.58 -e "" || cpanm --quiet --notest ExtUtils::MakeMaker@6.58
+  - cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
 
 build_script:
-  - perl Makefile.PL --mysql_config=c:\strawberry\c\bin\mysql_config.bat --testuser=root --testpassword=Password12!
+  - set DBD_MARIADB_TESTUSER=root
+  - set DBD_MARIADB_TESTPASSWORD=Password12!
+  - perl -MConfig -e "system({$Config{make}} $Config{make}, @ARGV); exit((($? >> 8) | ($? & 127)) & 255)" realclean || (exit 0)
+  - perl Makefile.PL
   - perl -MConfig -e "system({$Config{make}} $Config{make}, @ARGV); exit((($? >> 8) | ($? & 127)) & 255)"
 
 test_script:
+  - set HARNESS_OPTIONS=j4
+  - set RELEASE_TESTING=1
   - set CONNECTION_TESTING=1
   - perl -MConfig -e "system({$Config{make}} $Config{make}, @ARGV); exit((($? >> 8) | ($? & 127)) & 255)" test

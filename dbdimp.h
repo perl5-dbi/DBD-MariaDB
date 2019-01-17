@@ -17,16 +17,26 @@
 /*
  *  Header files we use
  */
-#include <DBIXS.h>  /* installed by the DBI module                        */
+
+/*
+ * On WIN32 windows.h and winsock.h need to be included before mysql.h
+ * Otherwise SOCKET type which is needed for mysql.h is not defined
+ */
+#ifdef _WIN32
+#include <windows.h>
+#include <winsock.h>
+#endif
+
 #include <mysql.h>  /* Comes with MySQL-devel */
 #include <mysqld_error.h>  /* Comes MySQL */
-
 #include <errmsg.h> /* Comes with MySQL-devel */
-#include <stdint.h> /* For uint32_t */
 
 #ifndef MYSQL_VERSION_ID
 #include <mysql_version.h> /* Comes with MySQL-devel */
 #endif
+
+#include <DBIXS.h>  /* installed by the DBI module */
+#include <stdint.h> /* For uint32_t */
 
 #if !defined(MARIADB_BASE_VERSION) && defined(MARIADB_PACKAGE_VERSION)
 #define MARIADB_BASE_VERSION
