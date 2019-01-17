@@ -1924,13 +1924,8 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_client_found_rows", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_client_found_rows", FALSE)) && *svp)
-        {
-          if (SvTRUE(*svp))
-            client_flag |= CLIENT_FOUND_ROWS;
-          else
-            client_flag &= ~CLIENT_FOUND_ROWS;
-        }
+        if ((svp = hv_fetchs(hv, "mariadb_client_found_rows", FALSE)) && *svp && !SvTRUE(*svp))
+          client_flag &= ~CLIENT_FOUND_ROWS;
 
         (void)hv_stores(processed, "mariadb_auto_reconnect", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_auto_reconnect", FALSE)) && *svp)
