@@ -35,6 +35,15 @@ matrix:
       dist: precise
     - perl: system_trusty
       dist: trusty
+    - perl: system_xenial
+      dist: xenial
+      services:
+        - mysql
+      addons:
+        apt:
+          packages:
+            - libdbi-perl
+            - libmysqlclient-dev
     - perl: system_precise
       dist: precise
       env: MYSQL_CONFIG=PIC
