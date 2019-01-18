@@ -442,6 +442,7 @@ install:
       eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib) ;
     fi
   - perl '-MExtUtils::MakeMaker 6.58' -e '' || cpanm --quiet --notest ExtUtils::MakeMaker@6.58
+  - perl '-MCPAN::Meta 2.112580' -e '' || cpanm --quiet --notest CPAN::Meta@2.112580
   - if [ -n "$DBI_VERSION" ]; then cpanm --quiet --notest DBI@$DBI_VERSION; fi
   - cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
