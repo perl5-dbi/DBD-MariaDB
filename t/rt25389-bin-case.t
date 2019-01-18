@@ -29,7 +29,7 @@ for my $charset (qw(latin1 utf8)) {
         my $create =
 "CREATE TEMPORARY TABLE `$table` (name VARCHAR(8) CHARACTER SET $charset COLLATE ${charset}_bin $unique)";
 
-        $dbh->do($create) or die $DBI::errstr;
+        $dbh->do($create);
         for (@test) {
             $dbh->do("insert into `$table` values ('$_')");
         }

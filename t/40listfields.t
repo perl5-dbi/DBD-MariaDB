@@ -15,7 +15,7 @@ my $create;
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 25;
+plan tests => 27;
 
 $dbh->{mariadb_server_prepare}= 0;
 
@@ -73,13 +73,8 @@ cmp_ok $ref->[0], 'eq', DBI::SQL_INTEGER(), "SQL_INTEGER";
 
 cmp_ok $ref->[1], 'eq', DBI::SQL_VARCHAR(), "SQL_VARCHAR";
 
-$sth = $dbh->prepare("SELECT * FROM dbd_mysql_40listfields");
-if (!$sth) {
-    die "Error:" . $dbh->errstr . "\n";
-}
-if (!$sth->execute) {
-    die "Error:" . $sth->errstr . "\n";
-}
+ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_40listfields"));
+ok($sth->execute);
 
 ok ($sth= $dbh->prepare("DROP TEMPORARY TABLE dbd_mysql_40listfields"));
 
