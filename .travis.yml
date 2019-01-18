@@ -247,6 +247,10 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.2.19
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.20
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.2.21
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.0
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.1
@@ -267,7 +271,11 @@ matrix:
     - perl: "5.22"
       env: DB=MariaDB VERSION=10.3.11
     - perl: "5.22"
+      env: DB=MariaDB VERSION=10.3.12
+    - perl: "5.22"
       env: DB=MariaDB VERSION=10.4.0
+    - perl: "5.22"
+      env: DB=MariaDB VERSION=10.4.1
     - perl: "5.22"
       env: CONC_DB=MySQL CONC_VERSION=6.0.0-beta
     - perl: "5.22"
