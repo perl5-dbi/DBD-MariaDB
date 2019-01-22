@@ -13,14 +13,6 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
-if ($dbh->{mariadb_serverversion} < 50025 or ($dbh->{mariadb_serverversion} >= 50100 and $dbh->{mariadb_serverversion} < 50112)) {
-  plan skip_all => "Server has deadlock bug 16581";
-}
-
-if ($dbh->{mariadb_clientversion} < 50025 or ($dbh->{mariadb_clientversion} >= 50100 and $dbh->{mariadb_clientversion} < 50112)) {
-  plan skip_all => "Client has multiple-result-set detection deadlock bug 15752";
-}
-
 plan tests => 36;
 
 ok (defined $dbh, "Connected to database with multi statement support");
@@ -40,7 +32,7 @@ $dbh->{mariadb_server_prepare}= 0;
 
   # Check that more_results works for non-SELECT results too
   my $sth;
-  ok($sth = $dbh->prepare("UPDATE dbd_mysql_t76multi SET a=5 WHERE a=1; UPDATE dbd_mysql_t76multi SET a='6-' WHERE a<4"));
+  ok($sth = $dbh->prepare("UPDATE dbd_mysql_t76multi SET a=5 WHERE a=1; UPDATE dbd_mysql_t76multi SET a='6suffix' WHERE a<4"));
   ok($sth->execute(), "Execute updates");
   is($sth->rows, 1, "First update affected 1 row");
   is($sth->{mariadb_warning_count}, 0, "First update had no warnings");
