@@ -2662,6 +2662,11 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
   if (next_result_rc > 0)
   {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
     /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
     error = mysql_errno(imp_dbh->pmysql);
     if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
@@ -2841,6 +2846,12 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
     if (next_result_rc > 0)
     {
+#if MYSQL_VERSION_ID < 50025
+      /* Cover a protocol design error: error packet does not contain the server status.
+       * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+      imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
+
       if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t<- do() ERROR: %s\n", mysql_error(imp_dbh->pmysql));
 
@@ -4021,6 +4032,12 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth)
 
   if (next_result_rc > 0)
   {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
+
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets: Error while processing multi-result set: %s\n",
                     mysql_error(imp_dbh->pmysql));
@@ -4118,6 +4135,11 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
    */
   if (next_result_return_code > 0)
   {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
     mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
              mysql_sqlstate(imp_dbh->pmysql));
 
@@ -4305,6 +4327,11 @@ static my_ulonglong mariadb_st_internal_execute(
           (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(*svsock, sbuf, slen))))
       {
+#if MYSQL_VERSION_ID < 50025
+        /* Cover a protocol design error: error packet does not contain the server status.
+         * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+        (*svsock)->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
         rows = -1;
       } else {
           /** Store the result from the Query */
