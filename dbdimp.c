@@ -3695,7 +3695,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   return av;
 }
 
-static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
+static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth);
 
 /* 
  **************************************************************************
@@ -3827,7 +3827,8 @@ mariadb_st_prepare_sv(
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mariadb_st_free_result_sets(sth, imp_sth);
+  if (!mariadb_st_free_result_sets(sth, imp_sth))
+    return 0;
 
   if (imp_sth->use_server_side_prepare)
   {
@@ -3971,18 +3972,20 @@ mariadb_st_prepare_sv(
  * Inputs: sth - Statement handle
  *         imp_sth - driver's private statement handle
  *
- * Returns: 1 ok
- *          0 error
+ * Returns: TRUE ok
+ *          FALSE error; mariadb_dr_do_error will be called
  *************************************************************************/
-static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
+static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth)
 {
   dTHX;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
   int next_result_rc= -1;
+  unsigned int error;
 
+  /* No connection, nothing to clean, no error */
   if (!imp_dbh->pmysql)
-    return 0;
+    return TRUE;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- mariadb_st_free_result_sets\n");
@@ -4005,7 +4008,7 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
           mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
                    mysql_sqlstate(imp_dbh->pmysql));
-          return 0;
+          return FALSE;
         }
       }
     }
@@ -4022,14 +4025,19 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets: Error while processing multi-result set: %s\n",
                     mysql_error(imp_dbh->pmysql));
 
-    mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
-             mysql_sqlstate(imp_dbh->pmysql));
+    /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
+    error = mysql_errno(imp_dbh->pmysql);
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    {
+      mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      return FALSE;
+    }
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets\n");
 
-  return 1;
+  return TRUE;
 }
 
 
@@ -4565,7 +4573,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mariadb_st_free_result_sets (sth, imp_sth);
+  if (!mariadb_st_free_result_sets(sth, imp_sth))
+    return -2;
 
   if (use_server_side_prepare)
   {
@@ -5359,7 +5368,8 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
       Clean-up previous result set(s) for sth to prevent
       'Commands out of sync' error
     */
-    mariadb_st_free_result_sets(sth, imp_sth);
+    if (!mariadb_st_free_result_sets(sth, imp_sth))
+      return 0;
   }
   DBIc_ACTIVE_off(imp_sth);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
