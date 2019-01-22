@@ -2551,9 +2551,9 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   bool disable_fallback_for_server_prepare = FALSE;
   MYSQL_STMT *stmt = NULL;
   MYSQL_BIND *bind = NULL;
-  MYSQL_RES *res;
   STRLEN blen;
   unsigned long int num_params;
+  unsigned int error;
 
   ASYNC_CHECK_RETURN(dbh, -2);
 
@@ -2642,11 +2642,33 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     imp_dbh->async_query_in_flight = imp_dbh;
   }
 
-  while (mysql_next_result(imp_dbh->pmysql) == 0)
+  while ((next_result_rc = mysql_next_result(imp_dbh->pmysql)) == 0)
   {
-    res = mysql_use_result(imp_dbh->pmysql);
-    if (res)
-      mysql_free_result(res);
+    result = mysql_store_result(imp_dbh->pmysql);
+    if (!result)
+    {
+      if (mysql_errno(imp_dbh->pmysql))
+      {
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+        return -2;
+      }
+    }
+    if (result)
+    {
+      mysql_free_result(result);
+      result = NULL;
+    }
+  }
+
+  if (next_result_rc > 0)
+  {
+    /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
+    error = mysql_errno(imp_dbh->pmysql);
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    {
+      mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      return -2;
+    }
   }
 
   if (use_server_side_prepare)
@@ -2804,7 +2826,12 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     /* more results? -1 = no, >0 = error, 0 = yes (keep looping) */
     while ((next_result_rc = mysql_next_result(imp_dbh->pmysql)) == 0)
     {
-      result = mysql_use_result(imp_dbh->pmysql);
+      result = mysql_store_result(imp_dbh->pmysql);
+      if (mysql_errno(imp_dbh->pmysql))
+      {
+        next_result_rc = 1;
+        break;
+      }
       if (!result) /* Next statement without result set, new insert id */
         imp_dbh->insertid = mysql_insert_id(imp_dbh->pmysql);
       if (result)
@@ -3967,10 +3994,10 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
     if (next_result_rc == 0)
     {
-      if (!(imp_sth->result = mysql_use_result(imp_dbh->pmysql)))
+      if (!(imp_sth->result = mysql_store_result(imp_dbh->pmysql)))
       {
         /* Check for possible error */
-        if (mysql_field_count(imp_dbh->pmysql))
+        if (mysql_errno(imp_dbh->pmysql))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets ERROR: %s\n",
