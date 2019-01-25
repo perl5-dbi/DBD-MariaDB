@@ -2551,9 +2551,9 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   bool disable_fallback_for_server_prepare = FALSE;
   MYSQL_STMT *stmt = NULL;
   MYSQL_BIND *bind = NULL;
-  MYSQL_RES *res;
   STRLEN blen;
   unsigned long int num_params;
+  unsigned int error;
 
   ASYNC_CHECK_RETURN(dbh, -2);
 
@@ -2642,11 +2642,38 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     imp_dbh->async_query_in_flight = imp_dbh;
   }
 
-  while (mysql_next_result(imp_dbh->pmysql) == 0)
+  while ((next_result_rc = mysql_next_result(imp_dbh->pmysql)) == 0)
   {
-    res = mysql_use_result(imp_dbh->pmysql);
-    if (res)
-      mysql_free_result(res);
+    result = mysql_store_result(imp_dbh->pmysql);
+    if (!result)
+    {
+      if (mysql_errno(imp_dbh->pmysql))
+      {
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+        return -2;
+      }
+    }
+    if (result)
+    {
+      mysql_free_result(result);
+      result = NULL;
+    }
+  }
+
+  if (next_result_rc > 0)
+  {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
+    /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
+    error = mysql_errno(imp_dbh->pmysql);
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    {
+      mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      return -2;
+    }
   }
 
   if (use_server_side_prepare)
@@ -2804,7 +2831,12 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
     /* more results? -1 = no, >0 = error, 0 = yes (keep looping) */
     while ((next_result_rc = mysql_next_result(imp_dbh->pmysql)) == 0)
     {
-      result = mysql_use_result(imp_dbh->pmysql);
+      result = mysql_store_result(imp_dbh->pmysql);
+      if (mysql_errno(imp_dbh->pmysql))
+      {
+        next_result_rc = 1;
+        break;
+      }
       if (!result) /* Next statement without result set, new insert id */
         imp_dbh->insertid = mysql_insert_id(imp_dbh->pmysql);
       if (result)
@@ -2814,6 +2846,12 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
     if (next_result_rc > 0)
     {
+#if MYSQL_VERSION_ID < 50025
+      /* Cover a protocol design error: error packet does not contain the server status.
+       * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+      imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
+
       if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t<- do() ERROR: %s\n", mysql_error(imp_dbh->pmysql));
 
@@ -3668,7 +3706,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
   return av;
 }
 
-static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth);
+static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth);
 
 /* 
  **************************************************************************
@@ -3800,7 +3838,8 @@ mariadb_st_prepare_sv(
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mariadb_st_free_result_sets(sth, imp_sth);
+  if (!mariadb_st_free_result_sets(sth, imp_sth))
+    return 0;
 
   if (imp_sth->use_server_side_prepare)
   {
@@ -3944,18 +3983,20 @@ mariadb_st_prepare_sv(
  * Inputs: sth - Statement handle
  *         imp_sth - driver's private statement handle
  *
- * Returns: 1 ok
- *          0 error
+ * Returns: TRUE ok
+ *          FALSE error; mariadb_dr_do_error will be called
  *************************************************************************/
-static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
+static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth)
 {
   dTHX;
   D_imp_dbh_from_sth;
   D_imp_xxh(sth);
   int next_result_rc= -1;
+  unsigned int error;
 
+  /* No connection, nothing to clean, no error */
   if (!imp_dbh->pmysql)
-    return 0;
+    return TRUE;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- mariadb_st_free_result_sets\n");
@@ -3967,10 +4008,10 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
     if (next_result_rc == 0)
     {
-      if (!(imp_sth->result = mysql_use_result(imp_dbh->pmysql)))
+      if (!(imp_sth->result = mysql_store_result(imp_dbh->pmysql)))
       {
         /* Check for possible error */
-        if (mysql_field_count(imp_dbh->pmysql))
+        if (mysql_errno(imp_dbh->pmysql))
         {
           if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets ERROR: %s\n",
@@ -3978,7 +4019,7 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
           mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
                    mysql_sqlstate(imp_dbh->pmysql));
-          return 0;
+          return FALSE;
         }
       }
     }
@@ -3991,18 +4032,29 @@ static int mariadb_st_free_result_sets (SV * sth, imp_sth_t * imp_sth)
 
   if (next_result_rc > 0)
   {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
+
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets: Error while processing multi-result set: %s\n",
                     mysql_error(imp_dbh->pmysql));
 
-    mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
-             mysql_sqlstate(imp_dbh->pmysql));
+    /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
+    error = mysql_errno(imp_dbh->pmysql);
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    {
+      mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+      return FALSE;
+    }
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t<- mariadb_st_free_result_sets\n");
 
-  return 1;
+  return TRUE;
 }
 
 
@@ -4083,6 +4135,11 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
    */
   if (next_result_return_code > 0)
   {
+#if MYSQL_VERSION_ID < 50025
+    /* Cover a protocol design error: error packet does not contain the server status.
+     * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+    imp_dbh->pmysql->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
     mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql),
              mysql_sqlstate(imp_dbh->pmysql));
 
@@ -4270,6 +4327,11 @@ static my_ulonglong mariadb_st_internal_execute(
           (!mariadb_db_reconnect(h, NULL) ||
            (mysql_real_query(*svsock, sbuf, slen))))
       {
+#if MYSQL_VERSION_ID < 50025
+        /* Cover a protocol design error: error packet does not contain the server status.
+         * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+        (*svsock)->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
         rows = -1;
       } else {
           /** Store the result from the Query */
@@ -4538,7 +4600,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
      Clean-up previous result set(s) for sth to prevent
      'Commands out of sync' error 
   */
-  mariadb_st_free_result_sets (sth, imp_sth);
+  if (!mariadb_st_free_result_sets(sth, imp_sth))
+    return -2;
 
   if (use_server_side_prepare)
   {
@@ -5332,7 +5395,8 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
       Clean-up previous result set(s) for sth to prevent
       'Commands out of sync' error
     */
-    mariadb_st_free_result_sets(sth, imp_sth);
+    if (!mariadb_st_free_result_sets(sth, imp_sth))
+      return 0;
   }
   DBIc_ACTIVE_off(imp_sth);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
