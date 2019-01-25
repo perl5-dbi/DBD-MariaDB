@@ -2652,6 +2652,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
         return -2;
       }
+      imp_dbh->insertid = mysql_insert_id(imp_dbh->pmysql);
     }
     if (result)
     {
@@ -4021,6 +4022,7 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth)
                    mysql_sqlstate(imp_dbh->pmysql));
           return FALSE;
         }
+        imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
       }
     }
     if (imp_sth->result)
