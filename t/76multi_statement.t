@@ -13,7 +13,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
-plan tests => 36;
+plan tests => 51;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
@@ -71,6 +71,29 @@ $dbh->{mariadb_server_prepare}= 0;
   is($sth->last_insert_id(), 2);
   is($dbh->last_insert_id(undef, undef, undef, undef), 2);
   ok(not $sth->more_results());
+  ok($sth->finish());
+
+  # Check that $dbh->last_insert_id works after $dbh->do with multi statements
+  ok($dbh->do("INSERT INTO dbd_mysql_t76multi2 VALUES(3); INSERT INTO dbd_mysql_t76multi2 VALUES(4);"));
+  is($dbh->last_insert_id(undef, undef, undef, undef), 4, '$dbh->last_insert_id is correct after $dbh->do with multi statements');
+
+  # Check that $dbh->last_insert_id works after prepare, execute and finish but without more_results
+  ok($sth = $dbh->prepare("INSERT INTO dbd_mysql_t76multi2 VALUES(5); INSERT INTO dbd_mysql_t76multi2 VALUES(6);"));
+  ok($sth->execute());
+  ok($sth->finish());
+  is($dbh->last_insert_id(undef, undef, undef, undef), 6, '$dbh->last_insert_id is correct after multi statement prepare, execute and finish');
+
+  # Check that $dbh->last_insert_id works after prepare and execute, but without more_results; after preparing new statement
+  ok($sth = $dbh->prepare("INSERT INTO dbd_mysql_t76multi2 VALUES(7); INSERT INTO dbd_mysql_t76multi2 VALUES(8);"));
+  ok($sth->execute());
+  ok($sth = $dbh->prepare("SELECT 1"));
+  is($dbh->last_insert_id(undef, undef, undef, undef), 8, '$dbh->last_insert_id is correct after multi statement prepare and execute without finish followed by new prepare');
+
+  # Check that $dbh->last_insert_id works after prepare and execute, but without more_results; after calling $dbh->do which do not modify last_insert_id
+  ok($sth = $dbh->prepare("INSERT INTO dbd_mysql_t76multi2 VALUES(9); INSERT INTO dbd_mysql_t76multi2 VALUES(10);"));
+  ok($sth->execute());
+  ok($dbh->do("SELECT 1"));
+  is($dbh->last_insert_id(undef, undef, undef, undef), 10, '$dbh->last_insert_id is correct after multi statement prepare and execute without finish followed by $dbh->do');
   ok($sth->finish());
 
 $dbh->disconnect();
