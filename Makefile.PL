@@ -284,6 +284,133 @@ my $have_deinitialize_ssl = check_lib(
   function => 'mariadb_deinitialize_ssl = 0; return 0;',
 );
 
+# Check if mysql_server_end() deinitialize OpenSSL library functions
+# See: https://github.com/gooddata/DBD-MariaDB/issues/119
+my $have_problem_with_openssl = !check_lib(
+  LIBS => (join ' ', @libdirs, $main_lib),
+  ccflags => $opt->{cflags},
+  ldflags => (join ' ', @libdirs, @libs, @ldflags, $Config{perllibs}),
+  header => \@mysql_headers,
+  function => << 'EOF'
+
+#ifndef _WIN32
+  #ifndef _GNU_SOURCE
+    #define _GNU_SOURCE
+  #endif
+  #include <dlfcn.h>
+  #ifndef RTLD_DEFAULT
+    #define RTLD_DEFAULT ((void *)0)
+  #endif
+#endif
+
+int (*OPENSSL_init_ssl_func)(unsigned long long, const void *);
+void (*SSL_load_error_strings_func)(void);
+int (*SSL_library_init_func)(void);
+void *(*SSL_CTX_new_func)(const void *method);
+void (*SSL_CTX_free_func)(void *ctx);
+const void *(*TLS_method_func)(void);
+const void *method1;
+const void *method2;
+void *ctx1;
+void *ctx2;
+
+#ifdef _WIN32
+
+  BOOL (WINAPI *EnumProcessModules_func)(HANDLE, HMODULE *, DWORD, LPDWORD);
+  HMODULE psapi_lib;
+  DWORD size, i;
+  HMODULE *modules;
+
+  modules = NULL;
+  psapi_lib = LoadLibraryA("Psapi.dll");
+  if (psapi_lib) {
+    EnumProcessModules_func = (BOOL (WINAPI *)(HANDLE, HMODULE *, DWORD, LPDWORD))GetProcAddress(psapi_lib, "EnumProcessModules");
+    if (EnumProcessModules_func) {
+      if (EnumProcessModules_func((HANDLE)-1, NULL, 0, &size)) {
+        modules = (HMODULE *)GlobalAlloc(GPTR, size);
+        if (modules && !EnumProcessModules_func((HANDLE)-1, modules, size, &size))
+          modules = NULL;
+      }
+    }
+  }
+
+  #define SYMBOL(var, type, sym) do { \
+      var = (type)GetProcAddress(GetModuleHandle(NULL), sym); \
+      if (!var) { \
+        if (!modules) \
+          return 1; \
+        for (i = 0; i < size/sizeof(*modules); ++i) { \
+          var = (type)GetProcAddress(modules[i], sym); \
+          if (var) \
+            break; \
+        } \
+      } \
+    } while (0)
+
+#else
+
+  #define SYMBOL(var, type, sym) do { var = (type)dlsym(RTLD_DEFAULT, sym); } while (0)
+
+#endif
+
+SYMBOL(OPENSSL_init_ssl_func, int (*)(unsigned long long, const void *), "OPENSSL_init_ssl");
+SYMBOL(SSL_library_init_func, int (*)(void), "SSL_library_init");
+if (!OPENSSL_init_ssl_func && !SSL_library_init_func)
+  return 0;
+SYMBOL(SSL_load_error_strings_func, void (*)(void), "SSL_load_error_strings");
+if (!OPENSSL_init_ssl_func && !SSL_load_error_strings_func)
+  return 0;
+SYMBOL(SSL_CTX_new_func, void *(*)(const void *), "SSL_CTX_new");
+if (!SSL_CTX_new_func)
+  return 0;
+SYMBOL(SSL_CTX_free_func, void (*)(void *), "SSL_CTX_free");
+if (!SSL_CTX_free_func)
+  return 0;
+
+SYMBOL(TLS_method_func, const void *(*)(void), "TLS_method");
+if (!TLS_method_func)
+  SYMBOL(TLS_method_func, const void *(*)(void), "TLSv1_2_method");
+if (!TLS_method_func)
+  SYMBOL(TLS_method_func, const void *(*)(void), "TLSv1_1_method");
+if (!TLS_method_func)
+  SYMBOL(TLS_method_func, const void *(*)(void), "TLSv1_method");
+if (!TLS_method_func)
+  return 0;
+
+if (OPENSSL_init_ssl_func) {
+  OPENSSL_init_ssl_func(0, (void *)0);
+} else {
+  SSL_library_init_func();
+  SSL_load_error_strings_func();
+}
+
+method1 = TLS_method_func();
+if (!method1)
+  return 1;
+ctx1 = SSL_CTX_new_func(method1);
+if (!ctx1)
+  return 1;
+
+mysql_server_init(-1, 0, 0);
+mysql_server_end();
+
+method2 = TLS_method_func();
+if (!method2)
+  return 1;
+ctx2 = SSL_CTX_new_func(method2);
+if (!ctx2)
+  return 1;
+
+SSL_CTX_free_func(ctx1);
+SSL_CTX_free_func(ctx2);
+
+return 0;
+
+EOF
+);
+
+print "Client library deinitialize OpenSSL library functions: " . ($have_problem_with_openssl ? "yes" : "no") . "\n\n";
+
 my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 (open(FILE, ">$fileName") &&
  (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
@@ -313,6 +440,7 @@ $cflags .= " -DHAVE_EMBEDDED" if $have_embedded;
 $cflags .= " -DHAVE_GET_CHARSET_NUMBER" if $have_get_charset_number;
 $cflags .= " -DHAVE_GET_OPTION" if $have_get_option;
 $cflags .= " -DHAVE_DEINITIALIZE_SSL" if $have_deinitialize_ssl;
+$cflags .= " -DHAVE_PROBLEM_WITH_OPENSSL" if $have_problem_with_openssl;
 my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'INC' => $cflags,
 	  'dist'         => { 'SUFFIX'       => ".gz",
