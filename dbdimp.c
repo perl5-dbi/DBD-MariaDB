@@ -2951,7 +2951,7 @@ static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
      * These bugs were fixed in MariaDB Connector/C 3.0.5, see: https://jira.mariadb.org/browse/CONC-336
      * But remains in MariaDB Embedded server, see: https://jira.mariadb.org/browse/MDEV-16578
      */
-#ifndef HAVE_BROKEN_INIT
+#if !defined(HAVE_BROKEN_INIT) && (defined(HAVE_DEINITIALIZE_SSL) || !defined(HAVE_PROBLEM_WITH_OPENSSL))
     if (imp_drh->non_embedded_started)
     {
       mysql_server_end();
@@ -2962,6 +2962,9 @@ static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
     {
       mysql_server_end();
       imp_drh->embedded_started = FALSE;
+#if !defined(HAVE_DEINITIALIZE_SSL) && defined(HAVE_PROBLEM_WITH_OPENSSL)
+      warn("DBD::MariaDB disconnect: Client library deinitialized OpenSSL library functions and module Net::SSLeay is now broken");
+#endif
     }
     if (imp_drh->embedded_args)
     {
@@ -3144,6 +3147,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 #ifndef HAVE_EMBEDDED
   if (imp_drh->non_embedded_started)
   {
+ #if defined(HAVE_DEINITIALIZE_SSL) || !defined(HAVE_PROBLEM_WITH_OPENSSL)
   #ifndef HAVE_BROKEN_INIT
     warn("DBD::MariaDB disconnect_all: Client library was not properly deinitialized (possible bug in driver)");
     ret = 0;
@@ -3152,6 +3156,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
     imp_drh->non_embedded_started = FALSE;
     imp_drh->non_embedded_finished = TRUE;
   #endif
+ #endif
   }
 #endif
 

@@ -63,7 +63,7 @@ BOOT:
   newTypeSub(stash, MYSQL_TYPE_VAR_STRING);
   newTypeSub(stash, MYSQL_TYPE_STRING);
 #undef newTypeSub
-#ifdef HAVE_DEINITIALIZE_SSL
+#if defined(HAVE_DEINITIALIZE_SSL) && defined(HAVE_PROBLEM_WITH_OPENSSL)
   /* Do not deinitialize OpenSSL library after mysql_server_end()
    * See: https://github.com/gooddata/DBD-MariaDB/issues/119 */
   mariadb_deinitialize_ssl = 0;
