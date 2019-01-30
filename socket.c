@@ -10,6 +10,12 @@
 #include <stddef.h>
 #include <errno.h>
 
+#ifndef _WIN32
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 /*
  * Warning: Native socket code must be outside of dbdimp.c and dbdimp.h because
  *          perl header files redefine socket function. This file must not
