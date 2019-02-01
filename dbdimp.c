@@ -6519,13 +6519,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
     }
     if (!*resp)
       retval= mysql_affected_rows(svsock);
-    else {
+    else
       retval= mysql_num_rows(*resp);
-      if(resp == &_res) {
-        mysql_free_result(*resp);
-        *resp= NULL;
-      }
-    }
 
     /* Some MySQL client versions return correct value from mysql_insert_id()
      * function only after non-SELECT operation. So store insert id into dbh
@@ -6548,6 +6543,12 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
           imp_sth->fetch_done = FALSE;
         }
       imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
+    }
+
+    if (*resp && resp == &_res)
+    {
+      mysql_free_result(*resp);
+      *resp = NULL;
     }
   } else {
      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock),
