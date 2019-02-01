@@ -10,7 +10,7 @@ require 'lib.pl';
 my ($dbh, $sth, $aref);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 2*33 + 1;
+plan tests => 2*32 + 1;
 
 for my $mariadb_server_prepare (0, 1) {
 
@@ -84,8 +84,6 @@ ok ($aref= $sth->fetchall_arrayref);
 is scalar @$aref, 3, 'Verified rows should be 3';
 
 is $sth->rows, 3, 'rows still should be 3';
-
-ok $sth->finish;
 
 ok $dbh->do("DROP TEMPORARY TABLE dbd_mysql_t40numrows"), "drop table dbd_mysql_t40numrows";
 
