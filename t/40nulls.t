@@ -10,7 +10,7 @@ require 'lib.pl';
 my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 10;
+plan tests => 9;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t40nulls"), "DROP TABLE IF EXISTS dbd_mysql_t40nulls";
 
@@ -33,8 +33,6 @@ ok (my $aref = $sth->fetchrow_arrayref);
 ok !defined($$aref[0]);
 
 ok defined($$aref[1]);
-
-ok $sth->finish;
 
 ok $dbh->do("DROP TABLE dbd_mysql_t40nulls");
 

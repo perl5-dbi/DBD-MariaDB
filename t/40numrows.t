@@ -10,7 +10,7 @@ require 'lib.pl';
 my ($dbh, $sth, $aref);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 2*32 + 1;
+plan tests => 2*29 + 1;
 
 for my $mariadb_server_prepare (0, 1) {
 
@@ -39,8 +39,6 @@ is scalar @$aref, 1, 'Verified rows should be 1';
 
 is $sth->rows, 1, '$sth->rows still should be 1';
 
-ok $sth->finish;
-
 ok $dbh->do("INSERT INTO dbd_mysql_t40numrows VALUES( 2, 'Jochen Wiedmann' )"), 'inserting second row';
 
 ok ($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t40numrows WHERE id >= 1"));
@@ -55,8 +53,6 @@ is scalar @$aref, 2, 'Verified rows should be 2';
 
 is $sth->rows, 2, '$sth->rows still should be 2';
 
-ok $sth->finish;
-
 ok $dbh->do("INSERT INTO dbd_mysql_t40numrows VALUES(3, 'Tim Bunce')"), "inserting third row";
 
 ok ($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t40numrows WHERE id >= 2"));
@@ -70,8 +66,6 @@ ok ($aref= $sth->fetchall_arrayref);
 is scalar @$aref, 2, 'Verified rows should be 2';
 
 is $sth->rows, 2, 'rows still should be 2';
-
-ok $sth->finish;
 
 ok ($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t40numrows"));
 

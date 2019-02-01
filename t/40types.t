@@ -15,7 +15,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 78*2;
+plan tests => 70*2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
@@ -44,7 +44,6 @@ ok(!($sv->FLAGS & (SVf_IVisUV|SVf_NOK|SVf_POK)), "scalar is not unsigned intger 
 is_deeply($sth->{TYPE}, [ DBI::SQL_INTEGER ], "checking column type");
 is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG ], "checking mariadb column type");
 
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
 ok($dbh->do(qq{CREATE TABLE t_dbd_40types (num VARCHAR(10))}), "creating table");
@@ -69,11 +68,10 @@ ok(!($sv->FLAGS & (SVf_IOK|SVf_NOK)), "scalar is not intger or double");
 is_deeply($sth->{TYPE}, [ DBI::SQL_VARCHAR ], "checking column type");
 cmp_deeply($sth->{mariadb_type}, [ any(DBD::MariaDB::TYPE_VARCHAR, DBD::MariaDB::TYPE_VAR_STRING) ], "checking mariadb column type");
 
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
 SKIP: {
-skip "Clients < 5.0.3 do not support new decimal type from servers >= 5.0.3", 6 if $dbh->{mariadb_serverversion} >= 50003 and $dbh->{mariadb_clientversion} < 50003;
+skip "Clients < 5.0.3 do not support new decimal type from servers >= 5.0.3", 5 if $dbh->{mariadb_serverversion} >= 50003 and $dbh->{mariadb_clientversion} < 50003;
 
 ok($dbh->do(qq{CREATE TABLE t_dbd_40types (d DECIMAL(5,2))}), "creating table");
 
@@ -83,7 +81,6 @@ ok($sth->execute(), "getting table information");
 is_deeply($sth->{TYPE}, [ DBI::SQL_DECIMAL ], "checking column type");
 cmp_deeply($sth->{mariadb_type}, [ any(DBD::MariaDB::TYPE_DECIMAL, DBD::MariaDB::TYPE_NEWDECIMAL) ], "checking mariadb column type");
 
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 }
 
@@ -96,10 +93,8 @@ ok($dbh->do(qq{CREATE TABLE t_dbd_40types (num DOUBLE)}), "creating table");
 $sth= $dbh->prepare("INSERT INTO t_dbd_40types VALUES (?)");
 ok($sth->bind_param(1, 2.1, DBI::SQL_DOUBLE), "binding parameter");
 ok($sth->execute(), "inserting data");
-ok($sth->finish);
 ok($sth->bind_param(1, -1, DBI::SQL_DOUBLE), "binding parameter");
 ok($sth->execute(), "inserting data");
-ok($sth->finish);
 
 my $ret = $dbh->selectall_arrayref("SELECT * FROM t_dbd_40types");
 cmp_deeply($ret, [ [num(2.1, 0.00001)], [num(-1, 0.00001)] ]);
@@ -128,7 +123,6 @@ ok(!($sv->FLAGS & (SVf_IOK|SVf_POK)), "scalar is not integer or string");
 is_deeply($sth->{TYPE}, [ DBI::SQL_DOUBLE ], "checking column type");
 is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_DOUBLE ], "checking mariadb column type");
 
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
 #
@@ -164,7 +158,6 @@ ok(!($sv->FLAGS & (SVf_NOK|SVf_POK)), "scalar is not double or string");
 is_deeply($sth->{TYPE}, [ DBI::SQL_INTEGER ], "checking column type");
 is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG ], "checking mariadb column type");
 
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
 # https://github.com/gooddata/DBD-MariaDB/issues/109: Check DBI::SQL_BIGINT type
@@ -173,7 +166,6 @@ $sth = $dbh->prepare("SELECT * FROM t_dbd_40types");
 ok($sth->execute());
 is_deeply($sth->{TYPE}, [ DBI::SQL_BIGINT ], "checking column type of bigint");
 is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONGLONG ], "checking mariadb column type of bigint");
-ok($sth->finish);
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
 }

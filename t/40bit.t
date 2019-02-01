@@ -14,7 +14,7 @@ if ($dbh->{mariadb_serverversion} < 50008) {
     plan skip_all => "Servers < 5.0.8 do not support b'' syntax";
 }
 
-plan tests => 15;
+plan tests => 14;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_b1"), "Drop table if exists dbd_mysql_b1";
 
@@ -35,8 +35,6 @@ ok defined($result), "result returned defined";
 is $result->[0][0], 11111111, "should be 11111111";
 is $result->[1][0], 1010, "should be 1010";
 is $result->[2][0], 101, "should be 101";
-
-ok ($sth->finish);
 
 ok $dbh->do("DROP TABLE dbd_mysql_b1"), "Drop table dbd_mysql_b1";
 

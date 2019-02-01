@@ -13,7 +13,7 @@ use vars qw($test_dsn $test_user $test_password);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
     { RaiseError => 1, PrintError => 0 });
 
-plan tests => 49;
+plan tests => 47;
 
 ok(defined $dbh, "Connected to database");
 
@@ -45,8 +45,6 @@ ok(($rows = $sth->execute()), "Inserting second row");
 
 ok($rows == 1, "One row should have been inserted");
 
-ok($sth->finish, "Finishing up with statement handle");
-
 ok($sth= $dbh->prepare("SELECT id, name FROM dbd_mysql_t35prepare WHERE id = 1"),
   "Testing prepare of query");
 
@@ -68,8 +66,6 @@ for (my $i = 0 ; $i < 10; $i++)
   ok($rows= $sth->execute($i, $random_chars), "Testing insert row");
   ok($rows= 1, "Should have inserted one row");
 }
-
-ok($sth->finish, "Testing closing of statement handle");
 
 ok($sth= $dbh->prepare("SELECT * FROM dbd_mysql_t35prepare WHERE id = ? OR id = ?"),
   "Testing prepare of query with placeholders");

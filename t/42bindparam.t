@@ -10,7 +10,7 @@ require 'lib.pl';
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 12;
+plan tests => 11;
 
 ok $dbh->do("drop table if exists dbd_mysql_t42bindparams");
 
@@ -38,7 +38,5 @@ ok $sth->bind_param(2,.3333333,DBI::SQL_DOUBLE);
 ok $sth->execute();
 
 ok $dbh->do("DROP TABLE dbd_mysql_t42bindparams");
-
-ok $sth->finish;
 
 ok $dbh->disconnect;

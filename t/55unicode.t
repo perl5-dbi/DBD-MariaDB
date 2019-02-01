@@ -30,7 +30,6 @@ for my $mariadb_server_prepare (0, 1) {
             $sth->execute();
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins without bind");
-            $sth->finish();
             $dbh->do("DROP TEMPORARY TABLE t");
         }
         SKIP: {
@@ -40,7 +39,6 @@ for my $mariadb_server_prepare (0, 1) {
             $sth->execute($ins);
             my $fetch = $dbh->selectrow_array("SELECT s FROM t");
             is($fetch, $ins, "test $ins with bind");
-            $sth->finish();
             $dbh->do("DROP TEMPORARY TABLE t");
         }
     }

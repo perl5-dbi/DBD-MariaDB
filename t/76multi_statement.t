@@ -14,7 +14,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
-plan tests => 73;
+plan tests => 71;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
@@ -42,7 +42,6 @@ $dbh->{mariadb_server_prepare}= 0;
   is($sth->rows, 2, "Second update affected 2 rows");
   is($sth->{mariadb_warning_count}, 2, "Second update had 2 warnings");
   ok(not $sth->more_results());
-  ok($sth->finish());
 
   # Now run it again without calling more_results().
   ok($sth->execute(), "Execute updates again");
@@ -72,7 +71,6 @@ $dbh->{mariadb_server_prepare}= 0;
   is($sth->last_insert_id(), 2);
   is($dbh->last_insert_id(undef, undef, undef, undef), 2);
   ok(not $sth->more_results());
-  ok($sth->finish());
 
   # Check that $dbh->last_insert_id works after $dbh->do with multi statements
   ok($dbh->do("INSERT INTO dbd_mysql_t76multi2 VALUES(3); INSERT INTO dbd_mysql_t76multi2 VALUES(4);"));

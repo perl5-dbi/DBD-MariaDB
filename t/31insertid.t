@@ -11,7 +11,7 @@ require "lib.pl";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                          { RaiseError => 1, PrintError => 0 });
 
-plan tests => 3 + 2*37;
+plan tests => 3 + 2*35;
 
 SKIP: {
     skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
@@ -86,9 +86,6 @@ is $sth->{mariadb_insertid}, 2, "second insert id == \$sth->{mariadb_insertid}";
 is $sth->last_insert_id(), 2, "second insert id == \$sth->last_insert_id()";
 is $sth3->{mariadb_insertid}, 3, "third insert id == \$sth3->{mariadb_insertid}";
 is $sth3->last_insert_id(), 3, "third insert id == \$sth3->last_insert_id()";
-
-ok $sth->finish();
-ok $sth2->finish();
 
 ok $dbh->do('DROP TEMPORARY TABLE dbd_mysql_t31');
 

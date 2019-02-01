@@ -10,7 +10,7 @@ require 'lib.pl';
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 
-plan tests => 14;
+plan tests => 13;
 
 SKIP: {
     skip 'SET @@auto_increment_offset needs MySQL >= 5.0.2', 2 unless $dbh->{mariadb_serverversion} >= 50002;
@@ -40,8 +40,6 @@ ok ($sth->bind_param(1, undef));
 ok ($sth->bind_param(2, 1, DBI::SQL_INTEGER()));
 
 ok ($sth->execute());
-
-ok ($sth->finish());
 
 ok ($rows = $dbh->selectall_arrayref("SELECT * FROM dbd_mysql_t40bindparam2"));
 

@@ -12,7 +12,7 @@ require 'lib.pl';
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 
-plan tests => 25;
+plan tests => 21;
 
 my @chars = grep !/[0O1Iil]/, 0..9, 'A'..'Z', 'a'..'z';
 my $blob1= join '', map { $chars[rand @chars] } 0 .. 10000;
@@ -50,8 +50,6 @@ ok defined($sth);
 
 ok $sth->execute(1, $blob1), "inserting \$blob1";
 
-ok $sth->finish;
-
 ok ($sth= $dbh->prepare("SELECT * FROM dbd_mysql_41blobs_prepare WHERE id = 1"));
 
 ok $sth->execute, "select from dbd_mysql_41blobs_prepare";
@@ -64,13 +62,9 @@ is $$row[0], 1, "first row id == 1";
 
 cmp_ok $$row[1], 'eq', $blob1, ShowBlob($blob1);
 
-ok $sth->finish;
-
 ok ($sth= $dbh->prepare("UPDATE dbd_mysql_41blobs_prepare SET name = ? WHERE id = 1"));
 
 ok $sth->execute($blob2), 'inserting $blob2';
-
-ok ($sth->finish);
 
 ok ($sth= $dbh->prepare("SELECT * FROM dbd_mysql_41blobs_prepare WHERE id = 1"));
 
@@ -83,8 +77,6 @@ is scalar @$row, 2, 'two rows';
 is $$row[0], 1, 'row id == 1';
 
 cmp_ok $$row[1], 'eq', $blob2, ShowBlob($blob2);
-
-ok ($sth->finish);
 
 ok $dbh->do("DROP TABLE dbd_mysql_41blobs_prepare"), "drop dbd_mysql_41blobs_prepare";
 

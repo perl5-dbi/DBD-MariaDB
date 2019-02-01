@@ -120,12 +120,12 @@ ok defined $resultset;
 
 is @$resultset, 3, "3 Rows in resultset";
 
-ok $sth->more_results();
+is $sth->more_results(), 1, "each CALL returns a result to indicate the call status";
 
-is $sth->{NUM_OF_FIELDS}, 0, "NUM_OF_FIELDS == 0"; +
+is $sth->{NUM_OF_FIELDS}, 0, "NUM_OF_FIELDS == 0";
+
+ok !$sth->more_results();
 
 local $SIG{__WARN__} = sub { die @_ };
-
-ok $sth->finish;
 
 ok $dbh->disconnect();

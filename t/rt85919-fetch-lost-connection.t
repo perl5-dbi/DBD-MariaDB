@@ -20,7 +20,6 @@ my $ok = eval {
         ok( $sth->execute(), 'execute SQL');
         my @res = $sth->fetchrow_array();
         is ( $res[0], undef, 'no rows returned');
-        ok( $sth->finish(), 'finish');
         $sth = undef;
     }
     else {

@@ -12,7 +12,7 @@ my ($row, $vers, $test_procs);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 
-plan tests => 12;
+plan tests => 11;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t75supported");
 
@@ -33,8 +33,6 @@ ok $sth->execute();
 ok ($row= $sth->fetchrow_arrayref);
 
 cmp_ok $row->[0], 'eq', 'dbd_mysql_t75supported', "\$row->[0] eq dbd_mysql_t75supported";
-
-ok $sth->finish;
 
 ok $dbh->do("DROP TABLE dbd_mysql_t75supported"), "drop dbd_mysql_t75supported";
 

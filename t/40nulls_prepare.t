@@ -60,9 +60,6 @@ is_deeply($sth_lookup->fetchrow_arrayref(), [42, 102, undef, 10004]);
 ok($sth_lookup->execute(43), "Query for record of id = 43");
 is_deeply($sth_lookup->fetchrow_arrayref(), [43, 2002, 20003, 200004]);
 
-ok($sth_insert->finish());
-ok($sth_lookup->finish());
-
 ok $dbh->do("DROP TABLE dbd_mysql_t40nullsprepare");
 
 ok($dbh->disconnect(), "Testing disconnect");

@@ -11,7 +11,7 @@ require 'lib.pl';
 my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 11;
+plan tests => 10;
 
 my ($rows, $errstr, $ret_ref);
 ok $dbh->do("drop table if exists dbd_mysql_41bindparam"), "drop table dbd_mysql_41bindparam";
@@ -31,7 +31,5 @@ ok $sth->execute(), 'execute';
 ok ($sth= $dbh->prepare("DROP TABLE dbd_mysql_41bindparam"));
 
 ok $sth->execute();
-
-ok $sth->finish;
 
 ok $dbh->disconnect;

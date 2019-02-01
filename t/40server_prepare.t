@@ -14,7 +14,7 @@ $test_dsn.= ";mariadb_server_prepare=1;mariadb_server_prepare_disable_fallback=1
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 31;
+plan tests => 29;
 
 ok(defined $dbh, "connecting");
 
@@ -36,8 +36,6 @@ ok ($sth->bind_param(1, 1), "binding parameter");
 ok ($sth->execute(), "fetching data");
 
 is_deeply($sth->fetchall_arrayref({}), [ { 'num' => '3' } ]);
-
-ok ($sth->finish);
 
 ok ($dbh->do(qq{DROP TABLE dbd_mysql_t40serverprepare1}), "cleaning up");
 
@@ -85,7 +83,6 @@ $dbh->{mariadb_server_prepare_disable_fallback} = 0;
 my $sth4;
 ok($sth4 = $dbh->prepare("USE " . $dbh->quote_identifier($test_db)), 'USE is supported with mariadb_server_prepare_disable_fallback=0');
 ok($sth4->execute());
-ok($sth4->finish());
 
 ok ($dbh->do(qq{DROP TABLE t3}), "cleaning up");
 
