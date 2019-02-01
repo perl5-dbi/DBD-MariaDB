@@ -6530,14 +6530,13 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
     /* Some MySQL client versions return correct value from mysql_insert_id()
      * function only after non-SELECT operation. So store insert id into dbh
      * cache and later read it only from cache. */
-    if (retval != (my_ulonglong)-1 && !*resp)
+    if (!*resp)
       dbh->insertid = mysql_insert_id(svsock);
 
     if(htype == DBIt_ST) {
       D_imp_sth(h);
       D_imp_dbh_from_sth;
 
-      if (retval != (my_ulonglong)-1) {
         if(! *resp) {
           imp_sth->insertid = dbh->insertid;
           if(! mysql_more_results(svsock))
@@ -6548,7 +6547,6 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
           imp_sth->done_desc = FALSE;
           imp_sth->fetch_done = FALSE;
         }
-      }
       imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
     }
   } else {
