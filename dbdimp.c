@@ -4960,8 +4960,6 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
       if (rc == MYSQL_NO_DATA)
       {
-        /* Update row_num to affected_rows value */
-        imp_sth->row_num= mysql_stmt_affected_rows(imp_sth->stmt);
         imp_sth->fetch_done = TRUE;
         if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
           PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_fetch no data\n");
