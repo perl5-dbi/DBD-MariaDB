@@ -4899,7 +4899,10 @@ mariadb_st_fetch(SV *sth, imp_sth_t* imp_sth)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t-> mariadb_st_fetch\n");
 
   if (!imp_dbh->pmysql)
+  {
+    mariadb_dr_do_error(sth, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
     return Nullav;
+  }
 
   if(imp_dbh->async_query_in_flight) {
       if (mariadb_db_async_result(sth, &imp_sth->result) == (my_ulonglong)-1)
@@ -6507,7 +6510,11 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 
   svsock= dbh->pmysql;
   if (!svsock)
+  {
+    mariadb_dr_do_error(h, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
     return -1;
+  }
+
   if (!mysql_read_query_result(svsock))
   {
     *resp= mysql_store_result(svsock);
