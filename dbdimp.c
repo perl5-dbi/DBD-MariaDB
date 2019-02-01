@@ -4089,6 +4089,19 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
   if (!SvROK(sth) || SvTYPE(SvRV(sth)) != SVt_PVHV)
     croak("Expected hash array");
 
+  if (imp_sth->use_server_side_prepare)
+  {
+    mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Processing of multiple result set is not possible with server side prepare", "HY000");
+    return FALSE;
+  }
+
+  if (imp_dbh->async_query_in_flight && imp_dbh->async_query_in_flight != imp_sth)
+  {
+    mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
+    return FALSE;
+  }
+  imp_dbh->async_query_in_flight = NULL;
+
   if (!imp_dbh->pmysql && !mariadb_db_reconnect(sth, NULL))
   {
     mariadb_dr_do_error(sth, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
@@ -4101,12 +4114,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
 		    "\n      <- mariadb_st_more_results no more results\n");
-    return FALSE;
-  }
-
-  if (imp_sth->use_server_side_prepare)
-  {
-    mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Processing of multiple result set is not possible with server side prepare", "HY000");
     return FALSE;
   }
 
@@ -4203,7 +4210,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       imp_sth->row_num = mysql_affected_rows(imp_dbh->pmysql);
 
       imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
-      return TRUE;
     }
     else
     {
@@ -4217,6 +4223,10 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
       DBIc_ACTIVE_on(imp_sth);
     }
+
+    if (imp_sth->is_async && mysql_more_results(imp_dbh->pmysql))
+      imp_dbh->async_query_in_flight = imp_sth;
+
     imp_dbh->pmysql->net.last_errno= 0;
     return TRUE;
   }
@@ -6475,7 +6485,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   D_imp_xxh(h);
   imp_dbh_t* dbh;
   MYSQL* svsock = NULL;
-  MYSQL_RES* _res;
+  MYSQL_RES* _res = NULL;
   my_ulonglong retval = 0;
   unsigned int num_fields;
   int htype;
@@ -6515,6 +6525,12 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   {
     mariadb_dr_do_error(h, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
     return -1;
+  }
+
+  if (*resp)
+  {
+    mysql_free_result(*resp);
+    *resp = NULL;
   }
 
   if (!mysql_read_query_result(svsock))
@@ -6561,7 +6577,15 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
       mysql_free_result(*resp);
       *resp = NULL;
     }
+
+    if (mysql_more_results(svsock))
+      dbh->async_query_in_flight = imp_xxh;
   } else {
+#if MYSQL_VERSION_ID < 50025
+     /* Cover a protocol design error: error packet does not contain the server status.
+      * Luckily, an error always aborts execution of a statement, so it is safe to turn off the flag. */
+     svsock->server_status &= ~SERVER_MORE_RESULTS_EXISTS;
+#endif
      mariadb_dr_do_error(h, mysql_errno(svsock), mysql_error(svsock),
               mysql_sqlstate(svsock));
      return (my_ulonglong)-1;
