@@ -4128,8 +4128,33 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     imp_sth->result= NULL;
   }
 
+  imp_sth->done_desc = FALSE;
   imp_sth->currow = 0;
   imp_sth->row_num = 0;
+
+  /* clear NUM_OF_FIELDS attribute */
+  DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0, sv_2mortal(newSViv(0)));
+
+  /* delete cached handle attributes */
+  /* XXX should be driven by a list to ease maintenance */
+  (void)hv_deletes((HV*)SvRV(sth), "NAME", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "NULLABLE", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "NUM_OF_FIELDS", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "PRECISION", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "SCALE", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "TYPE", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_insertid", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_auto_increment", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_blob", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_key", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_num", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_pri_key", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_length", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_max_length", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_table", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_type", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_type_name", G_DISCARD);
+  (void)hv_deletes((HV*)SvRV(sth), "mariadb_warning_count", G_DISCARD);
 
   if (DBIc_ACTIVE(imp_sth))
     DBIc_ACTIVE_off(imp_sth);
@@ -4178,9 +4203,6 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       imp_sth->row_num = mysql_affected_rows(imp_dbh->pmysql);
 
       imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
-      /* No "real" rowset*/
-      DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
-			               sv_2mortal(newSViv(0)));
       return TRUE;
     }
     else
@@ -4188,35 +4210,12 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       /* We have a new rowset */
       imp_sth->row_num = mysql_num_rows(imp_sth->result);
 
-      /* delete cached handle attributes */
-      /* XXX should be driven by a list to ease maintenance */
-      (void)hv_deletes((HV*)SvRV(sth), "NAME", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "NULLABLE", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "NUM_OF_FIELDS", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "PRECISION", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "SCALE", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "TYPE", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_insertid", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_auto_increment", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_blob", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_key", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_num", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_is_pri_key", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_length", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_max_length", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_table", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_type", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_type_name", G_DISCARD);
-      (void)hv_deletes((HV*)SvRV(sth), "mariadb_warning_count", G_DISCARD);
-
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
           sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
 
       DBIc_ACTIVE_on(imp_sth);
-
-      imp_sth->done_desc = FALSE;
     }
     imp_dbh->pmysql->net.last_errno= 0;
     return TRUE;
