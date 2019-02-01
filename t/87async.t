@@ -16,7 +16,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
-plan tests => 92;
+plan tests => 96;
 
 is $dbh->get_info($GetInfoType{'SQL_ASYNC_MODE'}), 2; # statement-level async
 is $dbh->get_info($GetInfoType{'SQL_MAX_ASYNC_CONCURRENT_STATEMENTS'}), 1;
@@ -214,22 +214,26 @@ $sth->finish;
 $sth->execute(1);
 $row = $sth->fetch;
 is_deeply $row, [1, 1, 2, 3];
+is $sth->rows, 1;
 $sth->finish;
 
 $sth->execute(1);
 $row = $sth->fetchrow_arrayref;
 is_deeply $row, [1, 1, 2, 3];
+is $sth->rows, 1;
 $sth->finish;
 
 $sth->execute(1);
 my @row = $sth->fetchrow_array;
 is_deeply \@row, [1, 1, 2, 3];
+is $sth->rows, 1;
 $sth->finish;
 
 $sth->execute(1);
 $row = $sth->fetchrow_hashref;
 cmp_bag [ keys %$row ], [qw/1 value0 value1 value2/];
 cmp_bag [ values %$row ], [1, 1, 2, 3];
+is $sth->rows, 1;
 $sth->finish;
 
 undef $sth;

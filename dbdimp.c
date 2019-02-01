@@ -6539,6 +6539,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
       D_imp_sth(h);
       D_imp_dbh_from_sth;
 
+      imp_sth->row_num = retval;
+
         if(! *resp) {
           imp_sth->insertid = dbh->insertid;
           if(! mysql_more_results(svsock))
