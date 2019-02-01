@@ -3778,6 +3778,7 @@ mariadb_st_prepare_sv(
   imp_sth->done_desc = FALSE;
   imp_sth->result = NULL;
   imp_sth->currow = 0;
+  imp_sth->row_num = 0;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4127,6 +4128,9 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     imp_sth->result= NULL;
   }
 
+  imp_sth->currow = 0;
+  imp_sth->row_num = 0;
+
   if (DBIc_ACTIVE(imp_sth))
     DBIc_ACTIVE_off(imp_sth);
 
@@ -4169,10 +4173,10 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
       return FALSE;
     }
 
-    imp_sth->row_num= mysql_affected_rows(imp_dbh->pmysql);
-
     if (imp_sth->result == NULL)
     {
+      imp_sth->row_num = mysql_affected_rows(imp_dbh->pmysql);
+
       imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
       /* No "real" rowset*/
       DBIS->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
@@ -4182,8 +4186,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     else
     {
       /* We have a new rowset */
-      imp_sth->currow=0;
-
+      imp_sth->row_num = mysql_num_rows(imp_sth->result);
 
       /* delete cached handle attributes */
       /* XXX should be driven by a list to ease maintenance */
