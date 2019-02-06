@@ -14,7 +14,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
-plan tests => 71;
+plan tests => 77;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
@@ -34,6 +34,7 @@ $dbh->{mariadb_server_prepare}= 0;
   # Check that more_results works for non-SELECT results too
   my $sth;
   ok($sth = $dbh->prepare("UPDATE dbd_mysql_t76multi SET a=5 WHERE a=1; UPDATE dbd_mysql_t76multi SET a='6suffix' WHERE a<4"));
+  is($sth->rows, -1);
   ok($sth->execute(), "Execute updates");
   is($sth->rows, 1, "First update affected 1 row");
   is($sth->{mariadb_warning_count}, 0, "First update had no warnings");
@@ -98,19 +99,23 @@ $dbh->{mariadb_server_prepare}= 0;
   # Check that statement attributes are correct after calling more_results
   ok($dbh->do("CREATE TEMPORARY TABLE dbd_mysql_t76multi3 (name_id1 INT, name_id2 INT)"));
   ok($sth = $dbh->prepare("SELECT name_id1 FROM dbd_mysql_t76multi3; INSERT INTO dbd_mysql_t76multi2 VALUES(11); SELECT name_id1, name_id2 FROM dbd_mysql_t76multi3; SYNTAX ERROR"));
+  is($sth->rows, -1);
   ok($sth->execute());
   is($sth->{NUM_OF_FIELDS}, 1);
   is($sth->{NUM_OF_PARAMS}, 0);
+  is($sth->rows, 0);
   is_deeply($sth->{NAME}, [ 'name_id1' ]);
   is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG ]);
   ok($sth->more_results());
   is($sth->{NUM_OF_FIELDS}, 0);
   is($sth->{NUM_OF_PARAMS}, 0);
+  is($sth->rows, 1);
   ok(!eval { $sth->{NAME} });
   ok(!eval { $sth->{mariadb_type} });
   ok($sth->more_results());
   is($sth->{NUM_OF_FIELDS}, 2);
   is($sth->{NUM_OF_PARAMS}, 0);
+  is($sth->rows, 0);
   is_deeply($sth->{NAME}, [ 'name_id1', 'name_id2' ]);
   is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG, DBD::MariaDB::TYPE_LONG ]);
   ok(!eval { $sth->more_results() });
@@ -118,5 +123,6 @@ $dbh->{mariadb_server_prepare}= 0;
   is($sth->{NUM_OF_PARAMS}, 0);
   ok(!eval { $sth->{NAME} });
   ok(!eval { $sth->{mariadb_type} });
+  is($sth->rows, -1);
 
 $dbh->disconnect();
