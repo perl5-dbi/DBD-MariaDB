@@ -22,7 +22,7 @@ if ($dbh->{mariadb_clientversion} < 50001) {
     $id2_quoted_no_backslash = q(X'737472696E675C737472696E6722737472696E6727737472696E67');
 }
 
-plan tests => 24;
+plan tests => 20;
 
 ok $dbh->do('CREATE TEMPORARY TABLE t(id VARCHAR(255), value TEXT)');
 ok $dbh->do('INSERT INTO t(id, value) VALUES(?, ?)', undef, $id1, 'value1');
@@ -41,12 +41,10 @@ for my $server_prepare (0, 1) {
     ok $sth->bind_param(1, $id1);
     ok $sth->execute();
     is_deeply $sth->fetchall_arrayref(), [ [ $id1, 'value1' ] ];
-    ok $sth->finish();
 
     ok $sth->bind_param(1, $id2);
     ok $sth->execute();
     is_deeply $sth->fetchall_arrayref(), [ [ $id2, 'value2' ] ];
-    ok $sth->finish();
 
 }
 

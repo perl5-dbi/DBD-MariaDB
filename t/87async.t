@@ -16,7 +16,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
-plan tests => 92;
+plan tests => 137;
 
 is $dbh->get_info($GetInfoType{'SQL_ASYNC_MODE'}), 2; # statement-level async
 is $dbh->get_info($GetInfoType{'SQL_MAX_ASYNC_CONCURRENT_STATEMENTS'}), 1;
@@ -93,23 +93,31 @@ is $b, 1;
 is $c, 2;
 
 $sth = $dbh->prepare('SELECT SLEEP(2)');
+ok !$sth->{Active};
 ok !defined($sth->mariadb_async_ready);
 $start = Time::HiRes::gettimeofday();
 ok $sth->execute;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
+ok $sth->{Active};
+ok $sth->finish;
+ok !$sth->{Active};
 
 $sth = $dbh->prepare('SELECT SLEEP(2)', { mariadb_async => 1 });
+ok !$sth->{Active};
 ok !defined($sth->mariadb_async_ready);
 $start = Time::HiRes::gettimeofday();
 ok $sth->execute;
 ok defined($sth->mariadb_async_ready);
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '<', 2);
+ok $sth->{Active};
 
 sleep 1 until $sth->mariadb_async_ready;
 
+ok $sth->{Active};
 my $row = $sth->fetch;
+ok !$sth->{Active};
 $end = Time::HiRes::gettimeofday();
 ok $row;
 is $row->[0], 0;
@@ -126,16 +134,19 @@ ok $dbh->errstr;
 $dbh->do('DELETE FROM async_test');
 
 $sth = $dbh->prepare('INSERT INTO async_test VALUES(SLEEP(2), ?, ?)', { mariadb_async => 1 });
+ok !$sth->{Active};
 $start = Time::HiRes::gettimeofday();
 $rows = $sth->execute(1, 2);
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '<', 2);
+ok $sth->{Active};
 ok $rows;
 is $rows, '0E0';
 
 $rows = $sth->mariadb_async_result;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
+ok !$sth->{Active};
 is $rows, 1;
 
 ( $a, $b, $c ) = $dbh->selectrow_array('SELECT * FROM async_test');
@@ -164,10 +175,13 @@ ok $rows;
 is $rows, '0E0';
 
 $sth  = $dbh->prepare('UPDATE async_test SET value0 = 0 WHERE value0 = 999', { mariadb_async => 1 });
+ok !$sth->{Active};
 $rows = $sth->execute;
+ok $sth->{Active};
 ok $rows;
 is $rows, '0E0';
 $rows = $sth->mariadb_async_result;
+ok !$sth->{Active};
 ok $rows;
 is $rows, '0E0';
 
@@ -179,7 +193,9 @@ $rows = $dbh->do('INSERT INTO async_test VALUES(1, 2, 3)');
 is $rows, 1;
 
 $sth = $dbh->prepare('SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?', { mariadb_async => 1 });
+ok !$sth->{Active};
 $sth->execute(1);
+ok $sth->{Active};
 is $sth->{'NUM_OF_FIELDS'}, undef;
 is $sth->{'NUM_OF_PARAMS'}, 1;
 is $sth->{'NAME'}, undef;
@@ -195,6 +211,7 @@ is $sth->{'NULLABLE'}, undef;
 is $sth->{'Database'}, $dbh;
 is $sth->{'Statement'}, 'SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?';
 $sth->mariadb_async_result;
+ok $sth->{Active};
 is $sth->{'NUM_OF_FIELDS'}, 4;
 is $sth->{'NUM_OF_PARAMS'}, 1;
 cmp_bag $sth->{'NAME'}, [qw/1 value0 value1 value2/];
@@ -210,27 +227,60 @@ is ref($sth->{'NULLABLE'}), 'ARRAY';
 is $sth->{'Database'}, $dbh;
 is $sth->{'Statement'}, 'SELECT 1, value0, value1, value2 FROM async_test WHERE value0 = ?';
 $sth->finish;
+ok !$sth->{Active};
 
 $sth->execute(1);
+ok $sth->{Active};
 $row = $sth->fetch;
+ok !$sth->{Active};
 is_deeply $row, [1, 1, 2, 3];
-$sth->finish;
+is $sth->rows, 1;
 
 $sth->execute(1);
+ok $sth->{Active};
+$sth->mariadb_async_result;
+ok $sth->{Active};
+$row = $sth->fetch;
+ok !$sth->{Active};
+is_deeply $row, [1, 1, 2, 3];
+is $sth->rows, 1;
+
+$sth->execute(1);
+ok $sth->{Active};
 $row = $sth->fetchrow_arrayref;
+ok !$sth->{Active};
 is_deeply $row, [1, 1, 2, 3];
-$sth->finish;
+is $sth->rows, 1;
 
 $sth->execute(1);
+ok $sth->{Active};
 my @row = $sth->fetchrow_array;
+ok !$sth->{Active};
 is_deeply \@row, [1, 1, 2, 3];
-$sth->finish;
+is $sth->rows, 1;
 
 $sth->execute(1);
+ok $sth->{Active};
 $row = $sth->fetchrow_hashref;
+ok !$sth->{Active};
 cmp_bag [ keys %$row ], [qw/1 value0 value1 value2/];
 cmp_bag [ values %$row ], [1, 1, 2, 3];
-$sth->finish;
+is $sth->rows, 1;
 
-undef $sth;
+$sth = $dbh->prepare('UPDATE async_test SET value0 = 2 WHERE value0 = 1', { mariadb_async => 1 });
+ok !$sth->{Active};
+ok $sth->execute();
+ok $sth->{Active};
+ok $sth->mariadb_async_result;
+ok !$sth->{Active};
+
+$sth = $dbh->prepare('SYNTAX ERROR', { mariadb_async => 1 });
+ok !$sth->{Active};
+ok $sth->execute();
+ok $sth->{Active};
+ok !$sth->mariadb_async_result;
+ok !$sth->{Active};
+
+local $SIG{__WARN__} = sub { die @_ };
+
 ok $dbh->disconnect;

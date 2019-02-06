@@ -11,7 +11,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 
-plan tests => 9;
+plan tests => 8;
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t32");
 
@@ -32,8 +32,6 @@ my $failed = not eval {$sth->execute(1, "Jochen")};
 ok $failed, 'fails with duplicate entry';
 
 ok $sth->execute(2, "Jochen");
-
-ok $sth->finish;
 
 ok $dbh->do("DROP TABLE dbd_mysql_t32");
 

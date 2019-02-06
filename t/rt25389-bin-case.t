@@ -41,7 +41,6 @@ for my $charset (qw(latin1 utf8)) {
             $i++;
         }
         is( $i, scalar @test, $q1 );
-        $sth->finish;
 
         my $q2 = "select name from `$table` where "
           . join( " OR ", map { "name = '$_'" } @test );

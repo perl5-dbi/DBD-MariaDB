@@ -14,7 +14,7 @@ plan skip_all => "CREATE PROCEDURE is supported since MySQL version 5.0" if $dbh
 
 plan skip_all => $dbh->errstr() if !CheckRoutinePerms($dbh);
 
-plan tests => 13;
+plan tests => 12;
 
 ok $dbh->do('DROP PROCEDURE IF EXISTS t44_call_placeholder');
 
@@ -28,7 +28,6 @@ EOPROC
 ok my $sth = $dbh->prepare('CALL t44_call_placeholder(?)');
 ok $sth->execute(10);
 is_deeply $sth->fetchall_arrayref(), [ [5, 10] ];
-ok $sth->finish();
 
 ok $dbh->do('DROP PROCEDURE t44_call_placeholder');
 

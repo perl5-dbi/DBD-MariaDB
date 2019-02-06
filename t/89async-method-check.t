@@ -30,6 +30,8 @@ table_info         column_info        primary_key_info   primary_key
 foreign_key_info   statistics_info    tables             quote
 /;
 
+push @db_unsafe_methods, 'selectall_array' if DBI::db->can('selectall_array');
+
 my @st_safe_methods   = qw/
 fetchrow_arrayref fetch            fetchrow_array fetchrow_hashref
 fetchall_arrayref fetchall_hashref finish         rows
@@ -54,6 +56,7 @@ my %dbh_args = (
     selectrow_array     => ['SELECT 1'],
     selectrow_arrayref  => ['SELECT 1'],
     selectrow_hashref   => ['SELECT 1'],
+    selectall_array     => ['SELECT 1'],
     selectall_arrayref  => ['SELECT 1'],
     selectall_hashref   => ['SELECT 1', '1'],
     selectcol_arrayref  => ['SELECT 1'],

@@ -16,7 +16,7 @@ binmode $tb->todo_output,    ":utf8";
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-plan tests => 42 * 2;
+plan tests => 40 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
@@ -76,7 +76,6 @@ ok $sth->bind_param(5, $unicode_str2);
 ok $sth->bind_param(6, $unicode_str);
 ok $sth->bind_param(7, $unicode_str2);
 ok $sth->execute() or die("Execute failed: ".$DBI::errstr);
-ok $sth->finish;
 
 cmp_ok($dbh->{mariadb_warning_count}, '==', 1, 'got warning for INSERT') or do { diag("SHOW WARNINGS:"); diag($_->[2]) foreach $dbh->selectall_array("SHOW WARNINGS", { mariadb_server_prepare => 0 }); };
 my (undef, undef, $warning) = $dbh->selectrow_array("SHOW WARNINGS", { mariadb_server_prepare => 0 });
@@ -104,8 +103,6 @@ cmp_ok $ref->[6], 'eq', $ascii_str;
 cmp_ok $ref->[7], 'eq', $latin1_str2;
 
 cmp_ok $ref->[1], 'eq', $blob, "compare $ref->[1] eq $blob";
-
-ok $sth->finish;
 
 my $prev_charset = $dbh->selectrow_array('SELECT @@character_set_results');
 ok $dbh->do("SET character_set_results='latin1'"), "SET character_set_results='latin1'";

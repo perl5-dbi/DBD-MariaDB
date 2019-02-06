@@ -553,8 +553,7 @@ struct imp_sth_st {
     bool disable_fallback_for_server_prepare;
 
     MYSQL_RES* result;       /* result                                 */
-    int currow;           /* number of current row                  */
-    bool fetch_done;      /* mark that fetch done                   */
+    my_ulonglong currow;  /* number of current row                  */
     my_ulonglong row_num;         /* total number of rows                   */
 
     bool  done_desc;      /* have we described this sth yet ?	    */

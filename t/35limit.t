@@ -14,7 +14,7 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 111;
+plan tests => 110;
 
 ok(defined $dbh, "Connected to database");
 
@@ -43,8 +43,6 @@ ok( (defined($array_ref = $sth->fetchall_arrayref) &&
   (!defined($errstr = $sth->errstr) || $sth->errstr eq '')));
 
 ok(@$array_ref == 50);
-
-ok($sth->finish);
 
 ok($dbh->do("DROP TABLE dbd_mysql_t35"));
 

@@ -40,8 +40,6 @@ ok($sth->execute());
 
 ok(not $sth->fetchrow_arrayref());
 
-ok($sth->finish());
-
 ok($dbh->disconnect());
 
 done_testing;

@@ -25,7 +25,7 @@ if (!CheckRoutinePerms($dbh)) {
         $dbh->errstr();
 }
 
-plan tests => 32;
+plan tests => 31;
 
 $dbh->disconnect();
 
@@ -127,7 +127,5 @@ is $sth->{NUM_OF_FIELDS}, 0, "NUM_OF_FIELDS == 0";
 ok !$sth->more_results();
 
 local $SIG{__WARN__} = sub { die @_ };
-
-ok $sth->finish;
 
 ok $dbh->disconnect();

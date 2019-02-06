@@ -24,7 +24,7 @@ sub ShowBlob($) {
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 
-plan tests => 14;
+plan tests => 13;
 
 my $size= 128;
 
@@ -69,8 +69,6 @@ is $$row[0], 1, 'id set to 1';
 cmp_ok byte_string($$row[1]), 'eq', byte_string($blob), 'blob set equal to blob returned';
 
 ShowBlob($blob), ShowBlob(defined($$row[1]) ? $$row[1] : "");
-
-ok ($sth->finish);
 
 ok $dbh->do("DROP TABLE dbd_mysql_t40blobs"), "Drop table dbd_mysql_t40blobs";
 

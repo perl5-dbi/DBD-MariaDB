@@ -303,7 +303,6 @@ for (my $i = 0; $i < $COUNT_PREPARE; $i++) {
         $sth->execute();
         my $row;
         while ($row = $sth->fetchrow_arrayref()) { }
-        $sth->finish();
     }
 
     if ($i % 100 == 99) {
@@ -344,7 +343,6 @@ for (my $i = 0; $i < $COUNT_PREPARE; $i++) {
         $sth->execute();
         my $row;
         while ($row = $sth->fetchrow_hashref()) { }
-        $sth->finish();
     }
 
     if ($i % 100 == 99) {

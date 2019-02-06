@@ -32,7 +32,6 @@ ok $sth= $dbh->prepare($statement);
 my $rows;
 ok $rows= $sth->execute('1');
 cmp_ok $rows, '==',  1;
-$sth->finish();
 
 
 my $retrow;

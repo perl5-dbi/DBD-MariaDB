@@ -273,8 +273,6 @@ mariadb_async_result(sth)
         if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
 
-        imp_sth->row_num = retval;
-
         if (retval == 0)
             XSRETURN_PV("0E0");
 

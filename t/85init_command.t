@@ -27,7 +27,5 @@ ok(my @fetchrow = $sth->fetchrow_array());
 
 is($fetchrow[1],'7','session variable is 7');
 
-$sth->finish();
-
 $dbh->disconnect();
 

@@ -19,7 +19,6 @@ DBD::MariaDB - MariaDB and MySQL driver for the Perl5 Database Interface (DBI)
   while (my $ref = $sth->fetchrow_hashref()) {
       print "Found a row: id = $ref->{'id'}, fn = $ref->{'first_name'}\n";
   }
-  $sth->finish();
 
 =head1 EXAMPLE
 
@@ -55,7 +54,6 @@ DBD::MariaDB - MariaDB and MySQL driver for the Perl5 Database Interface (DBI)
   while (my $ref = $sth->fetchrow_hashref()) {
       print "Found a row: id = $ref->{'id'}, name = $ref->{'name'}\n";
   }
-  $sth->finish();
 
   # Disconnect from the database.
   $dbh->disconnect();

@@ -76,6 +76,7 @@ ok $rows= $sth3->execute('-12.E-100', 104);
 
 ok $sth3= $dbh->prepare("select * from dbd_mysql_t51bind_type_guessing limit ?");
 ok $rows= $sth3->execute(1);
+$sth3->finish();
 ok $rows= $sth3->execute('   1');
 $sth3->finish();
 

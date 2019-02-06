@@ -10,7 +10,7 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0 });
 
-plan tests => 41;
+plan tests => 40;
 
 ok ($dbh->do("DROP TABLE IF EXISTS dbd_mysql_t40bindparam"));
 
@@ -108,7 +108,5 @@ is $id, 7, '$id set to 7';
 cmp_ok $name, 'eq', '?', "\$name set to '?'";
 
 ok ($dbh->do("DROP TABLE dbd_mysql_t40bindparam"));
-
-ok $sth->finish;
 
 ok $dbh->disconnect;

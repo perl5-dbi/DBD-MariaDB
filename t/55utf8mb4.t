@@ -24,7 +24,6 @@ $sth = $dbh->prepare($query) or die "$DBI::errstr";
 ok $sth->execute;
 
 ok(my $ref = $sth->fetchrow_arrayref, 'fetch row');
-ok($sth->finish, 'close sth');
 cmp_ok $ref->[0], 'eq', "😈", 'test U+1F608';
 cmp_ok $ref->[1], 'eq', "F09F9888";
 
