@@ -64,7 +64,7 @@ for (my $i = 0 ; $i < 10; $i++)
    # save these values for later testing
   $testInsertVals->{$i}= $random_chars;
   ok($rows= $sth->execute($i, $random_chars), "Testing insert row");
-  ok($rows= 1, "Should have inserted one row");
+  is($rows, 1, "Should have inserted one row");
 }
 
 ok($sth= $dbh->prepare("SELECT * FROM dbd_mysql_t35prepare WHERE id = ? OR id = ?"),
