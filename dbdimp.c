@@ -3777,7 +3777,7 @@ mariadb_st_prepare_sv(
   imp_sth->done_desc = FALSE;
   imp_sth->result = NULL;
   imp_sth->currow = 0;
-  imp_sth->row_num = 0;
+  imp_sth->row_num = (my_ulonglong)-1;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -4139,7 +4139,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
   imp_sth->done_desc = FALSE;
   imp_sth->currow = 0;
-  imp_sth->row_num = 0;
+  imp_sth->row_num = (my_ulonglong)-1;
 
   /* clear NUM_OF_FIELDS attribute */
   DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0, sv_2mortal(newSViv(0)));
