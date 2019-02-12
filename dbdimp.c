@@ -2338,8 +2338,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* user;
   char* password;
   char* mysql_socket;
-  I32 i;
-  bool found_taken_pmysql;
+  struct mariadb_list_entry *entry;
   D_imp_xxh(dbh);
   D_imp_drh_from_dbh;
 
@@ -2349,40 +2348,29 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mariadb_db_my_login skip connect\n");
+
       /* tell our parent we've adopted an active child */
       ++DBIc_ACTIVE_KIDS(DBIc_PARENT_COM(imp_dbh));
-      found_taken_pmysql = FALSE;
-      if (imp_drh->taken_pmysqls)
+
+      for (entry = imp_drh->taken_pmysqls; entry; entry = entry->next)
       {
-        for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
+        if ((MYSQL *)entry->data == imp_dbh->pmysql)
         {
-          svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
-          if (!svp || !*svp)
-            continue;
-          SvGETMAGIC(*svp);
-          if (!SvIOK(*svp))
-            continue;
-          if (imp_dbh->pmysql == INT2PTR(MYSQL *, SvIVX(*svp)))
-          {
-            found_taken_pmysql = TRUE;
-            av_delete(imp_drh->taken_pmysqls, i, G_DISCARD);
-            break;
-          }
+          /* Remove MYSQL* entry from taken list */
+          mariadb_list_remove(imp_drh->taken_pmysqls, entry);
+
+          /* Add imp_dbh entry into active_imp_dbhs list */
+          mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
+
+          return TRUE;
         }
       }
-      if (!found_taken_pmysql)
-      {
-        /* This imp_dbh data belongs to different connection, so destructor should not touch it */
-        imp_dbh->list_entry = NULL;
-        imp_dbh->pmysql = NULL;
-        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
-        return FALSE;
-      }
 
-      /* Add imp_dbh entry into active_imp_dbhs list */
-      mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
-
-      return TRUE;
+      /* This imp_dbh data belongs to different connection, so destructor should not touch it */
+      imp_dbh->list_entry = NULL;
+      imp_dbh->pmysql = NULL;
+      mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
+      return FALSE;
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -2453,12 +2441,12 @@ SV *mariadb_db_take_imp_data(SV *dbh, imp_xxh_t *imp_xxh, void *foo)
   dTHX;
   D_imp_dbh(dbh);
   D_imp_drh_from_dbh;
+  struct mariadb_list_entry *entry;
   PERL_UNUSED_ARG(imp_xxh);
   PERL_UNUSED_ARG(foo);
 
-  if (!imp_drh->taken_pmysqls)
-    imp_drh->taken_pmysqls = newAV();
-  av_push(imp_drh->taken_pmysqls, newSViv(PTR2IV(imp_dbh->pmysql)));
+  /* Add MYSQL* into taken list */
+  mariadb_list_add(imp_drh->taken_pmysqls, entry, imp_dbh->pmysql);
 
   /* MYSQL* was taken from imp_dbh so remove it also from active_imp_dbhs list */
   mariadb_list_remove(imp_drh->active_imp_dbhs, imp_dbh->list_entry);
@@ -3096,24 +3084,13 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
   dTHX;
   int ret;
-  SV **svp;
-  I32 i;
+  struct mariadb_list_entry *entry;
   PERL_UNUSED_ARG(drh);
 
-  if (imp_drh->taken_pmysqls)
+  while ((entry = imp_drh->taken_pmysqls))
   {
-    for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
-    {
-      svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
-      if (!svp || !*svp)
-        continue;
-      SvGETMAGIC(*svp);
-      if (!SvIOK(*svp))
-        continue;
-      mariadb_dr_close_mysql(aTHX_ imp_drh, INT2PTR(MYSQL *, SvIVX(*svp)));
-    }
-    av_undef(imp_drh->taken_pmysqls);
-    imp_drh->taken_pmysqls = NULL;
+    mariadb_dr_close_mysql(aTHX_ imp_drh, (MYSQL *)entry->data);
+    mariadb_list_remove(imp_drh->taken_pmysqls, entry);
   }
 
   while (imp_drh->active_imp_dbhs)
