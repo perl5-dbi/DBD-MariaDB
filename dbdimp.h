@@ -460,6 +460,7 @@ struct imp_drh_st {
     dbih_drc_t com;         /* MUST be first element in structure   */
 
     struct mariadb_list_entry *active_imp_dbhs; /* List of imp_dbh structures with active MYSQL* */
+    struct mariadb_list_entry *taken_pmysqls;   /* List of active MYSQL* from take_imp_data() */
     unsigned long int instances;
     bool non_embedded_started;
 #if !defined(HAVE_EMBEDDED) && defined(HAVE_BROKEN_INIT)
@@ -468,7 +469,6 @@ struct imp_drh_st {
     bool embedded_started;
     SV *embedded_args;
     SV *embedded_groups;
-    AV *taken_pmysqls;      /* List of active MYSQL* structures from take_imp_data() */
 };
 
 
