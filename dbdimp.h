@@ -417,6 +417,35 @@ enum av_attribs {
 };                         /*  purposes only                                */
 
 
+/* Double linked list */
+struct mariadb_list_entry {
+    void *data;
+    struct mariadb_list_entry *prev;
+    struct mariadb_list_entry *next;
+};
+#define mariadb_list_add(list, entry, ptr)           \
+  STMT_START {                                       \
+    Newz(0, (entry), 1, struct mariadb_list_entry);  \
+    (entry)->data = (ptr);                           \
+    (entry)->prev = NULL;                            \
+    (entry)->next = (list);                          \
+    if ((list))                                      \
+      (list)->prev = (entry);                        \
+    (list) = (entry);                                \
+  } STMT_END
+#define mariadb_list_remove(list, entry)             \
+  STMT_START {                                       \
+    if ((entry)->prev)                               \
+      (entry)->prev->next = (entry)->next;           \
+    if ((entry)->next)                               \
+      (entry)->next->prev = (entry)->prev;           \
+    if ((list) == (entry))                           \
+      (list) = (entry)->next;                        \
+    Safefree((entry));                               \
+    (entry) = NULL;                                  \
+  } STMT_END
+
+
 /*
  *  This is our part of the driver handle. We receive the handle as
  *  an "SV*", say "drh", and receive a pointer to the structure below
@@ -429,6 +458,8 @@ enum av_attribs {
  */
 struct imp_drh_st {
     dbih_drc_t com;         /* MUST be first element in structure   */
+
+    struct mariadb_list_entry *active_imp_dbhs; /* List of imp_dbh structures with active MYSQL* */
     unsigned long int instances;
     bool non_embedded_started;
 #if !defined(HAVE_EMBEDDED) && defined(HAVE_BROKEN_INIT)
@@ -454,6 +485,7 @@ struct imp_drh_st {
 struct imp_dbh_st {
     dbih_dbc_t com;         /*  MUST be first element in structure   */
 
+    struct mariadb_list_entry *list_entry; /* Entry of imp_drh->active_imp_dbhs list */
     MYSQL *pmysql;
     bool connected;          /* Set to true after DBI->connect finished */
     bool auto_reconnect;

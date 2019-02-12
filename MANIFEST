@@ -19,6 +19,7 @@ t/10connect.t
 t/11data_sources.t
 t/12embedded.t
 t/13disconnect.t
+t/14destruct.t
 t/15reconnect.t
 t/16dbi-get_info.t
 t/20createdrop.t
