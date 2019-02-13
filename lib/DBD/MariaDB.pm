@@ -87,7 +87,7 @@ sub parse_dsn {
 	} else {
 	    foreach my $var (qw(database host port)) {
 		next if defined($hash->{$var});
-		$hash->{$var} = $val;
+		$hash->{$var} = $part;
 		last;
 	    }
 	}
