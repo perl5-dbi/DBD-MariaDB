@@ -71,8 +71,6 @@ sub parse_dsn {
     my ($class, $dsn) = @_;
 
     my $hash = {};
-    return $hash if (!defined($dsn));
-
     while (length($dsn)) {
 	my $part;
 	# \x5b = [, \x5d = ]
