@@ -62,38 +62,35 @@ sub CLONE {
   undef $drh;
 }
 
+my %alias = (
+    hostname => 'host',
+    db       => 'database',
+    dbname   => 'database',
+);
 sub parse_dsn {
     my ($class, $dsn) = @_;
+
     my $hash = {};
-    my($var, $val);
-    if (!defined($dsn)) {
-        return $hash;
-    }
+    return $hash if (!defined($dsn));
+
     while (length($dsn)) {
-	if ($dsn =~ /([^:;]*\[.*]|[^:;]*)[:;](.*)/) {
-	    $val = $1;
-	    $dsn = $2;
-	    $val =~ s/\[|]//g; # Remove [] if present, the rest of the code prefers plain IPv6 addresses
+	my $part;
+	# \x5b = [, \x5d = ]
+	if ($dsn =~ /([^:;]*\x5b[^\x5d]*\x5d|[^:;]*)[:;](.*)/) {
+	    ( $part, $dsn ) = ( $1, $2 );
+	    $part =~ tr/\x5b\x5d//d; # Remove [] if present, the rest of the code prefers plain IPv6 addresses
 	} else {
-	    $val = $dsn;
-	    $dsn = '';
+	    ( $part, $dsn ) = ( $dsn, '' );
 	}
-	if ($val =~ /([^=]*)=(.*)/) {
-	    $var = $1;
-	    $val = $2;
-	    if ($var eq 'hostname'  ||  $var eq 'host') {
-		$hash->{'host'} = $val;
-	    } elsif ($var eq 'db'  ||  $var eq 'dbname') {
-		$hash->{'database'} = $val;
-	    } else {
-		$hash->{$var} = $val;
-	    }
+	if ($part =~ /([^=]*)=(.*)/) {
+	    my ( $var, $val ) = ( $1, $2 );
+	    $var = $alias{$var} if exists $alias{$var};
+	    $hash->{$var} = $val;
 	} else {
-	    foreach $var (qw(database host port)) {
-		if (!defined($hash->{$var})) {
-		    $hash->{$var} = $val;
-		    last;
-		}
+	    foreach my $var (qw(database host port)) {
+		next if defined($hash->{$var});
+		$hash->{$var} = $val;
+		last;
 	    }
 	}
     }
