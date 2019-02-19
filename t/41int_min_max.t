@@ -17,7 +17,7 @@ if ($dbh->{mariadb_serverversion} < 50002) {
         "SKIP TEST: You must have MySQL version 5.0.2 and greater for this test to run";
 }
 # nostrict tests + strict tests + init/tear down commands
-plan tests => (19*8 + 19*8 + 4) * 2;
+plan tests => (19*8 + 19*8 + 3) * 2;
 
 my $table = 'dbd_mysql_t41minmax'; # name of the table we will be using
 my $mode; # 'strict' or 'nostrict' corresponds to strict SQL mode
@@ -26,9 +26,8 @@ sub test_int_type ($$$$) {
     my ($perl_type, $mariadb_type, $min, $max) = @_;
 
     # Create the table
-    ok($dbh->do(qq{DROP TABLE IF EXISTS $table}), "removing $table");
     ok($dbh->do(qq{
-            CREATE TABLE `$table` (
+            CREATE TEMPORARY TABLE `$table` (
                 `id` int not null auto_increment,
                 `val` $mariadb_type,
                 primary key (id)
@@ -38,7 +37,7 @@ sub test_int_type ($$$$) {
     my ($store, $retrieve); # statements
     my $read_value;         # retrieved value
     ok($store = $dbh->prepare("INSERT INTO $table (val) VALUES (?)"));
-    ok($retrieve = $dbh->prepare("SELECT val from $table where id=(SELECT MAX(id) FROM $table)"));
+    ok($retrieve = $dbh->prepare("SELECT val from $table ORDER BY id DESC LIMIT 1"));
 
     ########################################
     # Insert allowed min value
@@ -107,6 +106,8 @@ sub test_int_type ($$$$) {
         ($read_value) = $retrieve->fetchrow_array();
         cmp_ok($read_value, 'eq', $max, "retrieved maximal value for type $mariadb_type, mode=$mode");
     };
+
+    ok($dbh->do(qq{DROP TEMPORARY TABLE `$table`}), "removing $table");
 }
 
 $dbh->disconnect;
@@ -140,8 +141,6 @@ test_int_type(DBI::SQL_INTEGER,  'int signed',        -2**31, 2**31-1);
 test_int_type(DBI::SQL_INTEGER,  'int unsigned',           0, 2**32-1);
 test_int_type(DBI::SQL_BIGINT,   'bigint signed',     -2**63, 2**63-1);
 test_int_type(DBI::SQL_BIGINT,   'bigint unsigned',        0, 2**64-1);
-
-ok ($dbh->do("DROP TABLE $table"));
 
 ok $dbh->disconnect;
 }
