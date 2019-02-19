@@ -39,9 +39,11 @@ sub num_rows($$$) {
 
 my $engines = $dbh->selectall_hashref('SHOW ENGINES', 'Engine');
 my $have_innodb = exists $engines->{InnoDB} && $engines->{InnoDB}->{Support} ne 'NO';
+my $have_myisam = exists $engines->{MyISAM} && $engines->{MyISAM}->{Support} ne 'NO';
+
+plan tests => 1 + ($have_myisam ? 12 : 0) + ($have_innodb ? 22 : 0);
 
 if ($have_innodb) {
-  plan tests => 22;
 
   ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t50commit"), "drop table if exists dbd_mysql_t50commit";
   my $create =<<EOT;
@@ -100,15 +102,15 @@ EOT
   ok $dbh->do("DROP TABLE dbd_mysql_t50commit");
 
 }
-else {
-  plan tests => 13;
+
+if ($have_myisam) {
 
   ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t50commit"), "drop table if exists dbd_mysql_t50commit";
   my $create =<<EOT;
   CREATE TABLE dbd_mysql_t50commit (
       id INT(4) NOT NULL default 0,
       name VARCHAR(64) NOT NULL default ''
-      )
+      ) ENGINE=MyISAM
 EOT
 
   ok $dbh->do($create), 'create dbd_mysql_t50commit';
@@ -154,5 +156,7 @@ EOT
   ok $got_warning, "Should be warning defined upon rollback of non-trx table";
 
   ok $dbh->do("DROP TABLE dbd_mysql_t50commit");
-  ok $dbh->disconnect();
+
 }
+
+ok $dbh->disconnect();
