@@ -12,11 +12,6 @@ use vars qw($test_dsn $test_user $test_password);
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
-my $expected_warnings = 2;
-if ($dbh->{mariadb_serverversion} >= 50000 && $dbh->{mariadb_serverversion} < 50500) {
-    $expected_warnings = 1;
-}
-
 plan tests => 14;
 
 ok(defined $dbh, "Connected to database");
@@ -43,15 +38,14 @@ ok($sth->execute());
 
 is($sth->{'mariadb_warning_count'}, 2 );
 
-# $dbh->{mariadb_info} actually uses mysql_info()
-my $str = $dbh->{mariadb_info};
-my $numwarn;
-if ( $str =~ /Warnings:\s(\d+)$/ ) {
-    $numwarn = $1;
-}
-
 # this test passes on mysql 5.5.x and fails on 5.1.x
-# but I'm not sure which versions, so I'll just disable it for now
-is($numwarn, $expected_warnings);
+# so change number of expected warnings from mysql_info()
+my $expected_warnings = 2;
+if ($dbh->{mariadb_serverversion} >= 50000 && $dbh->{mariadb_serverversion} < 50500) {
+    $expected_warnings = 1;
+}
+# $dbh->{mariadb_info} actually uses mysql_info()
+my $info = $dbh->{mariadb_info};
+like($info, qr/Warnings:\s\Q$expected_warnings\E$/);
 
 ok($dbh->disconnect);
