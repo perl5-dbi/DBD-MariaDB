@@ -2291,6 +2291,8 @@ static bool mariadb_dr_connect(
 
           imp_dbh->async_query_in_flight = NULL;
 
+    mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
+
     return TRUE;
 }
 
@@ -2336,8 +2338,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   char* user;
   char* password;
   char* mysql_socket;
-  I32 i;
-  bool found_taken_pmysql;
+  struct mariadb_list_entry *entry;
   D_imp_xxh(dbh);
   D_imp_drh_from_dbh;
 
@@ -2347,34 +2348,29 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
         PerlIO_printf(DBIc_LOGPIO(imp_xxh), "mariadb_db_my_login skip connect\n");
+
       /* tell our parent we've adopted an active child */
       ++DBIc_ACTIVE_KIDS(DBIc_PARENT_COM(imp_dbh));
-      found_taken_pmysql = FALSE;
-      if (imp_drh->taken_pmysqls)
+
+      for (entry = imp_drh->taken_pmysqls; entry; entry = entry->next)
       {
-        for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
+        if ((MYSQL *)entry->data == imp_dbh->pmysql)
         {
-          svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
-          if (!svp || !*svp)
-            continue;
-          SvGETMAGIC(*svp);
-          if (!SvIOK(*svp))
-            continue;
-          if (imp_dbh->pmysql == INT2PTR(MYSQL *, SvIVX(*svp)))
-          {
-            found_taken_pmysql = TRUE;
-            av_delete(imp_drh->taken_pmysqls, i, G_DISCARD);
-            break;
-          }
+          /* Remove MYSQL* entry from taken list */
+          mariadb_list_remove(imp_drh->taken_pmysqls, entry);
+
+          /* Add imp_dbh entry into active_imp_dbhs list */
+          mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
+
+          return TRUE;
         }
       }
-      if (!found_taken_pmysql)
-      {
-        imp_dbh->pmysql = NULL;
-        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
-        return FALSE;
-      }
-      return TRUE;
+
+      /* This imp_dbh data belongs to different connection, so destructor should not touch it */
+      imp_dbh->list_entry = NULL;
+      imp_dbh->pmysql = NULL;
+      mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
+      return FALSE;
     }
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       PerlIO_printf(DBIc_LOGPIO(imp_xxh),
@@ -2445,12 +2441,15 @@ SV *mariadb_db_take_imp_data(SV *dbh, imp_xxh_t *imp_xxh, void *foo)
   dTHX;
   D_imp_dbh(dbh);
   D_imp_drh_from_dbh;
+  struct mariadb_list_entry *entry;
   PERL_UNUSED_ARG(imp_xxh);
   PERL_UNUSED_ARG(foo);
 
-  if (!imp_drh->taken_pmysqls)
-    imp_drh->taken_pmysqls = newAV();
-  av_push(imp_drh->taken_pmysqls, newSViv(PTR2IV(imp_dbh->pmysql)));
+  /* Add MYSQL* into taken list */
+  mariadb_list_add(imp_drh->taken_pmysqls, entry, imp_dbh->pmysql);
+
+  /* MYSQL* was taken from imp_dbh so remove it also from active_imp_dbhs list */
+  mariadb_list_remove(imp_drh->active_imp_dbhs, imp_dbh->list_entry);
 
   return &PL_sv_no;
 }
@@ -2979,23 +2978,8 @@ static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
   }
 }
 
-/*
- ***************************************************************************
- *
- *  Name:    mariadb_db_disconnect
- *
- *  Purpose: Disconnect a database handle from its database
- *
- *  Input:   dbh - database handle being disconnected
- *           imp_dbh - drivers private database handle data
- *
- *  Returns: 1 for success (always)
- *
- **************************************************************************/
-
-int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
+static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
 {
-  dTHX;
   AV *av;
   I32 i;
   MAGIC *mg;
@@ -3003,15 +2987,14 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
   SV *sv;
   SV *sth;
   imp_sth_t *imp_sth;
-  D_imp_xxh(dbh);
-  D_imp_drh_from_dbh;
 
-  /* We assume that disconnect will always work       */
-  /* since most errors imply already disconnected.    */
+  if (DBIc_TRACE_LEVEL(imp_dbh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\tmariadb_db_close_mysql: imp_dbh=%p pmysql=%p\n", imp_dbh, imp_dbh->pmysql);
+
   DBIc_ACTIVE_off(imp_dbh);
-  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->pmysql: %p\n",
-		              imp_dbh->pmysql);
+
+  if (imp_dbh->list_entry)
+    mariadb_list_remove(imp_drh->active_imp_dbhs, imp_dbh->list_entry);
 
   if (imp_dbh->pmysql)
   {
@@ -3045,14 +3028,39 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
            * CVE 2017-3302 do not do it. So do it manually to prevent crash. */
           if (imp_sth->stmt && imp_sth->stmt->mysql)
           {
-            if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-              PerlIO_printf(DBIc_LOGPIO(imp_xxh), "Applying CVE 2017-3302 workaround for sth=0x%p\n", imp_sth);
+            if (DBIc_TRACE_LEVEL(imp_dbh) >= 2)
+              PerlIO_printf(DBIc_LOGPIO(imp_dbh), "Applying CVE 2017-3302 workaround for sth=%p\n", imp_sth);
             imp_sth->stmt->mysql = NULL;
           }
         }
       }
     }
   }
+}
+
+/*
+ ***************************************************************************
+ *
+ *  Name:    mariadb_db_disconnect
+ *
+ *  Purpose: Disconnect a database handle from its database
+ *
+ *  Input:   dbh - database handle being disconnected
+ *           imp_dbh - drivers private database handle data
+ *
+ *  Returns: 1 for success (always)
+ *
+ **************************************************************************/
+
+int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
+{
+  dTHX;
+  D_imp_drh_from_dbh;
+  PERL_UNUSED_ARG(dbh);
+
+  /* We assume that disconnect will always work       */
+  /* since most errors imply already disconnected.    */
+  mariadb_db_close_mysql(aTHX_ imp_drh, imp_dbh);
 
   /* We don't free imp_dbh since a reference still exists    */
   /* The DESTROY method is the only one to 'free' memory.    */
@@ -3075,57 +3083,18 @@ int mariadb_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
 int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
   dTHX;
-  dSP;
   int ret;
-  SV **svp;
-  AV *av;
-  I32 i;
+  struct mariadb_list_entry *entry;
   PERL_UNUSED_ARG(drh);
 
-  if (imp_drh->taken_pmysqls)
+  while ((entry = imp_drh->taken_pmysqls))
   {
-    for (i = AvFILL(imp_drh->taken_pmysqls); i >= 0; --i)
-    {
-      svp = av_fetch(imp_drh->taken_pmysqls, i, FALSE);
-      if (!svp || !*svp)
-        continue;
-      SvGETMAGIC(*svp);
-      if (!SvIOK(*svp))
-        continue;
-      mariadb_dr_close_mysql(aTHX_ imp_drh, INT2PTR(MYSQL *, SvIVX(*svp)));
-    }
-    av_undef(imp_drh->taken_pmysqls);
-    imp_drh->taken_pmysqls = NULL;
+    mariadb_dr_close_mysql(aTHX_ imp_drh, (MYSQL *)entry->data);
+    mariadb_list_remove(imp_drh->taken_pmysqls, entry);
   }
 
-  svp = hv_fetchs((HV*)DBIc_MY_H(imp_drh), "ChildHandles", FALSE);
-  if (svp && *svp)
-  {
-    SvGETMAGIC(*svp);
-    if (SvROK(*svp) && SvTYPE(SvRV(*svp)) == SVt_PVAV)
-    {
-      av = (AV *)SvRV(*svp);
-      for (i = AvFILL(av); i >= 0; --i)
-      {
-        svp = av_fetch(av, i, FALSE);
-        if (!svp || !*svp || !sv_isobject(*svp))
-          continue;
-
-        ENTER;
-        SAVETMPS;
-
-        PUSHMARK(SP);
-        EXTEND(SP, 1);
-        PUSHs(sv_2mortal(newSVsv(*svp)));
-        PUTBACK;
-
-        call_method("disconnect", G_VOID|G_DISCARD|G_EVAL|G_KEEPERR);
-
-        FREETMPS;
-        LEAVE;
-      }
-    }
-  }
+  while (imp_drh->active_imp_dbhs)
+    mariadb_db_close_mysql(aTHX_ imp_drh, (imp_dbh_t *)imp_drh->active_imp_dbhs->data);
 
   ret = 1;
 
