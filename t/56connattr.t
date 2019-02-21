@@ -26,8 +26,9 @@ if ($pfenabled[1] ne 'ON') {
 }
 
 if (not eval { $dbh->do("select * from performance_schema.session_connect_attrs where processlist_id=connection_id()") }) {
+  my $err = $dbh->errstr || 'no permission on performance_schema tables';
   $dbh->disconnect();
-  plan skip_all => "no permission on performance_schema tables";
+  plan skip_all => $err;
 }
 
 $dbh->disconnect();

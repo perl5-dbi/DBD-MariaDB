@@ -335,9 +335,9 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 /*
  * MySQL and MariaDB Embedded are affected by https://jira.mariadb.org/browse/MDEV-16578
  * MariaDB 10.2.2+ prior to 10.2.19 and 10.3.9 and MariaDB Connector/C prior to 3.0.5 are affected by https://jira.mariadb.org/browse/CONC-336
- * MySQL 8.0.4+ is affected too by https://bugs.mysql.com/bug.php?id=93276
+ * MySQL 8.0.4+ prior to 8.0.15 is affected too by https://bugs.mysql.com/bug.php?id=93276
  */
-#if defined(HAVE_EMBEDDED) || (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80004) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 30005)) || (defined(MARIADB_VERSION_ID) && ((MARIADB_VERSION_ID >= 100202 && MARIADB_VERSION_ID < 100219) || (MARIADB_VERSION_ID >= 100300 && MARIADB_VERSION_ID < 100309)))
+#if defined(HAVE_EMBEDDED) || (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80004 && MYSQL_VERSION_ID < 80015) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 30005)) || (defined(MARIADB_VERSION_ID) && ((MARIADB_VERSION_ID >= 100202 && MARIADB_VERSION_ID < 100219) || (MARIADB_VERSION_ID >= 100300 && MARIADB_VERSION_ID < 100309)))
 #define HAVE_BROKEN_INIT
 #endif
 
