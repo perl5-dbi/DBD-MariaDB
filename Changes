@@ -1,3 +1,17 @@
+1.20 2019-02-22
+ - Fix compilation on Windows
+ - Fix tests for MariaDB 10.2.20+, 10.3.12+ and 10.4.1+
+ - Fix processing of unfetched multi result sets
+ - Cover a protocol design error for multi result statements
+ - Fix $dbh->last_insert_id for async calls and multi result statements
+ - Add more robust solution to prevent deinitializing OpenSSL functions
+   (https://github.com/gooddata/DBD-MariaDB/issues/119)
+ - Set $sth->{Active} to off after fetching all data
+   (https://github.com/jhthorsen/mojo-mysql/pull/47#issuecomment-448095164)
+ - Fix $sth->rows for async, multi results and when error occurred
+ - Fix disconnect_all() method to work also during global destruction phase
+ - Address MySQL bug #93276 which is fixed in 8.0.15
+
 1.11 2019-01-02
  - Fix breakage of Net::SSLeay / OpenSSL library after DBI disconnect
    (https://github.com/gooddata/DBD-MariaDB/issues/119)
