@@ -4594,6 +4594,8 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
   if (!mariadb_st_free_result_sets(sth, imp_sth, TRUE))
     return -2;
 
+  imp_sth->currow = 0;
+
   if (use_server_side_prepare)
   {
     if (imp_sth->use_mysql_use_result)

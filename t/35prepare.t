@@ -13,9 +13,11 @@ use vars qw($test_dsn $test_user $test_password);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
     { RaiseError => 1, PrintError => 0 });
 
-plan tests => 47;
+plan tests => 5+2*63;
 
-ok(defined $dbh, "Connected to database");
+for my $mariadb_server_prepare (0, 1) {
+
+$dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
 
 ok($dbh->do("DROP TABLE IF EXISTS dbd_mysql_t35prepare"), "Making slate clean");
 
@@ -79,10 +81,40 @@ ok($ret_ref = $sth->fetchall_arrayref(),
 note "RETREF " . scalar @$ret_ref . "\n";
 ok(@{$ret_ref} == 4 , "\$ret_ref should contain four rows in result set");
 
+# Check that repeated $sth->execute + $sth->fetchall_arrayref work as expected
+ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35prepare LIMIT 2"));
+ok($sth->execute());
+is_deeply($sth->fetchall_arrayref(), [ [ 1, '1st first value' ], [ 2, '2nd second value' ] ]);
+ok($sth->execute());
+is_deeply($sth->fetchall_arrayref(), [ [ 1, '1st first value' ], [ 2, '2nd second value' ] ]);
+ok($sth->execute());
+is_deeply($sth->fetchall_arrayref(), [ [ 1, '1st first value' ], [ 2, '2nd second value' ] ]);
+
+# Check that repeated $sth->execute + $sth->fetchrow_arrayref work as expected
+ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35prepare LIMIT 3"));
+ok($sth->execute());
+is_deeply($sth->fetchrow_arrayref(), [ 1, '1st first value' ]);
+is_deeply($sth->fetchrow_arrayref(), [ 2, '2nd second value' ]);
+ok($sth->finish());
+ok($sth->execute());
+is_deeply($sth->fetchrow_arrayref(), [ 1, '1st first value' ]);
+is_deeply($sth->fetchrow_arrayref(), [ 2, '2nd second value' ]);
+ok($sth->finish());
+
+# Check that repeated calls of $dbh->selectcol_arrayref, $dbh->prepare and $dbh->prepare_cached work as expected
+is_deeply($dbh->selectcol_arrayref("SELECT id FROM dbd_mysql_t35prepare LIMIT 2"), [ 1, 2 ]);
+is_deeply($dbh->selectcol_arrayref("SELECT id FROM dbd_mysql_t35prepare LIMIT 2"), [ 1, 2 ]);
+is_deeply($dbh->selectcol_arrayref($dbh->prepare("SELECT id FROM dbd_mysql_t35prepare LIMIT 2")), [ 1, 2 ]);
+is_deeply($dbh->selectcol_arrayref($dbh->prepare("SELECT id FROM dbd_mysql_t35prepare LIMIT 2")), [ 1, 2 ]);
+is_deeply($dbh->selectcol_arrayref($dbh->prepare_cached("SELECT id FROM dbd_mysql_t35prepare LIMIT 2")), [ 1, 2 ]);
+is_deeply($dbh->selectcol_arrayref($dbh->prepare_cached("SELECT id FROM dbd_mysql_t35prepare LIMIT 2")), [ 1, 2 ]);
+
 ok($sth= $dbh->prepare("DROP TABLE IF EXISTS dbd_mysql_t35prepare"),
   "Testing prepare of dropping table");
 
 ok($sth->execute(), "Executing drop table");
+
+}
 
 # Bug #20153: Fetching all data from a statement handle does not mark it
 # as finished
