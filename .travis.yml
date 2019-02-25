@@ -382,6 +382,8 @@ matrix:
       env: DB=MySQL VERSION=4.1.22 CONC_DB=MariaDB CONC_VERSION=3.0.6
     - perl: "5.22"
       env: DB=MySQL VERSION=4.1.22 SERVER=system
+    - perl: "5.22"
+      env: SERVER=none
 
 addons:
   apt:
@@ -505,6 +507,9 @@ before_script:
     elif [ -n "$CONC_DB" ] || [ "$SERVER" = "system" ]; then
       export DBD_MARIADB_TESTHOST=127.0.0.1 ;
       export DBD_MARIADB_TESTPORT=3306 ;
+    elif [ "$SERVER" = "none" ]; then
+      export DBD_MARIADB_TESTHOST=none ;
+      export DBD_MARIADB_TESTPORT=1 ;
     fi
   - if [ -n "$CONC_DB" ]; then
       if [ -x $HOME/conc/bin/mysql_config ]; then
@@ -528,7 +533,9 @@ before_script:
     fi
   - export HARNESS_OPTIONS=j4
   - export RELEASE_TESTING=1
-  - export CONNECTION_TESTING=1
+  - if [ "$SERVER" != "none" ]; then
+      export CONNECTION_TESTING=1 ;
+    fi
 
 script:
   - make realclean || true
