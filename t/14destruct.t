@@ -21,5 +21,5 @@ $SIG{__WARN__} = sub { die @_ };
 END {
     my $sth1_copy = $sth1;
     my $sth2_copy = $sth2;
-    pass;
+    pass if $sth1;
 }
