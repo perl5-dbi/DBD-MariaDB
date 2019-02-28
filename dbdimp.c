@@ -6590,7 +6590,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 
     SvPOK_on(result);
     SvCUR_set(result, sptr - SvPVX(result));
-    /* Never hurts NUL terminating a Per string */
+    /* Never hurts NUL terminating a Perl string */
     *sptr++= '\0';
 
     if (!is_binary)
