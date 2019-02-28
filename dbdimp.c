@@ -5460,7 +5460,7 @@ process:
         case PERL_TYPE_NUMERIC:
           if (!mysql_field_needs_string_type(&fields[i]))
           {
-            /* Coerce to dobule and set scalar as NV */
+            /* Coerce to double and set scalar as NV */
             sv_setnv(sv, SvNV(sv));
           }
           break;
