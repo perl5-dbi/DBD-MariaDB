@@ -67,29 +67,29 @@ sub parse_dsn {
 
     my $hash = {};
     while (length($dsn)) {
-	my $part;
-	if ($dsn =~ /([^:;]*\[[^\]]*\]|[^:;]*)[:;](.*)/) {
-	    ($part, $dsn) = ($1, $2);
-	    $part =~ tr/\[\]//d; # Remove [] if present, the rest of the code prefers plain IPv6 addresses
-	} else {
-	    ($part, $dsn) = ($dsn, '');
-	}
-	if ($part =~ /([^=]*)=(.*)/) {
-	    my ($var, $val) = ($1, $2);
-	    # These are legacy, do not change, and do not add
-	    if ( $var eq 'db' || $var eq 'dbname' ) {
-		$var = 'database';
-	    } elsif ( $var eq 'hostname' ) {
-		$var = 'host';
-	    }
-	    $hash->{$var} = $val;
-	} else {
-	    foreach my $var (qw(database host port)) {
-		next if defined($hash->{$var});
-		$hash->{$var} = $part;
-		last;
-	    }
-	}
+        my $part;
+        if ($dsn =~ /([^:;]*\[[^\]]*\]|[^:;]*)[:;](.*)/) {
+            ($part, $dsn) = ($1, $2);
+            $part =~ tr/\[\]//d; # Remove [] if present, the rest of the code prefers plain IPv6 addresses
+        } else {
+            ($part, $dsn) = ($dsn, '');
+        }
+        if ($part =~ /([^=]*)=(.*)/) {
+            my ($var, $val) = ($1, $2);
+            # These are legacy, do not change, and do not add
+            if ( $var eq 'db' || $var eq 'dbname' ) {
+                $var = 'database';
+            } elsif ( $var eq 'hostname' ) {
+                $var = 'host';
+            }
+            $hash->{$var} = $val;
+        } else {
+            foreach my $var (qw(database host port)) {
+                next if defined($hash->{$var});
+                $hash->{$var} = $part;
+                last;
+            }
+        }
     }
     return $hash;
 }
