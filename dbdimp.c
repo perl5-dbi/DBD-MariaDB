@@ -2747,7 +2747,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
       if (hv_exists(processed, key, len))
         continue;
 
-      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+      error_unknown_attribute(dbh, key);
       return -2;
     }
   }
