@@ -250,9 +250,9 @@ for the socket than that built into the client.
 
 =item mariadb_ssl
 
-A true value turns on the C<CLIENT_SSL> flag when connecting to the MariaDB or
-MySQL server and enforce SSL encryption. A false value (which is default)
-disable SSL encryption with the MariaDB or MySQL server.
+A true value enforces SSL encryption when connecting to the MariaDB or MySQL
+server. A false value (which is default) disables SSL encryption with the MariaDB
+or MySQL server.
 
 When enabling SSL encryption you should set also other SSL options, at least
 L<I<mariadb_ssl_ca_file>|/mariadb_ssl_ca_file> or
