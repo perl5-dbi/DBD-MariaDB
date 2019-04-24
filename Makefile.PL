@@ -962,8 +962,16 @@ sub WriteMakefile1 {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-
     $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , %{$params{TEST_REQUIRES}} };
     delete $params{TEST_REQUIRES};
   }
-  delete $params{CONFIGURE_REQUIRES} if $eumm_version < 6.52;
-  delete $params{MIN_PERL_VERSION} if $eumm_version < 6.48;
+  if ($params{CONFIGURE_REQUIRES} and $eumm_version < 6.52) {
+    #EUMM prior to 6.52 has problems with CONFIGURE_REQUIRES
+    $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , %{$params{CONFIGURE_REQUIRES}} };
+    delete $params{CONFIGURE_REQUIRES};
+  }
+  if ($params{MIN_PERL_VERSION} and $eumm_version < 6.48) {
+    #EUMM prior to 6.48 has problems with MIN_PERL_VERSION
+    $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , perl => $params{MIN_PERL_VERSION} };
+    delete $params{MIN_PERL_VERSION};
+  }
   delete $params{META_MERGE} if $eumm_version < 6.46;
   delete $params{META_ADD} if $eumm_version < 6.46;
   delete $params{LICENSE} if $eumm_version < 6.31;
