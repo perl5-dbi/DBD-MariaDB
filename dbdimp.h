@@ -42,6 +42,11 @@
 #include <DBIXS.h>  /* installed by the DBI module */
 #include <stdint.h> /* For uint32_t */
 
+
+/*******************************************************************************
+ * Standard MariaDB macros which are not defined in every MySQL/MariaDB client *
+ *******************************************************************************/
+
 #if !defined(MARIADB_BASE_VERSION) && defined(MARIADB_PACKAGE_VERSION)
 #define MARIADB_BASE_VERSION
 #endif
@@ -80,6 +85,11 @@
 #ifndef CR_STMT_CLOSED
 #define CR_STMT_CLOSED 2056
 #endif
+
+
+/********************************************************************
+ * Standard Perl macros which are not defined in every Perl version *
+ ********************************************************************/
 
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
@@ -286,6 +296,10 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define strBEGINs(s1, s2) strnEQ((s1), "" s2 "", sizeof((s2))-1)
 #endif
 
+
+/**************************************
+ * Custom DBD-MariaDB specific macros *
+ **************************************/
 
 #define GEO_DATATYPE_VERSION 50007
 #define NEW_DATATYPE_VERSION 50003
