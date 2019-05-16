@@ -133,6 +133,28 @@ extern __declspec(dllimport) ioinfo* __pioinfo[];
 #define SvPV_nomg_nolen(sv) ((SvFLAGS(sv) & (SVf_POK)) == SVf_POK ? SvPVX(sv) : sv_2pv_flags(sv, &PL_na, 0))
 #endif
 
+/* Remove wrong SV_NOSTEAL macro defined by ppport.h */
+#if defined(SV_NOSTEAL) && (SV_NOSTEAL == 0)
+#undef SV_NOSTEAL
+#endif
+
+#ifndef newSVsv_nomg
+PERL_STATIC_INLINE SV *newSVsv_nomg(pTHX_ SV *sv)
+{
+  SV *ret = newSV(0);
+#ifndef SV_NOSTEAL
+  U32 tmp = SvFLAGS(sv) & SVs_TEMP;
+  SvTEMP_off(sv);
+  sv_setsv_flags(ret, sv, 0);
+  SvFLAGS(sv) |= tmp;
+#else
+  sv_setsv_flags(ret, sv, SV_NOSTEAL);
+#endif
+  return ret;
+}
+#define newSVsv_nomg(sv) newSVsv_nomg(aTHX_ (sv))
+#endif
+
 /* looks_like_number() process get magic prior to perl 5.15.4, so reimplement it */
 #if PERL_VERSION < 15 || (PERL_VERSION == 15 && PERL_SUBVERSION < 4)
 #undef looks_like_number

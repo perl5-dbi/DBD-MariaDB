@@ -1602,9 +1602,9 @@ static bool mariadb_dr_connect(
           }
 
           if (embedded_groups)
-            imp_drh->embedded_groups = newSVsv(embedded_groups);
+            imp_drh->embedded_groups = newSVsv_nomg(embedded_groups);
           if (embedded_args)
-            imp_drh->embedded_args = newSVsv(embedded_args);
+            imp_drh->embedded_args = newSVsv_nomg(embedded_args);
 
           imp_drh->embedded_started = TRUE;
         }
