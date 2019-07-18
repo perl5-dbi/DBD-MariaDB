@@ -1392,6 +1392,51 @@ static void error_no_connection(SV *h, const char *msg)
   mariadb_dr_do_error(h, CR_CONNECTION_ERROR, msg, "HY000");
 }
 
+static int mariadb_dr_socket_cloexec(my_socket sock_os)
+{
+#ifdef _WIN32
+  HANDLE handle = (HANDLE)sock_os;
+  DWORD flags;
+  int error;
+
+  if (!GetHandleInformation(handle, &flags))
+  {
+    error = GetLastError();
+    return error != 0 ? -error : -EINVAL;
+  }
+
+  if (flags & HANDLE_FLAG_INHERIT)
+  {
+    /*
+      Clearing HANDLE_FLAG_INHERIT does not have to work for TCP sockets
+      when certain 3rd party Layered Service Providers are installed.
+      Note that perl's strerror() works also for error codes returned by
+      WinAPI GetLastError() function.
+     */
+    if (!SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0))
+    {
+      error = GetLastError();
+      return error != 0 ? -error : -EINVAL;
+    }
+  }
+#else
+  int fd = (int)sock_os;
+  int flags;
+
+  flags = fcntl(fd, F_GETFD);
+  if (flags == -1)
+    return errno != 0 ? -errno : -EINVAL;
+
+  if (!(flags & FD_CLOEXEC))
+  {
+    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
+      return errno != 0 ? -errno : -EINVAL;
+  }
+#endif
+
+  return 0;
+}
+
 /***************************************************************************
  *
  *  Name:    mariadb_dr_connect
@@ -2314,6 +2359,7 @@ static bool mariadb_dr_connect(
 
     {
       my_socket sock_os;
+      int retval;
 
       /*
         mysql_get_socket() is not available:
@@ -2339,6 +2385,23 @@ static bool mariadb_dr_connect(
 #else
       imp_dbh->sock_fd = sock_os;
 #endif
+
+      /*
+        MySQL and MariaDB clients do not set FD_CLOEXEC flag on socket
+        https://bugs.mysql.com/bug.php?id=3779
+        https://jira.mariadb.org/browse/CONC-405
+      */
+      retval = mariadb_dr_socket_cloexec(sock_os);
+      if (retval != 0)
+      {
+        /* Throw DBI warning when setting FD_CLOEXEC flag failed */
+        SV *errstr = DBIc_ERRSTR(imp_xxh);
+        SvUTF8_off(errstr);
+        sv_setpvf(errstr, "Cannot set close-on-exec flag: %s", strerror(-retval));
+        sv_utf8_decode(errstr);
+        sv_setuv(DBIc_ERR(imp_xxh), 0); /* 0 indicates warning */
+        sv_setpv(DBIc_STATE(imp_xxh), "01000"); /* "01000" is generic warning */
+      }
     }
 
           imp_dbh->async_query_in_flight = NULL;
