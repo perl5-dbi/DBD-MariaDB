@@ -2341,9 +2341,6 @@ static bool mariadb_dr_connect(
       }
     }
 
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
-
       /*
         we turn off Mysql's auto reconnect and handle re-connecting ourselves
         so that we can keep track of when this happens.
@@ -2419,6 +2416,9 @@ static bool mariadb_dr_connect(
           imp_dbh->async_query_in_flight = NULL;
 
     mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
+
+    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
 
     return TRUE;
 }
