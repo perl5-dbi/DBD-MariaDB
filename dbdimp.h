@@ -513,6 +513,7 @@ struct imp_dbh_st {
 
     struct mariadb_list_entry *list_entry; /* Entry of imp_drh->active_imp_dbhs list */
     MYSQL *pmysql;
+    my_socket sock_fd;
     bool connected;          /* Set to true after DBI->connect finished */
     bool auto_reconnect;
     bool bind_type_guessing;

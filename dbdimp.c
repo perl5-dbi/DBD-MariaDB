@@ -2312,6 +2312,21 @@ static bool mariadb_dr_connect(
       sock->reconnect = FALSE;
 #endif
 
+    {
+      /*
+        mysql_get_socket() is not available:
+        - in all MySQL clients
+        - MariaDB clients prior to 5.5.38 and 10.0.11
+        - MariaDB Connector/C clients prior to 2.2.1
+        NOTE: MARIADB_PACKAGE_VERSION_ID is set since MariaDB Connector/C 2.3.5+
+      */
+#if defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 50538 && MYSQL_VERSION_ID < 100000) || MYSQL_VERSION_ID >= 100011 || (defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 20201))
+      imp_dbh->sock_fd = mysql_get_socket(sock);
+#else
+      imp_dbh->sock_fd = sock->net.fd;
+#endif
+    }
+
           imp_dbh->async_query_in_flight = NULL;
 
     mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
@@ -2392,6 +2407,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
       /* This imp_dbh data belongs to different connection, so destructor should not touch it */
       imp_dbh->list_entry = NULL;
       imp_dbh->pmysql = NULL;
+      imp_dbh->sock_fd = -1;
       mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
       return FALSE;
     }
@@ -3023,6 +3039,7 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
   {
     mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql);
     imp_dbh->pmysql = NULL;
+    imp_dbh->sock_fd = -1;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
     if (svp && *svp)
     {
@@ -3588,7 +3605,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_sock"))
       result = sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "mariadb_sockfd"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(imp_dbh->pmysql->net.fd)) : &PL_sv_undef;
+      result = (imp_dbh->sock_fd >= 0) ? sv_2mortal(newSViv(imp_dbh->sock_fd)) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_stat"))
     {
       const char *stats = imp_dbh->pmysql ? mysql_stat(imp_dbh->pmysql) : NULL;
@@ -6645,7 +6662,7 @@ int mariadb_db_async_ready(SV* h)
 
   if(dbh->async_query_in_flight) {
       if (dbh->async_query_in_flight == imp_xxh) {
-          int retval = mariadb_dr_socket_ready(dbh->pmysql->net.fd);
+          int retval = mariadb_dr_socket_ready(dbh->sock_fd);
           if(retval < 0) {
               mariadb_dr_do_error(h, -retval, strerror(-retval), "HY000");
           }
