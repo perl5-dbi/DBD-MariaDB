@@ -2704,6 +2704,9 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   (void)hv_stores((HV *)SvRV(dbh), "Statement", SvREFCNT_inc(statement_sv));
   statement = SvPVutf8_nomg(statement_sv, statement_len);
 
+  if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t-> do() SQL statement: %.1000s%s\n", statement, statement_len > 1000 ? "..." : "");
+
   /*
    * Globally enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
@@ -2753,10 +2756,10 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   }
 
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "mysql.xs do() use_server_side_prepare %d\n", use_server_side_prepare ? 1 : 0);
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t\tuse_server_side_prepare %d\n", use_server_side_prepare ? 1 : 0);
 
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "mysql.xs do() async %d\n", (async ? 1 : 0));
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t\tasync %d\n", (async ? 1 : 0));
 
   if (async)
   {
