@@ -29,6 +29,9 @@ perl:
   - "5.26-shrplib"
   - "5.28"
 
+services:
+  - mysql
+
 matrix:
   include:
     - perl: system_precise
@@ -37,19 +40,26 @@ matrix:
       dist: trusty
     - perl: system_xenial
       dist: xenial
-      services:
-        - mysql
+    - perl: system_precise
+      dist: precise
+      env: MYSQL_CONFIG=PIC
       addons:
         apt:
           packages:
             - libdbi-perl
             - libmysqlclient-dev
-    - perl: system_precise
-      dist: precise
-      env: MYSQL_CONFIG=PIC
+            - libmysqld-pic
+            - libwrap0-dev
     - perl: system_trusty
       dist: trusty
       env: MYSQL_CONFIG=PIC
+      addons:
+        apt:
+          packages:
+            - libdbi-perl
+            - libmysqlclient-dev
+            - libmysqld-pic
+            - libwrap0-dev
     - perl: "5.8.1"
       env: DBI_VERSION=1.608
     - perl: "5.16.3"
@@ -393,9 +403,9 @@ addons:
       - libnuma-dev
       - libjemalloc-dev
       - libmysqlclient-dev
-      - libmysqld-pic
       - libwrap0-dev
       - libstdc++5
+      - libgnutls-dev
 
 before_install:
   - if ! [[ $TRAVIS_PERL_VERSION =~ ^system ]] && [ -z "$PERLBREW_PERL" ]; then eval $(curl https://travis-perl.github.io/init) --perl; fi
