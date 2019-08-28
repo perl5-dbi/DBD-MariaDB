@@ -40,6 +40,8 @@ matrix:
       dist: trusty
     - perl: system_xenial
       dist: xenial
+    - perl: system_bionic
+      dist: bionic
     - perl: system_precise
       dist: precise
       env: MYSQL_CONFIG=PIC
