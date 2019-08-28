@@ -535,7 +535,9 @@ install:
         SANDBOX_FILE="${SANDBOX_FILE%.xz}.gz" ;
       fi ;
       make_sandbox --export_binaries "$SANDBOX_FILE" -- --sandbox_port 3310 --sandbox_directory msb --no_confirm --verbose $SANDBOX_OPTIONS || exit 1 ;
-      mysqladmin -u root shutdown || exit 1 ;
+      if [ "$SERVER" != "system" ]; then
+        mysqladmin -u root shutdown || exit 1 ;
+      fi ;
       sed 's/-lzlib //g' -i $SANDBOX_HOME/*/bin/mysql_config ;
       rm -f $SANDBOX_HOME/*/bin/mariadb_config ;
     fi
