@@ -28,6 +28,9 @@ perl:
   - "5.26"
   - "5.26-shrplib"
   - "5.28"
+  - "5.28-shrplib"
+  - "5.30"
+  - "5.30-shrplib"
 
 services:
   - mysql
