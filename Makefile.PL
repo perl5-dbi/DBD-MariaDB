@@ -743,6 +743,8 @@ sub Configure {
                     # and always crash in mysql_real_connect() function, so avoid its usage
                     # https://jira.mariadb.org/browse/MDEV-16478
                     $function .= "\n#if defined(MARIADB_BASE_VERSION) || defined(MARIADB_PACKAGE_VERSION)\nif (mysql_get_client_version() >= 100301 && mysql_get_client_version() < 100308) return 1;\n#endif\n";
+                    # libmysqld.a from MySQL 8.x is broken too
+                    $function .= "\n#if !defined(MARIADB_BASE_VERSION) && !defined(MARIADB_PACKAGE_VERSION)\nif (mysql_get_client_version() >= 80000) return 1;\n#endif\n";
                 }
                 $function .= 'return (mysql_get_client_version() == MYSQL_VERSION_ID) ? 0 : 1;';
                 # libmysqld is built using g++ rather than gcc and sometimes
