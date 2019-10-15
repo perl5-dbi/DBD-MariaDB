@@ -464,11 +464,7 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
 	  'OBJECT' => '$(O_FILES)',
 	  'LIBS' => (join ' ', @libdirs, $main_lib, @libs),
 	  @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
-	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
-	);
-
-if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
-  %o=(%o,
+	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm',
     ABSTRACT => 'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)',
     AUTHOR => 'Pali <pali@cpan.org>',
     LICENSE => 'perl',
@@ -611,7 +607,6 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       'Time::HiRes' => 0,
     },
   );
-}
 
 WriteMakefile1(%o);
 exit 0;
