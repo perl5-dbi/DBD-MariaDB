@@ -513,7 +513,7 @@ PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
 /* 
   count embedded options
 */
-int count_embedded_options(char *st)
+static int count_embedded_options(char *st)
 {
   int rc;
   char c;
@@ -538,7 +538,7 @@ int count_embedded_options(char *st)
 /*
   Free embedded options
 */
-int free_embedded_options(char ** options_list, int options_count)
+static int free_embedded_options(char ** options_list, int options_count)
 {
   int i;
 
@@ -556,7 +556,7 @@ int free_embedded_options(char ** options_list, int options_count)
  Print out embedded option settings
 
 */
-int print_embedded_options(PerlIO *stream, char ** options_list, int options_count)
+static int print_embedded_options(PerlIO *stream, char ** options_list, int options_count)
 {
   int i;
 
@@ -573,7 +573,7 @@ int print_embedded_options(PerlIO *stream, char ** options_list, int options_cou
 /*
 
 */
-char **fill_out_embedded_options(char *options,
+static char **fill_out_embedded_options(char *options,
                                  int options_type,
                                  STRLEN slen, int cnt)
 {
