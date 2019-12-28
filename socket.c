@@ -16,6 +16,11 @@
 #include <unistd.h>
 #endif
 
+#if defined(__GNUC__) && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 1) || (__GNUC__ > 4))
+/* Do not export non-static functions from driver library */
+#pragma GCC visibility push(hidden)
+#endif
+
 /*
  * Warning: Native socket code must be outside of dbdimp.c and dbdimp.h because
  *          perl header files redefine socket function. This file must not

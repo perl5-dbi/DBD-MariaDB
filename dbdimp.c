@@ -15,6 +15,16 @@
 
 #include "dbdimp.h"
 
+#ifdef HAVE_GET_CHARSET_NUMBER
+/* Available only in some clients and declared in header file my_sys.h which cannot be included */
+unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
+#endif
+
+#if defined(__GNUC__) && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 1) || (__GNUC__ > 4))
+/* Do not export non-static functions from driver library */
+#pragma GCC visibility push(hidden)
+#endif
+
 #define ASYNC_CHECK_RETURN(h, value)\
   if(imp_dbh->async_query_in_flight) {\
       mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Calling a synchronous function on an asynchronous handle", "HY000");\
@@ -1363,11 +1373,6 @@ static void error_no_connection(SV *h, const char *msg)
 #endif
   mariadb_dr_do_error(h, CR_CONNECTION_ERROR, msg, "HY000");
 }
-
-#ifdef HAVE_GET_CHARSET_NUMBER
-/* Available only in some clients and declared in header file my_sys.h which cannot be included */
-unsigned int get_charset_number(const char *cs_name, unsigned int cs_flags);
-#endif
 
 /***************************************************************************
  *
