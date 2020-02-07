@@ -373,7 +373,7 @@ PERL_STATIC_INLINE unsigned long mariadb_get_client_version(void)
 #define HAVE_SECURE_AUTH
 #endif
 
-/* mysql_error(NULL) returns last error message, needs MySQL 5.0.60+ or 5.1.24+; does not work with MariaDB Connector/C yet */
+/* mysql_error(NULL) returns last error message, needs MySQL 5.0.60+ or 5.1.24+; does not work with MariaDB Connector/C yet: https://jira.mariadb.org/browse/CONC-374 */
 #if ((MYSQL_VERSION_ID >= 50060 && MYSQL_VERSION_ID < 50100) || MYSQL_VERSION_ID >= 50124) && !defined(MARIADB_PACKAGE_VERSION)
 #define HAVE_LAST_ERROR
 #endif
