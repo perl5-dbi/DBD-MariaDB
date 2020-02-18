@@ -45,6 +45,12 @@ matrix:
       dist: xenial
     - perl: system_bionic
       dist: bionic
+      addons:
+        apt:
+          packages:
+            - libdbi-perl
+            - libmysqlclient-dev
+            - libwrap0-dev
     - perl: system_precise
       dist: precise
       env: MYSQL_CONFIG=PIC
