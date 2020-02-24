@@ -45,6 +45,12 @@ matrix:
       dist: xenial
     - perl: system_bionic
       dist: bionic
+      addons:
+        apt:
+          packages:
+            - libdbi-perl
+            - libmysqlclient-dev
+            - libwrap0-dev
     - perl: system_precise
       dist: precise
       env: MYSQL_CONFIG=PIC
@@ -438,8 +444,8 @@ before_install:
   - if [ "$DB" = "MySQL" ]; then
       case "$VERSION" in
         4.1.*)            SANDBOX_URL=http://mysql.localhost.net.ar/Downloads/MySQL-4.1/mysql-standard-$VERSION-unknown-linux-gnu-x86_64-glibc23.tar.gz ;;
-        5.0.[012]*)       SANDBOX_URL=https://downloads.mysql.com/archives/get/file/mysql-standard-$VERSION-linux-x86_64-glibc23.tar.gz ;;
-        5.[01].*)         SANDBOX_URL=https://downloads.mysql.com/archives/get/file/mysql-$VERSION-linux-x86_64-glibc23.tar.gz ;;
+        5.0.[012]*)       SANDBOX_URL=https://downloads.mysql.com/archives/get/p/23/file/mysql-standard-$VERSION-linux-x86_64-glibc23.tar.gz ;;
+        5.[01].*)         SANDBOX_URL=https://downloads.mysql.com/archives/get/p/23/file/mysql-$VERSION-linux-x86_64-glibc23.tar.gz ;;
         5.5.?)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
         5.5.[1234]*)      SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
         5.5.5[012345]*)   SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux2.6-x86_64.tar.gz ;;
