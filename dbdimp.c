@@ -2226,7 +2226,7 @@ static bool mariadb_dr_connect(
       }
       if (connected && mysql_get_server_version(sock) < 40100)
       {
-        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: MariaDB or MySQL server version is older then 4.1.0", "HY000");
+        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: MariaDB or MySQL server version is older than 4.1.0", "HY000");
         mariadb_db_disconnect(dbh, imp_dbh);
         return FALSE;
       }
@@ -2243,7 +2243,7 @@ static bool mariadb_dr_connect(
       }
       if (mysql_get_server_version(sock) < 40100)
       {
-        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: MariaDB or MySQL server version is older then 4.1.0", "HY000");
+        mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: MariaDB or MySQL server version is older than 4.1.0", "HY000");
         mariadb_db_disconnect(dbh, imp_dbh);
         return FALSE;
       }
