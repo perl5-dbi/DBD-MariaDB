@@ -1855,6 +1855,29 @@ static bool mariadb_dr_connect(
           }
         }
 
+        (void)hv_stores(processed, "mariadb_auth_plugin", &PL_sv_yes);
+        if ((svp = hv_fetchs(hv, "mariadb_auth_plugin", FALSE)) && *svp)
+        {
+          int error = 1;
+          STRLEN len;
+          char *auth_plugin = SvPVutf8(*svp, len);
+          if (strlen(auth_plugin) != len)
+          {
+            error_nul_character(dbh, "mariadb_auth_plugin");
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return FALSE;
+          }
+#if MYSQL_VERSION_ID >= 50507 && MYSQL_VERSION_ID != 60000
+          error = mysql_options(sock, MYSQL_DEFAULT_AUTH, auth_plugin);
+#endif
+          if (error)
+          {
+            mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: mariadb_auth_plugin is not supported", "HY000");
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return FALSE;
+          }
+        }
+
         (void)hv_stores(processed, "mariadb_read_default_file", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_read_default_file", FALSE)) && *svp && SvTRUE(*svp))
         {

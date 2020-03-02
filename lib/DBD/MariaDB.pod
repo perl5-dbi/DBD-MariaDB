@@ -248,6 +248,19 @@ server. This is done, for example, with
 Usually there's no need for this option, unless you are using another location
 for the socket than that built into the client.
 
+=item mariadb_auth_plugin
+
+Specify authentication method used during connection to MariaDB or MySQL server.
+MySQL protocol uses C<mysql_native_password> authentication method and MySQL
+version 5.5.7 extended protocol and added support for using other authentication
+methods which can be provided to clients by plugins. MySQL version 8.0.4 changed
+the default authentication method to C<caching_sha2_password>.
+
+Example how to use C<caching_sha2_password> authentication method:
+
+  my $dsn = 'DBI:MariaDB:database=test;host=hostname;'
+          . 'mariadb_auth_plugin=caching_sha2_password';
+
 =item mariadb_ssl
 
 A true value enforces SSL encryption when connecting to the MariaDB or MySQL
