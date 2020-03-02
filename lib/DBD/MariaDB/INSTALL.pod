@@ -147,6 +147,7 @@ them in your .bashrc or the like:
   export DBD_MARIADB_TESTHOST=127.0.0.1
   export DBD_MARIADB_TESTPORT=3306
   export DBD_MARIADB_TESTSOCKET=/var/run/mysqld/mysqld.sock
+  export DBD_MARIADB_TESTAUTHPLUGIN=mysql_native_password
   export DBD_MARIADB_TESTUSER=me
   export DBD_MARIADB_TESTPASSWORD=s3kr1+
 

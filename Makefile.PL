@@ -24,9 +24,9 @@ push @mysql_headers, 'mysql.h';
 
 our $opt = { "help" => \&Usage, };
 
-my ($test_host, $test_port, $test_socket);
+my ($test_host, $test_port, $test_socket, $test_authplugin);
 {
-local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
+local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_authplugin, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } and do {
 $opt->{'testuser'} = $::test_user;
 $opt->{'testpassword'} = $::test_password;
@@ -37,6 +37,7 @@ $opt->{'libs'} = $::test_libs;
 $test_host = $::test_host;
 $test_port = $::test_port;
 $test_socket = $::test_socket;
+$test_authplugin = $::test_authplugin;
 }
 }
 
@@ -49,6 +50,7 @@ Getopt::Long::GetOptions(
     "testuser:s",
     "testpassword:s",
     "testsocket:s",
+    "testauthplugin:s",
     "cflags:s",
     "libs:s",
     "mysql_config:s",
@@ -104,7 +106,7 @@ MSG
     }
   }
 
-for my $key (qw(testdb testhost testuser testpassword testsocket testport cflags libs))
+for my $key (qw(testdb testhost testuser testpassword testsocket testauthplugin testport cflags libs))
 {
   Configure($opt, $source, $key);
 }
@@ -136,7 +138,7 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
   $source->{testhost} = 'guessed';
 }
 
-foreach (qw(testhost testport testsocket)) {
+foreach (qw(testhost testport testsocket testauthplugin)) {
   next if defined $opt->{$_};
   $opt->{$_} = '';
   $source->{$_} = 'default';
@@ -419,12 +421,14 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
 	      "\$::test_port = \$opt->{'testport'};\n" .
 	      "\$::test_user = \$opt->{'testuser'};\n" .
               "\$::test_socket = \$opt->{'testsocket'};\n" .
+              "\$::test_authplugin = \$opt->{'testauthplugin'};\n" .
 	      "\$::test_password = \$opt->{'testpassword'};\n" .
 	      "\$::test_db = \$opt->{'testdb'};\n" .
 	      "\$::test_dsn = \"DBI:MariaDB:\$::test_db\";\n" .
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
+	      "\$::test_dsn .= \";mariadb_auth_plugin=\$::test_authplugin\" if \$::test_authplugin;\n" .
 	      "\$::test_dsn .= \";mariadb_connect_timeout=120;mariadb_read_timeout=120;mariadb_write_timeout=120\";\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
 	      "\$::test_cflags = \$opt->{'cflags'} if \$source->{'cflags'} eq 'User\\'s choice';\n" .
@@ -654,6 +658,9 @@ Possible options are:
                          the database server; by default unix socket is chosen
                          by mariadb/mysqlclient library; takes effect only
                          when --testhost is set to "localhost"
+  --testauthplugin=<ap>  Use <ap> auth plugin when doing user authentication
+                         handshake with server; for older server versions it is
+                         needed to pass "mysql_native_password"
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --help                 Print this message and exit
@@ -885,7 +892,7 @@ section "Linker flags" or type
   perl Makefile.PL --help
 MSG
     }
-    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket") {
+    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket" || $param eq "testauthplugin") {
       # known parameter, but do nothing
     }
     else {
