@@ -368,6 +368,12 @@ PERL_STATIC_INLINE unsigned long mariadb_get_client_version(void)
 #define mysql_get_client_version() mariadb_get_client_version()
 #endif
 
+/* mysql_commit() and mysql_rollback() are broken in MariaDB Connector/C prior to version 3.1.3, see: https://jira.mariadb.org/browse/CONC-400 */
+#if defined(MARIADB_PACKAGE_VERSION) && MARIADB_PACKAGE_VERSION_ID < 30103
+#define mysql_commit(mysql) ((my_bool)(mysql_real_query((mysql), "COMMIT", 6)))
+#define mysql_rollback(mysql) ((my_bool)(mysql_real_query((mysql), "ROLLBACK", 8)))
+#endif
+
 /* MYSQL_SECURE_AUTH became a no-op from MySQL 5.7.5 and is removed from MySQL 8.0.3 */
 #if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID <= 50704
 #define HAVE_SECURE_AUTH
