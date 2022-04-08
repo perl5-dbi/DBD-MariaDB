@@ -322,6 +322,32 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define my_bool bool
 #endif
 
+/*
+ * MariaDB Connector/C 3.1.10 changed API of mysql_get_client_version()
+ * function. Before that release it returned client version. With that release
+ * it started returning Connector/C package version.
+ *
+ * So when compiling with MariaDB Connector/C client library, redefine
+ * mysql_get_client_version() to always returns client version via function
+ * mariadb_get_infov(MARIADB_CLIENT_VERSION_ID) call.
+ *
+ * Driver code expects for a long time that mysql_get_client_version() call
+ * returns client version and not something different.
+ *
+ * Function mariadb_get_infov() is supported since MariaDB Connector/C 3.0+.
+ */
+#if defined(MARIADB_PACKAGE_VERSION) && defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 30000
+PERL_STATIC_INLINE unsigned long mariadb_get_client_version(void)
+{
+  /* MARIADB_CLIENT_VERSION_ID really expects size_t type, documentation is wrong and says unsigned int. */
+  size_t version;
+  if (mariadb_get_infov(NULL, MARIADB_CLIENT_VERSION_ID, &version) != 0)
+    version = mysql_get_client_version(); /* On error fallback to mysql_get_client_version() */
+  return version;
+}
+#define mysql_get_client_version() mariadb_get_client_version()
+#endif
+
 /* MYSQL_SECURE_AUTH became a no-op from MySQL 5.7.5 and is removed from MySQL 8.0.3 */
 #if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID <= 50704
 #define HAVE_SECURE_AUTH
