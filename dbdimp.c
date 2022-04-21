@@ -627,6 +627,25 @@ static char **fill_out_embedded_options(char *options,
   return options_list;
 }
 
+#if MYSQL_VERSION_ID < 50001
+/* MySQL client prior to version 5.0.1 does not implement mysql_real_escape_string() for SERVER_STATUS_NO_BACKSLASH_ESCAPES */
+static unsigned long string_escape_quotes(char *to, const char *from, unsigned long len)
+{
+  const char *to_start = to;
+  const char *end = from + len;
+
+  while (from < end)
+  {
+    if (*from == '\'')
+      *to++ = '\'';
+    *to++ = *from++;
+  }
+
+  *to = '\0';
+  return to - to_start;
+}
+#endif
+
 /*
   constructs an SQL statement previously prepared with
   actual values replacing placeholders
@@ -838,9 +857,8 @@ static char *parse_params(
 #if MYSQL_VERSION_ID < 50001
             if (sock->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES)
             {
-              *ptr++ = 'X';
               *ptr++ = '\'';
-              ptr += mysql_hex_string(ptr, ph->value, ph->len);
+              ptr += string_escape_quotes(ptr, ph->value, ph->len);
               *ptr++ = '\'';
             }
             else
@@ -6411,9 +6429,8 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 #if MYSQL_VERSION_ID < 50001
       if (imp_dbh->pmysql->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES)
       {
-        *sptr++ = 'X';
         *sptr++ = '\'';
-        sptr += mysql_hex_string(sptr, ptr, len);
+        sptr += string_escape_quotes(sptr, ptr, len);
         *sptr++ = '\'';
       }
       else
