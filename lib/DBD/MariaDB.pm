@@ -10,7 +10,7 @@ use DBI;
 use DynaLoader();
 our @ISA = qw(DynaLoader);
 
-our $VERSION = '1.21';
+our $VERSION = '1.22';
 
 bootstrap DBD::MariaDB $VERSION;
 
