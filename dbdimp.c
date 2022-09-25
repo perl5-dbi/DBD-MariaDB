@@ -5379,8 +5379,10 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
 
-  if(imp_dbh->async_query_in_flight) {
-    mariadb_db_async_result(sth, &imp_sth->result);
+  if (imp_dbh->async_query_in_flight)
+  {
+    if (mariadb_db_async_result(sth, &imp_sth->result) == (my_ulonglong)-1)
+      return 0;
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
