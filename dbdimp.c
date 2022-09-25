@@ -4802,6 +4802,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
       case MYSQL_TYPE_NULL:
         buffer->buffer_length= 0;
         buffer->buffer= NULL;
+        break;
 
       case MYSQL_TYPE_TINY:
         buffer->buffer_length= sizeof(fbh->numeric_val.tval);
