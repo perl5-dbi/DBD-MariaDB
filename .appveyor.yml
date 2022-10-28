@@ -38,6 +38,8 @@ services:
   - mysql
 
 install:
+  - git fetch -q origin %APPVEYOR_PULL_REQUEST_HEAD_COMMIT%
+  - git checkout -qf %APPVEYOR_PULL_REQUEST_HEAD_COMMIT%
   - ren C:\MinGW MinGW_do_not_use
   - ren C:\Perl Perl_do_not_use
   - ren "C:\\Program Files\\Git\\usr\\bin\\perl.exe" perl.exe_do_not_use
