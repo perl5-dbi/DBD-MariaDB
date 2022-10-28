@@ -18,6 +18,9 @@ environment:
     - perl: "5.26.2.1"
     - perl: "5.28.0.1"
 
+image:
+  - Visual Studio 2015
+
 platform:
   - x86
   - x64
