@@ -681,6 +681,25 @@ You can also set or unset the I<mariadb_use_result> setting on your statement
 handle, when creating the statement handle or after it has been created. See
 L</STATEMENT HANDLES>.
 
+Library functions C<mysql_use_result()> and C<mysql_store_result()> are not
+used for server side prepared statements, therefore this I<mariadb_use_result>
+attribute has no effect when server side prepared statements are enabled.
+
+Note that library function C<mysql_use_result()> does not provide number of rows
+in result set. Therefore if this I<mariadb_use_result> attribute is enabled then
+DBI variable L<C<$DBI::rows>|DBI/$DBI::rows> and statement methods
+L<execute|DBI/execute> and L<rows|DBI/rows> returns C<-1> (which means that the
+number of rows is not known).
+
+Enabling I<mariadb_use_result> attribute on one statement handle disallow usage
+of all other statement and database handles until all data rows from active
+statement handle are fetched. Trying to use other statement or database handles
+when there is active I<mariadb_use_result> attribute on some statement handle
+cause unpredictable errors.
+
+In most cases there is no benefit in usage of this I<mariadb_use_result>
+attribute, it should stay disabled.
+
 =item mariadb_bind_type_guessing
 
 This attribute causes the driver (emulated prepare statements) to attempt to
