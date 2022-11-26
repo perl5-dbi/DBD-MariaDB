@@ -2418,7 +2418,7 @@ static bool mariadb_dr_connect(
     mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-\n");
 
     return TRUE;
 }
@@ -5381,7 +5381,7 @@ process:
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       {
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch, no more rows to fetch");
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch, no more rows to fetch\n");
       }
       if (mysql_errno(imp_dbh->pmysql))
         mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
