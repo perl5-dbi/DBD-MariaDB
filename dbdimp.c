@@ -4091,6 +4091,12 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     return FALSE;
   }
 
+  if (imp_dbh->async_query_in_flight && !imp_sth->async_result)
+  {
+    mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "more_results() without mariadb_async_result()", "HY000");
+    return FALSE;
+  }
+
   if (imp_dbh->async_query_in_flight && imp_dbh->async_query_in_flight != imp_sth)
   {
     mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
@@ -4677,6 +4683,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                );
     if(imp_dbh->async_query_in_flight) {
         DBIc_ACTIVE_on(imp_sth);
+        imp_sth->async_result = FALSE;
         return 0;
     }
   }
@@ -6522,13 +6529,17 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
       mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
       return -1;
   }
-  dbh->async_query_in_flight = NULL;
 
   if (htype == DBIt_ST)
   {
     D_imp_sth(h);
+    if (imp_sth->async_result)
+      return retval;
     DBIc_ACTIVE_off(imp_sth);
+    imp_sth->async_result = TRUE;
   }
+
+  dbh->async_query_in_flight = NULL;
 
   svsock= dbh->pmysql;
   if (!svsock)
