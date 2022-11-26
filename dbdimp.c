@@ -4000,6 +4000,10 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- mariadb_st_free_result_sets\n");
 
+  /* Iterate over all remaining rows, required when mysql_use_result() was called */
+  if (imp_sth->result)
+    while (mysql_fetch_row(imp_sth->result));
+
   do
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
