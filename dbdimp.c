@@ -4208,7 +4208,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     else
     {
       /* We have a new rowset */
-      imp_sth->row_num = mysql_num_rows(imp_sth->result);
+      imp_sth->row_num = use_mysql_use_result ? (my_ulonglong)-2 : mysql_num_rows(imp_sth->result);
 
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
@@ -4354,6 +4354,8 @@ static my_ulonglong mariadb_st_internal_execute(
 
           if (mysql_errno(*svsock))
             rows = -1;
+          else if (use_mysql_use_result)
+            rows = (my_ulonglong)-2;
           else if (*result)
             rows = mysql_num_rows(*result);
           else {

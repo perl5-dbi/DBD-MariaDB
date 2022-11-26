@@ -236,7 +236,7 @@ rows(sth)
             XSRETURN_UNDEF;
         }
     }
-    if (imp_sth->row_num == (my_ulonglong)-1)
+    if (imp_sth->row_num == (my_ulonglong)-1 || imp_sth->row_num == (my_ulonglong)-2)
         XSRETURN_IV(-1);
     RETVAL = my_ulonglong2sv(imp_sth->row_num);
   OUTPUT:
