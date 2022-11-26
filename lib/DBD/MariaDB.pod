@@ -1325,6 +1325,24 @@ Here's an example of how to use the asynchronous query interface:
   }
   my $rows = $dbh->mariadb_async_result();
 
+And another example:
+
+  my $fd = $dbh->mariadb_sockfd();
+
+  my $sth = $dbh->prepare('SELECT 1, SLEEP(10), t.id FROM t', { mariadb_async => 1 });
+  $sth->execute();
+
+  my $bits = '';
+  vec($bits, $fd, 1) = 1;
+  select($bits, undef, $bits, undef);
+
+  my $num_rows = $sth->mariadb_async_result();
+  print "num rows: $num_rows\n";
+  while (my @array = $sth->fetchrow_array()) {
+      print "row:\n";
+      print "\tvalue: $_\n" foreach @array;
+  }
+
 =head1 INSTALLATION
 
 See L<DBD::MariaDB::INSTALL>.
