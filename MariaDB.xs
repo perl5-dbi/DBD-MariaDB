@@ -181,6 +181,8 @@ mariadb_async_result(dbh)
             XSRETURN_PV("0E0");
         else if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
+        else if (retval == (my_ulonglong)-2)
+            XSRETURN_IV(-1);
 
         RETVAL = my_ulonglong2sv(retval);
     }
@@ -274,6 +276,9 @@ mariadb_async_result(sth)
 
         if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
+
+        if (retval == (my_ulonglong)-2)
+            XSRETURN_IV(-1);
 
         if (retval == 0)
             XSRETURN_PV("0E0");
