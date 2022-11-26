@@ -72,6 +72,7 @@ t/71impdata.t
 t/75supported_sql.t
 t/76multi_statement.t
 t/77max_allowed_packet.t
+t/78use_result.t
 t/80procs.t
 t/81procs.t
 t/85init_command.t
