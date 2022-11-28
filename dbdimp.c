@@ -2956,11 +2956,12 @@ mariadb_db_rollback(SV* dbh, imp_dbh_t* imp_dbh) {
   return 1;
 }
 
-static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
+static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql, bool actually_close)
 {
   if (pmysql)
   {
-    mysql_close(pmysql);
+    if (actually_close)
+      mysql_close(pmysql);
     imp_drh->instances--;
   }
   if (imp_drh->instances == 0)
@@ -3021,7 +3022,7 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
 
   if (imp_dbh->pmysql)
   {
-    mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql);
+    mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql, DBIc_ACTIVE(imp_dbh));
     imp_dbh->pmysql = NULL;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
     if (svp && *svp)
@@ -3059,6 +3060,8 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
       }
     }
   }
+
+  DBIc_ACTIVE_off(imp_dbh);
 }
 
 /*
@@ -3112,7 +3115,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 
   while ((entry = imp_drh->taken_pmysqls))
   {
-    mariadb_dr_close_mysql(aTHX_ imp_drh, (MYSQL *)entry->data);
+    mariadb_dr_close_mysql(aTHX_ imp_drh, (MYSQL *)entry->data, TRUE);
     mariadb_list_remove(imp_drh->taken_pmysqls, entry);
   }
 
