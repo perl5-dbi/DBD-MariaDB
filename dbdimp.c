@@ -4696,6 +4696,9 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
       if (!use_server_side_prepare)
         imp_sth->done_desc = FALSE;
     }
+
+    /* Remember whether we actually used server side prepare */
+    imp_sth->use_server_side_prepare = use_server_side_prepare;
   }
 
   imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
