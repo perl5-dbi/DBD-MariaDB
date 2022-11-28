@@ -4007,7 +4007,9 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
 
     if (next_result_rc == 0)
     {
-      if (!(imp_sth->result = mysql_store_result(imp_dbh->pmysql)))
+      imp_sth->result = imp_sth->use_mysql_use_result ?
+        mysql_use_result(imp_dbh->pmysql) : mysql_store_result(imp_dbh->pmysql);
+      if (!imp_sth->result)
       {
         /* Check for possible error */
         if (mysql_errno(imp_dbh->pmysql))
@@ -4022,6 +4024,13 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
         }
         imp_dbh->insertid = imp_sth->insertid = mysql_insert_id(imp_dbh->pmysql);
       }
+    }
+    if (imp_sth->use_mysql_use_result) {
+      while (mysql_fetch_row(imp_sth->result)) {}
+      if (mysql_errno(imp_dbh->pmysql))
+        mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
+                 mysql_error(imp_dbh->pmysql),
+                 mysql_sqlstate(imp_dbh->pmysql));
     }
     if (imp_sth->result && (mysql_more_results(imp_dbh->pmysql) || free_last))
     {
