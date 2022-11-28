@@ -6485,6 +6485,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   unsigned int num_fields;
   int htype;
   bool async_sth = FALSE;
+  bool use_mysql_use_result;
 
   if(! resp) {
       resp = &_res;
@@ -6495,12 +6496,14 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   if(htype == DBIt_DB) {
       D_imp_dbh(h);
       dbh = imp_dbh;
+      use_mysql_use_result = imp_dbh->use_mysql_use_result;
   } else {
       D_imp_sth(h);
       D_imp_dbh_from_sth;
       dbh = imp_dbh;
       async_sth = imp_sth->is_async;
       retval = imp_sth->row_num;
+      use_mysql_use_result = imp_sth->use_mysql_use_result;
   }
 
   if(! dbh->async_query_in_flight) {
@@ -6536,7 +6539,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 
   if (!mysql_read_query_result(svsock))
   {
-    *resp= mysql_store_result(svsock);
+    *resp= use_mysql_use_result ?
+      mysql_use_result(svsock) : mysql_store_result(svsock);
 
     if (mysql_errno(svsock))
     {
