@@ -4215,7 +4215,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
           sv_2mortal(newSVuv(mysql_num_fields(imp_sth->result)))
       );
 
-      if (imp_sth->row_num)
+      if (imp_sth->row_num || use_mysql_use_result)
         DBIc_ACTIVE_on(imp_sth);
     }
 
@@ -4691,7 +4691,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
       /** Store the result in the current statement handle */
       num_fields = mysql_num_fields(imp_sth->result);
       DBIc_NUM_FIELDS(imp_sth) = (num_fields <= INT_MAX) ? num_fields : INT_MAX;
-      if (imp_sth->row_num)
+      if (imp_sth->row_num || imp_sth->use_mysql_use_result)
         DBIc_ACTIVE_on(imp_sth);
       if (!use_server_side_prepare)
         imp_sth->done_desc = FALSE;
@@ -5255,7 +5255,9 @@ process:
       return Nullav;
     }
 
-    if (imp_sth->currow >= imp_sth->row_num && !mysql_more_results(imp_dbh->pmysql))
+    if (imp_sth->use_mysql_use_result)
+      imp_sth->row_num++;
+    else if (imp_sth->currow >= imp_sth->row_num && !mysql_more_results(imp_dbh->pmysql))
       DBIc_ACTIVE_off(imp_sth);
 
     num_fields= mysql_num_fields(imp_sth->result);
@@ -6571,7 +6573,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
         } else {
           num_fields = mysql_num_fields(imp_sth->result);
           DBIc_NUM_FIELDS(imp_sth) = (num_fields <= INT_MAX) ? num_fields : INT_MAX;
-          if (imp_sth->row_num)
+          if (imp_sth->row_num || imp_sth->use_mysql_use_result)
             DBIc_ACTIVE_on(imp_sth);
         }
       imp_sth->warning_count = mysql_warning_count(imp_dbh->pmysql);
