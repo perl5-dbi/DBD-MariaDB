@@ -5441,13 +5441,8 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
   int num_params;
   int num_fields;
 
-  if (!PL_dirty)
-  {
-    /* During global destruction, DBI objects are destroyed in random order
-     * and therefore imp_dbh may be already freed. So do not access it. */
-    mariadb_st_finish(sth, imp_sth);
-    mariadb_st_free_result_sets(sth, imp_sth, TRUE);
-  }
+  if (imp_sth->result)
+    mysql_free_result(imp_sth->result);
 
   DBIc_ACTIVE_off(imp_sth);
 
