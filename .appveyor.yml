@@ -15,8 +15,13 @@ environment:
     - perl: "5.20.3.3"
     - perl: "5.22.3.1"
     - perl: "5.24.4.1"
-    - perl: "5.26.2.1"
-    - perl: "5.28.0.1"
+    - perl: "5.26.3.1"
+    - perl: "5.28.2.1"
+    - perl: "5.30.3.1"
+    - perl: "5.32.1.1"
+
+image:
+  - Visual Studio 2015
 
 platform:
   - x86
@@ -33,6 +38,8 @@ services:
   - mysql
 
 install:
+  - git fetch -q origin %APPVEYOR_PULL_REQUEST_HEAD_COMMIT%
+  - git checkout -qf %APPVEYOR_PULL_REQUEST_HEAD_COMMIT%
   - ren C:\MinGW MinGW_do_not_use
   - ren C:\Perl Perl_do_not_use
   - ren "C:\\Program Files\\Git\\usr\\bin\\perl.exe" perl.exe_do_not_use
@@ -41,8 +48,10 @@ install:
   - cinst StrawberryPerl --version %perl% %x86% --allow-empty-checksums
   - refreshenv
   - perl -V
+  - perl -e "print qq(o conf urllist push http://www.cpan.org\no conf commit\n)" | cpan
   - cpan -T App::cpanminus
-  - perl -MExtUtils::MakeMaker=6.58 -e "" || cpanm --quiet --notest ExtUtils::MakeMaker@6.58
+  - perl "-MExtUtils::MakeMaker 6.58" -e "" || cpanm --quiet --notest ExtUtils::MakeMaker@6.58
+  - perl "-MCPAN::Meta 2.112580" -e "" || cpanm --quiet --notest CPAN::Meta@2.112580
   - cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
   - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
 

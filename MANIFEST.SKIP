@@ -13,7 +13,7 @@
 ^\.gitignore$
 ^\.mailmap$
 ^\.travis\.yml$
-^appveyor\.yml$
+^\.appveyor\.yml$
 ^blib/.*$
 ^dll\.base$
 ^dll\.exp$
