@@ -285,7 +285,7 @@ my $have_deinitialize_ssl = check_lib(
 );
 
 # Check if mysql_server_end() deinitialize OpenSSL library functions
-# See: https://github.com/gooddata/DBD-MariaDB/issues/119
+# See: https://github.com/perl5-dbi/DBD-MariaDB/issues/119
 my $have_problem_with_openssl = !check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
   ccflags => $opt->{cflags},
@@ -480,16 +480,16 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       dynamic_config => 0,
       resources => {
         repository  => {
-          url  => 'git://github.com/gooddata/DBD-MariaDB.git',
-          web  => 'https://github.com/gooddata/DBD-MariaDB',
+          url  => 'https://github.com/perl5-dbi/DBD-MariaDB.git',
+          web  => 'https://github.com/perl5-dbi/DBD-MariaDB',
           type => 'git',
         },
         bugtracker => {
-          web  => 'https://github.com/gooddata/DBD-MariaDB/issues',
+          web  => 'https://github.com/perl5-dbi/DBD-MariaDB/issues',
         },
         x_MailingList => 'mailto:dbi-dev@perl.org',
         license     => [ 'http://dev.perl.org/licenses/' ],
-        homepage    => 'https://github.com/gooddata/DBD-MariaDB',
+        homepage    => 'https://github.com/perl5-dbi/DBD-MariaDB',
         x_IRC       => 'irc://irc.perl.org/#dbi',
       },
       x_contributors => [

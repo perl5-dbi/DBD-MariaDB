@@ -1,7 +1,7 @@
 /* Hej, Emacs, this is -*- C -*- mode!
 
    Copyright (c) 2018      GoodData Corporation
-   Copyright (c) 2015-2017 Pali Rohár
+   Copyright (c) 2015-2022 Pali Rohár
    Copyright (c) 2004-2017 Patrick Galbraith
    Copyright (c) 2013-2017 Michiel Beijen
    Copyright (c) 2004-2007 Alexey Stroganov
@@ -65,7 +65,7 @@ BOOT:
 #undef newTypeSub
 #if defined(HAVE_DEINITIALIZE_SSL) && defined(HAVE_PROBLEM_WITH_OPENSSL)
   /* Do not deinitialize OpenSSL library after mysql_server_end()
-   * See: https://github.com/gooddata/DBD-MariaDB/issues/119 */
+   * See: https://github.com/perl5-dbi/DBD-MariaDB/issues/119 */
   mariadb_deinitialize_ssl = 0;
 #endif
 #ifndef _WIN32

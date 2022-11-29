@@ -2,7 +2,7 @@
  *  DBD::MariaDB - DBI driver for the MariaDB and MySQL database
  *
  *  Copyright (c) 2018      GoodData Corporation
- *  Copyright (c) 2015-2017 Pali Rohár
+ *  Copyright (c) 2015-2022 Pali Rohár
  *  Copyright (c) 2004-2017 Patrick Galbraith
  *  Copyright (c) 2013-2017 Michiel Beijen 
  *  Copyright (c) 2004-2007 Alexey Stroganov 

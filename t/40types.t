@@ -160,7 +160,7 @@ is_deeply($sth->{mariadb_type}, [ DBD::MariaDB::TYPE_LONG ], "checking mariadb c
 
 ok($dbh->do(qq{DROP TABLE t_dbd_40types}), "cleaning up");
 
-# https://github.com/gooddata/DBD-MariaDB/issues/109: Check DBI::SQL_BIGINT type
+# https://github.com/perl5-dbi/DBD-MariaDB/issues/109: Check DBI::SQL_BIGINT type
 ok($dbh->do(qq{CREATE TABLE t_dbd_40types (num BIGINT)}), "creating table for bigint");
 $sth = $dbh->prepare("SELECT * FROM t_dbd_40types");
 ok($sth->execute());

@@ -1,7 +1,7 @@
 1.22 2022-04-22
  - Disable usage of libmysqld.a from MySQL 8.x series
  - Install README.pod into DBD/MariaDB/ subdirectory
-   (https://github.com/gooddata/DBD-MariaDB/issues/146)
+   (https://github.com/perl5-dbi/DBD-MariaDB/issues/146)
  - Do not export driver private C functions
  - Fix typo in error message
  - Fix compatibility with new MariaDB client and server versions
@@ -12,7 +12,7 @@
 1.21 2019-02-27
  - Fix skipping test t/14destruct.t
  - Revert "MySQL bug #93276 is fixed in 8.0.15"
-   (https://github.com/gooddata/DBD-MariaDB/issues/137)
+   (https://github.com/perl5-dbi/DBD-MariaDB/issues/137)
 
 1.20 2019-02-22
  - Fix compilation on Windows
@@ -21,7 +21,7 @@
  - Cover a protocol design error for multi result statements
  - Fix $dbh->last_insert_id for async calls and multi result statements
  - Add more robust solution to prevent deinitializing OpenSSL functions
-   (https://github.com/gooddata/DBD-MariaDB/issues/119)
+   (https://github.com/perl5-dbi/DBD-MariaDB/issues/119)
  - Set $sth->{Active} to off after fetching all data
    (https://github.com/jhthorsen/mojo-mysql/pull/47#issuecomment-448095164)
  - Fix $sth->rows for async, multi results and when error occurred
@@ -30,12 +30,12 @@
 
 1.11 2019-01-02
  - Fix breakage of Net::SSLeay / OpenSSL library after DBI disconnect
-   (https://github.com/gooddata/DBD-MariaDB/issues/119)
+   (https://github.com/perl5-dbi/DBD-MariaDB/issues/119)
 
 1.10 2018-12-05
- - Fix spelling error (https://github.com/gooddata/DBD-MariaDB/issues/82)
- - Fix MinGW build (https://github.com/gooddata/DBD-MariaDB/issues/91)
- - Fix DBI SQL types (https://github.com/gooddata/DBD-MariaDB/issues/109)
+ - Fix spelling error (https://github.com/perl5-dbi/DBD-MariaDB/issues/82)
+ - Fix MinGW build (https://github.com/perl5-dbi/DBD-MariaDB/issues/91)
+ - Fix DBI SQL types (https://github.com/perl5-dbi/DBD-MariaDB/issues/109)
  - Fix overflow in mariadb_thread_id and mariadb_warning_count attributes
  - Fix parsing LIMIT keyword (case-insensitive + allow whitespaces around)
  - Fix allocating and releasing memory when using Embedded Server
@@ -141,7 +141,7 @@
 
  [7. List of fixed issues]
  - https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866821#17
- - https://github.com/gooddata/DBD-MariaDB/issues/13
+ - https://github.com/perl5-dbi/DBD-MariaDB/issues/13
  - https://github.com/perl5-dbi/DBD-mysql/issues/78
  - https://github.com/perl5-dbi/DBD-mysql/issues/110
  - https://github.com/perl5-dbi/DBD-mysql/issues/120
