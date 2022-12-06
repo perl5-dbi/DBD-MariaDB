@@ -1333,15 +1333,16 @@ Since 2004 DBD::mysql has been maintained by Patrick Galbraith
 developers who keep sending patches to help continue improving DBD::mysql.
 
 In 2018 unreleased version 4.042_01 of DBD::mysql was forked and DBD::MariaDB
-was created to fix long standing Unicode bugs and MariaDB support. Currently it
-is developed in GoodData and maintained by Pali (I<pali@cpan.org>).
+was created to fix long standing Unicode bugs and MariaDB support. Development
+at that time was supported by GoodData. Currently it is hosted on Github as
+part of the big perl5-dbi project and maintained by Pali (I<pali@cpan.org>).
 
 =head1 CONTRIBUTIONS
 
 Anyone who desires to contribute to this project is encouraged to do so.
 Currently, the source code for this project can be found at Github:
 
-L<https://github.com/gooddata/DBD-MariaDB>
+L<https://github.com/perl5-dbi/DBD-MariaDB>
 
 Either fork this repository and produce a branch with your changeset that the
 maintainer can merge to his tree, or create a diff with git. The maintainer is
@@ -1360,7 +1361,7 @@ Large Portions Copyright (c) 2018 GoodData Corporation
 
 =item *
 
-Large Portions Copyright (c) 2015-2017 Pali Rohár
+Large Portions Copyright (c) 2015-2022 Pali Rohár
 
 =item *
 
@@ -1430,7 +1431,7 @@ Information on DBD::MariaDB specifically can be gained by typing:
 Please report bugs, including all the information needed such as DBD::MariaDB
 version, MariaDB/MySQL version, OS type/version, etc to this link:
 
-L<https://github.com/gooddata/DBD-MariaDB/issues>
+L<https://github.com/perl5-dbi/DBD-MariaDB/issues>
 
 In past for DBD::mysql, MySQL/Sun/Oracle responded to bugs and assisted in
 fixing bugs which many thanks should be given for their help! This driver is
