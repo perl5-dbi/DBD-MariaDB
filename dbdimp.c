@@ -4,8 +4,8 @@
  *  Copyright (c) 2018      GoodData Corporation
  *  Copyright (c) 2015-2022 Pali Rohár
  *  Copyright (c) 2004-2017 Patrick Galbraith
- *  Copyright (c) 2013-2017 Michiel Beijen 
- *  Copyright (c) 2004-2007 Alexey Stroganov 
+ *  Copyright (c) 2013-2017 Michiel Beijen
+ *  Copyright (c) 2004-2007 Alexey Stroganov
  *  Copyright (c) 2003-2005  Rudolf Lippan
  *  Copyright (c) 1997-2003  Jochen Wiedmann
  *
@@ -115,7 +115,7 @@ count_params(imp_dbh_t *imp_dbh, pTHX_ char *statement, STRLEN statement_len, bo
                   }
                   /*
                     if not comment_end, the comment never ended and we need to iterate
-                    back to the beginning of where we started and let the database 
+                    back to the beginning of where we started and let the database
                     handle whatever is in the statement
                 */
                   if (! comment_end)
@@ -1260,7 +1260,7 @@ static const sql_type_info_t SQL_GET_TYPE_INFO_values[]= {
 /* END MORE STUFF */
 };
 
-/* 
+/*
   static const sql_type_info_t* native2sql (int t)
 */
 static const sql_type_info_t *native2sql(int t)
@@ -1321,7 +1321,7 @@ void mariadb_dr_init(dbistate_t* dbistate)
 }
 
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_dr_do_error
  *
@@ -1654,7 +1654,7 @@ static bool mariadb_dr_connect(
       }
 #endif
 
-        /* thanks to Peter John Edwards for mysql_init_command */ 
+        /* thanks to Peter John Edwards for mysql_init_command */
         (void)hv_stores(processed, "mariadb_init_command", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_init_command", FALSE)) && *svp && SvTRUE(*svp))
         {
@@ -2478,7 +2478,7 @@ SV *mariadb_db_take_imp_data(SV *dbh, imp_xxh_t *imp_xxh, void *foo)
 }
 
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_login6_sv
  *
@@ -2498,7 +2498,7 @@ SV *mariadb_db_take_imp_data(SV *dbh, imp_xxh_t *imp_xxh, void *foo)
 
 int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *password, SV *attribs)
 {
-  dTHX; 
+  dTHX;
   D_imp_xxh(dbh);
   PERL_UNUSED_ARG(attribs);
 
@@ -2538,7 +2538,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 static my_ulonglong mariadb_st_internal_execute(SV *h, char *sbuf, STRLEN slen, int num_params, imp_sth_ph_t *params, MYSQL_RES **result, MYSQL **svsock, bool use_mysql_use_result);
 static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, bool has_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_do6
  *
@@ -2897,7 +2897,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
  *  Name:    mariadb_db_commit
  *           mariadb_db_rollback
  *
- *  Purpose: You guess what they should do. 
+ *  Purpose: You guess what they should do.
  *
  *  Input:   dbh - database handle being committed or rolled back
  *           imp_dbh - drivers private database handle data
@@ -3061,8 +3061,7 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
   }
 }
 
-/*
- ***************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_disconnect
  *
@@ -3168,7 +3167,7 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
 }
 
 
-/****************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_destroy
  *
@@ -3198,8 +3197,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
   DBIc_off(imp_dbh, DBIcf_IMPSET);
 }
 
-/* 
- ***************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_STORE_attrib
  *
@@ -3706,8 +3704,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
 
 static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_last);
 
-/* 
- **************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_prepare_sv
  *
@@ -3834,7 +3831,7 @@ mariadb_st_prepare_sv(
 
   /*
      Clean-up previous result set(s) for sth to prevent
-     'Commands out of sync' error 
+     'Commands out of sync' error
   */
   if (!mariadb_st_free_result_sets(sth, imp_sth, TRUE))
     return 0;
@@ -4179,10 +4176,10 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
 
     return FALSE;
   }
-  else if(next_result_return_code == -1)                                                                                                                  
-  {                                                                                                                                                       
+  else if(next_result_return_code == -1)
+  {
     return FALSE;
-  }  
+  }
   else
   {
     /* Store the result from the Query */
@@ -4366,7 +4363,7 @@ static my_ulonglong mariadb_st_internal_execute(
     Safefree(salloc);
 
   if (rows == (my_ulonglong)-1)
-    mariadb_dr_do_error(h, mysql_errno(*svsock), mysql_error(*svsock), 
+    mariadb_dr_do_error(h, mysql_errno(*svsock), mysql_error(*svsock),
              mysql_sqlstate(*svsock));
 
   return(rows);
@@ -4610,9 +4607,9 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
     imp_sth->av_attr[i]= Nullav;
   }
 
-  /* 
+  /*
      Clean-up previous result set(s) for sth to prevent
-     'Commands out of sync' error 
+     'Commands out of sync' error
   */
   if (!mariadb_st_free_result_sets(sth, imp_sth, TRUE))
     return -2;
@@ -4715,7 +4712,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
     return -1; /* -1 is unknown number of rows */
 }
 
- /**************************************************************************
+ /***************************************************************************
  *
  *  Name:    mariadb_st_describe
  *
@@ -4868,7 +4865,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
   return 1;
 }
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_fetch
  *
@@ -5415,7 +5412,7 @@ int mariadb_st_finish(SV* sth, imp_sth_t* imp_sth) {
 }
 
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_destroy
  *
@@ -5503,8 +5500,7 @@ void mariadb_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 }
 
 
-/*
- **************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_STORE_attrib
  *
@@ -5559,8 +5555,7 @@ mariadb_st_STORE_attrib(
 }
 
 
-/*
- **************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_fetch_internal
  *
@@ -5725,8 +5720,7 @@ static SV* mariadb_st_fetch_internal(
 }
 
 
-/*
- **************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_st_FETCH_attrib
  *
@@ -6262,7 +6256,7 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
 }
 
 
-/**************************************************************************
+/***************************************************************************
  *
  *  Name:    mariadb_db_type_info_all
  *
@@ -6314,7 +6308,7 @@ AV *mariadb_db_type_info_all(void)
     "mariadb_native_type",
     "mariadb_is_num"
   };
- 
+
   hv= newHV();
   av_push(av, newRV_noinc((SV*) hv));
   for (i = 0; i < sizeof(cols) / sizeof(const char*); i++)
@@ -6366,7 +6360,7 @@ AV *mariadb_db_type_info_all(void)
 /*
   mariadb_db_quote
 
-  Properly quotes a value 
+  Properly quotes a value
 */
 SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 {
@@ -6604,7 +6598,7 @@ int mariadb_db_async_ready(SV* h)
   bool async_active = FALSE;
 
   htype = DBIc_TYPE(imp_xxh);
-  
+
   if(htype == DBIt_DB) {
       D_imp_dbh(h);
       dbh = imp_dbh;
