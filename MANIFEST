@@ -34,6 +34,7 @@ t/35prepare.t
 t/40bindparam.t
 t/40bindparam2.t
 t/40bit.t
+t/40blobslarge.t
 t/40blobs.t
 t/40catalog.t
 t/40invalid_attributes.t
