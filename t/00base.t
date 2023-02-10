@@ -23,6 +23,8 @@ BEGIN {
     $tb->failure_output($fo);
 }
 
+diag "Perl version is " . ($] >= 5.010 ? $^V : $]);
+
 ok eval { DBI->VERSION(1.608) }, "DBI version is OK";
 diag "DBI version is $DBI::VERSION";
 
