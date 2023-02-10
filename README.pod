@@ -3,6 +3,9 @@
 =begin html
 
 <p>
+<a href="https://github.com/perl5-dbi/DBD-MariaDB/actions/workflows/ci.yaml">
+<img src="https://github.com/perl5-dbi/DBD-MariaDB/actions/workflows/ci.yaml/badge.svg?branch=master"
+  alt="Github Actions CI Build Status"></a>
 <a href="https://ci.appveyor.com/project/perl5-dbi/dbd-mariadb/branch/master">
 <img src="https://ci.appveyor.com/api/projects/status/github/perl5-dbi/dbd-mariadb?branch=master&amp;svg=true"
   alt="AppVeyor Build Status"></a>

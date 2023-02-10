@@ -10,6 +10,7 @@
 ^MariaDB\.def$
 ^MariaDB\.xsi$
 ^\.git/.*$
+^\.github/.*$
 ^\.gitignore$
 ^\.mailmap$
 ^\.appveyor\.yml$
