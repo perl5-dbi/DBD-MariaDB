@@ -591,6 +591,7 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
     },
     TEST_REQUIRES => {
       'bigint' => 0,
+      'constant' => 0,
       'lib' => 0,
       'strict' => 0,
       'utf8' => 0,
