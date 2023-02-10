@@ -1780,12 +1780,12 @@ static bool mariadb_dr_connect(
         {
           UV uv = SvUV_nomg(*svp);
           unsigned long packet_size = (uv <= ULONG_MAX ? uv : ULONG_MAX);
-#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
           /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
-          /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+          /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
           mysql_options(sock, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
 #else
-          /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
+          /* before MySQL 5.7.9 and MariaDB 10.2.6 and MariaDB 10.3.0 use max_allowed_packet macro */
           max_allowed_packet = packet_size;
 #endif
         }
@@ -3331,14 +3331,14 @@ mariadb_db_STORE_attrib(
   #endif
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
-#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
-      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
       UV uv = SvUV_nomg(valuesv);
       unsigned long packet_size = (uv <= ULONG_MAX ? uv : ULONG_MAX);
       mysql_options(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
 #else
-      /* before MySQL 5.7.9 and MariaDB 10.2.2 it is not possible to change max_allowed_packet after connection was established */
+      /* before MySQL 5.7.9 and MariaDB 10.2.6 and MariaDB 10.3.0 it is not possible to change max_allowed_packet after connection was established */
       if (imp_dbh->connected)
         mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Changing mariadb_max_allowed_packet is not supported after connection was established", "HY000");
       return 0;
@@ -3524,11 +3524,11 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
       unsigned long packet_size;
-#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_VERSION_ID) && MARIADB_VERSION_ID >= 100202)
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* mysql_get_option() is not available in all versions */
       /* if we do not have mysql_get_option() we cannot retrieve max_allowed_packet */
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
-      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.2 */
+      /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
   #ifdef HAVE_GET_OPTION
       mysql_get_option(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
   #else
@@ -3536,7 +3536,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       return Nullsv;
   #endif
 #else
-      /* before MySQL 5.7.9 and MariaDB 10.2.2 use max_allowed_packet macro */
+      /* before MySQL 5.7.9 and MariaDB 10.2.6 and MariaDB 10.3.0 use max_allowed_packet macro */
       packet_size = max_allowed_packet;
 #endif
       result = sv_2mortal(newSVuv(packet_size));
