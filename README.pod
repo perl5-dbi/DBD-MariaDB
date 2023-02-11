@@ -9,6 +9,9 @@
 <a href="https://ci.appveyor.com/project/perl5-dbi/dbd-mariadb/branch/master">
 <img src="https://ci.appveyor.com/api/projects/status/github/perl5-dbi/dbd-mariadb?branch=master&amp;svg=true"
   alt="AppVeyor Build Status"></a>
+<a href="https://cirrus-ci.com/github/perl5-dbi/DBD-MariaDB/master">
+<img src="https://api.cirrus-ci.com/github/perl5-dbi/DBD-MariaDB.svg?branch=master&amp;task=freebsd"
+  alt="Cirrus CI FreeBSD Build Status"></a>
 </p>
 
 =end html

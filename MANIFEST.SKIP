@@ -9,6 +9,7 @@
 ^MariaDB\.c$
 ^MariaDB\.def$
 ^MariaDB\.xsi$
+^\.cirrus\.yml$
 ^\.git/.*$
 ^\.github/.*$
 ^\.gitignore$
