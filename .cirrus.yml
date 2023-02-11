@@ -1,0 +1,27 @@
+freebsd_instance:
+  image_family: freebsd-13-0
+
+freebsd_task:
+  install_script:
+    - pkg install -y mariadb105-server mariadb105-client
+    - sysrc mysql_enable="YES"
+    - service mysql-server start
+    - pkg install -y perl5
+    - perl -V
+    - cpan -T App::cpanminus
+    - perl '-MExtUtils::MakeMaker 6.68' -e '' || cpanm --quiet --notest ExtUtils::MakeMaker@6.68
+    - perl '-MCPAN::Meta 2.112580' -e '' || cpanm --quiet --notest CPAN::Meta@2.112580
+    - cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
+    - cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
+
+  build_script:
+    - export DBD_MARIADB_TESTUSER=root
+    - make realclean || true
+    - perl Makefile.PL
+    - make
+
+  test_script:
+    - export HARNESS_OPTIONS=j4
+    - export RELEASE_TESTING=1
+    - export CONNECTION_TESTING=1
+    - make test
