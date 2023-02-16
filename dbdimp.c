@@ -2313,6 +2313,8 @@ static bool mariadb_dr_connect(
 #endif
 
     {
+      my_socket sock_os;
+
       /*
         mysql_get_socket() is not available:
         - in all MySQL clients
@@ -2321,9 +2323,21 @@ static bool mariadb_dr_connect(
         NOTE: MARIADB_PACKAGE_VERSION_ID is set since MariaDB Connector/C 2.3.5+
       */
 #if defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 50538 && MYSQL_VERSION_ID < 100000) || MYSQL_VERSION_ID >= 100011 || (defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 20201))
-      imp_dbh->sock_fd = mysql_get_socket(sock);
+      sock_os = mysql_get_socket(sock);
 #else
-      imp_dbh->sock_fd = sock->net.fd;
+      sock_os = sock->net.fd;
+#endif
+      /*
+        Client library returns socket in my_socket type, which is C file
+        descriptor on Linux or Windows native socket type on Windows.
+        Perl requires sockets to always be in C file descriptor type,
+        so on Windows associate it with C file descriptor via Perl's
+        win32_open_osfhandle() function.
+      */
+#ifdef _WIN32
+      imp_dbh->sock_fd = win32_open_osfhandle(sock_os, O_RDWR|O_BINARY);
+#else
+      imp_dbh->sock_fd = sock_os;
 #endif
     }
 
@@ -3039,6 +3053,20 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
   {
     mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql);
     imp_dbh->pmysql = NULL;
+#ifdef _WIN32
+    /*
+      C file descriptor sock_fd on Windows was opened via win32_open_osfhandle()
+      function from the Windows native socket. Therefore sock_fd needs to be
+      closed via close() function. This function also closes original Windows
+      native socket from which was sock_fd opened. But Windows native socket
+      was already closed by mariadb_dr_close_mysql() function and therefore we
+      need to avoid closing it more times. So first disassociate Windows native
+      socket from C file descriptor sock_fd via _set_osfhnd() function and then
+      close sock_fd via close() function.
+    */
+    _set_osfhnd(imp_dbh->sock_fd, INVALID_HANDLE_VALUE);
+    close(imp_dbh->sock_fd);
+#endif
     imp_dbh->sock_fd = -1;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
     if (svp && *svp)
@@ -6633,6 +6661,26 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
      return (my_ulonglong)-1;
   }
  return retval;
+}
+
+static int mariadb_dr_socket_ready(int fd)
+{
+  dTHX;
+  struct timeval timeout;
+  fd_set fds;
+  int retval;
+
+  FD_ZERO(&fds);
+  FD_SET(fd, &fds);
+
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 0;
+
+  retval = select(fd+1, &fds, NULL, NULL, &timeout);
+  if (retval < 0)
+    return errno > 0 ? -errno : -EINVAL;
+
+  return retval;
 }
 
 int mariadb_db_async_ready(SV* h)

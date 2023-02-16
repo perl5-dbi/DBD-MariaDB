@@ -11,7 +11,6 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 MariaDB.xs
 README.pod
-socket.c
 t/testrules.yml
 t/00base.t
 t/05dbcreate.t

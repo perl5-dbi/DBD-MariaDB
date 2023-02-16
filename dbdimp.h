@@ -93,6 +93,22 @@
 #define SSize_t_MAX (SSize_t)(~(Size_t)0 >> 1)
 #endif
 
+/* _set_osfhnd() is copied from Perl source file win32.h */
+#ifdef _WIN32
+typedef intptr_t ioinfo;
+extern __declspec(dllimport) ioinfo* __pioinfo[];
+#  define IOINFO_L2E 5
+#  define IOINFO_ARRAY_ELTS (1 << IOINFO_L2E)
+#  define _ioinfo_size (_msize((void*)__pioinfo[0]) / IOINFO_ARRAY_ELTS)
+#  define _pioinfo(i) ((intptr_t *) \
+    (((Size_t)__pioinfo[(i) >> IOINFO_L2E])/* * to head of array ioinfo [] */\
+     /* offset to the head of a particular ioinfo struct */ \
+     + (((i) & (IOINFO_ARRAY_ELTS - 1)) * _ioinfo_size)) \
+   )
+#  define _osfhnd(i) (*(_pioinfo(i)))
+#  define _set_osfhnd(fh, osfh) (void)(_osfhnd(fh) = (intptr_t)osfh)
+#endif
+
 /* PERL_UNUSED_ARG does not exist prior to perl 5.9.3 */
 #ifndef PERL_UNUSED_ARG
 #  if defined(lint) && defined(S_SPLINT_S) /* www.splint.org */
@@ -513,7 +529,7 @@ struct imp_dbh_st {
 
     struct mariadb_list_entry *list_entry; /* Entry of imp_drh->active_imp_dbhs list */
     MYSQL *pmysql;
-    my_socket sock_fd;
+    int sock_fd;
     bool connected;          /* Set to true after DBI->connect finished */
     bool auto_reconnect;
     bool bind_type_guessing;
@@ -695,5 +711,3 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt);
 
 my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp);
 int mariadb_db_async_ready(SV* h);
-
-int mariadb_dr_socket_ready(my_socket fd);
