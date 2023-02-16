@@ -6712,7 +6712,7 @@ int mariadb_db_async_ready(SV* h)
       if (dbh->async_query_in_flight == imp_xxh) {
           int retval = mariadb_dr_socket_ready(dbh->sock_fd);
           if(retval < 0) {
-              mariadb_dr_do_error(h, -retval, strerror(-retval), "HY000");
+              mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("mariadb_async_ready failed: %s", strerror(-retval)))), "HY000");
           }
           return retval;
       } else {
