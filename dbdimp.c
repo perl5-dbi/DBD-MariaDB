@@ -3322,6 +3322,8 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
  *  Returns: 1 for success, 0 otherwise
  *
  **************************************************************************/
+/* DBI expects that on AutoCommit failure driver croaks and does not return */
+#define croak_autocommit_failure() croak("Changing AutoCommit attribute failed: %" SVf, SVfARG(DBIc_ERRSTR(imp_dbh)))
 int
 mariadb_db_STORE_attrib(
                     SV* dbh,
@@ -3338,6 +3340,8 @@ mariadb_db_STORE_attrib(
   if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
   {
     mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+    if (memEQs(key, kl, "AutoCommit"))
+      croak_autocommit_failure(); /* does not return */
     return 0;
   }
 
@@ -3356,7 +3360,7 @@ mariadb_db_STORE_attrib(
            )
         {
           mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
-          return 1;  /* 1 means we handled it - important to avoid spurious errors */
+          croak_autocommit_failure(); /* does not return */
         }
       }
       DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
