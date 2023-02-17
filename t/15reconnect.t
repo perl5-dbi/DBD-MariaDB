@@ -16,7 +16,7 @@ $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 $dbh->disconnect();
 
-plan tests => 18 * 2;
+plan tests => 21 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
@@ -35,6 +35,12 @@ ok($dbh->disconnect(), "disconnecting active handle");
 ok(!$dbh->{Active}, "checking for inactive handle");
 
 ok($dbh->do("SELECT 1"), "implicitly reconnecting handle with 'do'");
+
+ok($dbh->{Active}, "checking for reactivated handle");
+
+ok(shutdown_mariadb_socket($dbh), "shutdown socket handle");
+
+ok($dbh->do("SELECT 1"), "implicitly reconnecting handle after shutdown with 'do'");
 
 ok($dbh->{Active}, "checking for reactivated handle");
 

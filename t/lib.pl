@@ -83,6 +83,20 @@ sub byte_string {
     return $ret;
 }
 
+sub shutdown_mariadb_socket {
+    my $dbh = shift;
+    # shutdown needs Perl file handle but mariadb_sockfd() returns C file descriptor number
+    # mode "+<&" assign a dup() copy of C file descriptor to Perl file handle and
+    # mode "+<&=" assign directly C file descriptor to Perl file handle
+    # close automatically close C file descriptor in Perl file handle
+    # mysql client library does not expect if somebody closes its file descriptors
+    # so always take a copy of mariadb_sockfd() C file descriptor and just shutdown it
+    open my $socket, '+<&', $dbh->mariadb_sockfd();
+    my $ret = shutdown($socket, 2);
+    close $socket;
+    return $ret;
+}
+
 =item CheckRoutinePerms()
 
 Check if the current user of the DBH has permissions to create/drop procedures
