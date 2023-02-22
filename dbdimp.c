@@ -5263,6 +5263,8 @@ process:
         mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql),
                  mysql_sqlstate(imp_dbh->pmysql));
+      else if (imp_sth->row_num == (my_ulonglong)-2)
+        imp_sth->row_num = mysql_num_rows(imp_sth->result);
       if (!mysql_more_results(imp_dbh->pmysql))
         DBIc_ACTIVE_off(imp_sth);
       return Nullav;

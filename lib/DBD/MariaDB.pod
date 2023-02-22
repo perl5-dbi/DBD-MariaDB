@@ -689,7 +689,10 @@ Note that library function C<mysql_use_result()> does not provide number of rows
 in result set. Therefore if this I<mariadb_use_result> attribute is enabled then
 DBI variable L<C<$DBI::rows>|DBI/$DBI::rows> and statement methods
 L<execute|DBI/execute> and L<rows|DBI/rows> returns C<-1> (which means that the
-number of rows is not known).
+number of rows is not known). However, statement method L<rows|DBI/rows> returns
+correct number of rows after all rows were already fetched and additional fetch
+call was issued (for this special case driver knows that it processed all rows
+and hence it knows what is the total number of rows).
 
 Enabling I<mariadb_use_result> attribute on one statement handle disallow usage
 of all other statement and database handles until all data rows from active

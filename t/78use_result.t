@@ -11,7 +11,7 @@ require 'lib.pl';
 
 my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
-plan tests => 12 + 2*2*2*1 + 3 * (2*2*2*12 + 2*2*2 + 2*2*8);
+plan tests => 12 + 2*2*2*1 + 3 * (2*2*2*13 + 2*2*2 + 2*2*9);
 
 $SIG{__WARN__} = sub { die @_ };
 
@@ -83,6 +83,8 @@ for my $multi_statements (0, 1) {
 
         ok(!$sth->fetchrow_arrayref());
 
+        is($sth->rows(), 3);
+
         if ($multi_statements) {
           ok($sth->{Active});
 
@@ -96,6 +98,8 @@ for my $multi_statements (0, 1) {
           cmp_deeply($sth->fetchrow_arrayref(), [ 2, 30 ]);
 
           ok(!$sth->fetchrow_arrayref());
+
+          is($sth->rows(), 2);
         }
 
         ok(!$sth->{Active});
