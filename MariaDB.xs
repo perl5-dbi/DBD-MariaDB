@@ -181,6 +181,8 @@ mariadb_async_result(dbh)
             XSRETURN_PV("0E0");
         else if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
+        else if (retval == (my_ulonglong)-2)
+            XSRETURN_IV(-1);
 
         RETVAL = my_ulonglong2sv(retval);
     }
@@ -236,7 +238,7 @@ rows(sth)
             XSRETURN_UNDEF;
         }
     }
-    if (imp_sth->row_num == (my_ulonglong)-1)
+    if (imp_sth->row_num == (my_ulonglong)-1 || imp_sth->row_num == (my_ulonglong)-2)
         XSRETURN_IV(-1);
     RETVAL = my_ulonglong2sv(imp_sth->row_num);
   OUTPUT:
@@ -274,6 +276,9 @@ mariadb_async_result(sth)
 
         if (retval == (my_ulonglong)-1)
             XSRETURN_UNDEF;
+
+        if (retval == (my_ulonglong)-2)
+            XSRETURN_IV(-1);
 
         if (retval == 0)
             XSRETURN_PV("0E0");

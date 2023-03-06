@@ -626,6 +626,7 @@ struct imp_sth_st {
                           /* mysql_store_result */
 
     bool is_async;
+    bool async_result;
 };
 
 

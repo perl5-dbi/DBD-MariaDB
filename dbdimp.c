@@ -4000,6 +4000,10 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t>- mariadb_st_free_result_sets\n");
 
+  /* Iterate over all remaining rows, required when mysql_use_result() was called */
+  if (imp_sth->result)
+    while (mysql_fetch_row(imp_sth->result));
+
   do
   {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
@@ -4084,6 +4088,12 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
   if (imp_sth->use_server_side_prepare)
   {
     mariadb_dr_do_error(sth, CR_NOT_IMPLEMENTED, "Processing of multiple result set is not possible with server side prepare", "HY000");
+    return FALSE;
+  }
+
+  if (imp_dbh->async_query_in_flight && !imp_sth->async_result)
+  {
+    mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "more_results() without mariadb_async_result()", "HY000");
     return FALSE;
   }
 
@@ -4208,7 +4218,7 @@ bool mariadb_st_more_results(SV* sth, imp_sth_t* imp_sth)
     else
     {
       /* We have a new rowset */
-      imp_sth->row_num = mysql_num_rows(imp_sth->result);
+      imp_sth->row_num = use_mysql_use_result ? (my_ulonglong)-2 : mysql_num_rows(imp_sth->result);
 
       /* Adjust NUM_OF_FIELDS - which also adjusts the row buffer size */
       DBIc_DBISTATE(imp_sth)->set_attr_k(sth, sv_2mortal(newSVpvs("NUM_OF_FIELDS")), 0,
@@ -4354,6 +4364,8 @@ static my_ulonglong mariadb_st_internal_execute(
 
           if (mysql_errno(*svsock))
             rows = -1;
+          else if (use_mysql_use_result)
+            rows = (my_ulonglong)-2;
           else if (*result)
             rows = mysql_num_rows(*result);
           else {
@@ -4671,6 +4683,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                );
     if(imp_dbh->async_query_in_flight) {
         DBIc_ACTIVE_on(imp_sth);
+        imp_sth->async_result = FALSE;
         return 0;
     }
   }
@@ -5250,6 +5263,8 @@ process:
         mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
                  mysql_error(imp_dbh->pmysql),
                  mysql_sqlstate(imp_dbh->pmysql));
+      else if (imp_sth->row_num == (my_ulonglong)-2)
+        imp_sth->row_num = mysql_num_rows(imp_sth->result);
       if (!mysql_more_results(imp_dbh->pmysql))
         DBIc_ACTIVE_off(imp_sth);
       return Nullav;
@@ -6485,6 +6500,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   unsigned int num_fields;
   int htype;
   bool async_sth = FALSE;
+  bool use_mysql_use_result;
 
   if(! resp) {
       resp = &_res;
@@ -6495,12 +6511,14 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
   if(htype == DBIt_DB) {
       D_imp_dbh(h);
       dbh = imp_dbh;
+      use_mysql_use_result = imp_dbh->use_mysql_use_result;
   } else {
       D_imp_sth(h);
       D_imp_dbh_from_sth;
       dbh = imp_dbh;
       async_sth = imp_sth->is_async;
       retval = imp_sth->row_num;
+      use_mysql_use_result = imp_sth->use_mysql_use_result;
   }
 
   if(! dbh->async_query_in_flight) {
@@ -6513,13 +6531,17 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
       mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, "Gathering async_query_in_flight results for the wrong handle", "HY000");
       return -1;
   }
-  dbh->async_query_in_flight = NULL;
 
   if (htype == DBIt_ST)
   {
     D_imp_sth(h);
+    if (imp_sth->async_result)
+      return retval;
     DBIc_ACTIVE_off(imp_sth);
+    imp_sth->async_result = TRUE;
   }
+
+  dbh->async_query_in_flight = NULL;
 
   svsock= dbh->pmysql;
   if (!svsock)
@@ -6536,7 +6558,7 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
 
   if (!mysql_read_query_result(svsock))
   {
-    *resp= mysql_store_result(svsock);
+    *resp = use_mysql_use_result ? mysql_use_result(svsock) : mysql_store_result(svsock);
 
     if (mysql_errno(svsock))
     {
@@ -6545,6 +6567,8 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
     }
     if (!*resp)
       retval= mysql_affected_rows(svsock);
+    else if (use_mysql_use_result)
+      retval = (my_ulonglong)-2;
     else
       retval= mysql_num_rows(*resp);
 
