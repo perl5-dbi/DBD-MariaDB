@@ -29,7 +29,7 @@ CREATE TEMPORARY TABLE async_test (
 );
 SQL
 
-ok $dbh->mariadb_sockfd;
+cmp_ok $dbh->mariadb_sockfd, '>=', 0;
 ok !defined($dbh->mariadb_async_ready);
 
 my ( $start, $end );
