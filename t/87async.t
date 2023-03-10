@@ -16,7 +16,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
-plan tests => 137;
+plan tests => 147;
 
 is $dbh->get_info($GetInfoType{'SQL_ASYNC_MODE'}), 2; # statement-level async
 is $dbh->get_info($GetInfoType{'SQL_MAX_ASYNC_CONCURRENT_STATEMENTS'}), 1;
@@ -63,9 +63,35 @@ ok !defined($dbh->mariadb_async_ready);
 
 is $rows, 1;
 
+$start = Time::HiRes::gettimeofday();
+$rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { mariadb_async => 1 });
+ok(defined($dbh->mariadb_async_ready)) or die;
+$end = Time::HiRes::gettimeofday();
+
+ok $rows;
+is $rows, '0E0';
+
+cmp_ok(($end - $start), '<', 2);
+
+my $fd = $dbh->mariadb_sockfd;
+my $bits = '';
+vec($bits, $fd, 1) = 1;
+my $nfound = select(my $rout = $bits, undef, my $eout = $bits, 120);
+is $nfound, 1;
+ok vec($rout, $fd, 1);
+ok !vec($eout, $fd, 1);
+
+$end = Time::HiRes::gettimeofday();
+cmp_ok(($end - $start), '>=', 1.9);
+
+$rows = $dbh->mariadb_async_result;
+ok !defined($dbh->mariadb_async_ready);
+
+is $rows, 1;
+
 ( $rows ) = $dbh->selectrow_array('SELECT COUNT(1) FROM async_test');
 
-is $rows, 2;
+is $rows, 3;
 
 $dbh->do('DELETE FROM async_test');
 
