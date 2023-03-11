@@ -22,6 +22,7 @@ t/14destruct.t
 t/15reconnect.t
 t/16dbi-get_info.t
 t/17close_on_exec.t
+t/18begin_work_without_raise_error.t
 t/20createdrop.t
 t/25lockunlock.t
 t/29warnings.t
