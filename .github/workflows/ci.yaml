@@ -270,9 +270,9 @@ jobs:
       - name: Install client dependences (2)
         if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
         run: |
-          wget --progress=bar:force http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.11_amd64.deb -O /tmp/libssl1.0.0_1.0.2n-1ubuntu5.11_amd64.deb
+          wget --progress=bar:force http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb -O /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb
           wget --progress=bar:force http://security.ubuntu.com/ubuntu/pool/universe/j/jemalloc/libjemalloc1_3.6.0-11_amd64.deb -O /tmp/libjemalloc1_3.6.0-11_amd64.deb
-          sudo dpkg -i /tmp/libssl1.0.0_1.0.2n-1ubuntu5.11_amd64.deb /tmp/libjemalloc1_3.6.0-11_amd64.deb
+          sudo dpkg -i /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb /tmp/libjemalloc1_3.6.0-11_amd64.deb
       - name: Install MariaDB client system
         if: ${{ matrix.client-version == 'system' || ( matrix.server-version == 'system' && matrix.client-version == 'same-as-server' ) }}
         uses: awalsh128/cache-apt-pkgs-action@latest
