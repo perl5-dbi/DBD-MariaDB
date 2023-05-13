@@ -164,7 +164,7 @@ mariadb_sockfd(dbh)
     SV* dbh
   CODE:
     D_imp_dbh(dbh);
-    RETVAL = imp_dbh->pmysql ? newSViv(imp_dbh->pmysql->net.fd) : &PL_sv_undef;
+    RETVAL = (imp_dbh->sock_fd >= 0) ? newSViv(imp_dbh->sock_fd) : &PL_sv_undef;
   OUTPUT:
     RETVAL
 

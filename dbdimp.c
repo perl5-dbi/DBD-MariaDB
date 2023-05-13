@@ -1392,6 +1392,51 @@ static void error_no_connection(SV *h, const char *msg)
   mariadb_dr_do_error(h, CR_CONNECTION_ERROR, msg, "HY000");
 }
 
+static int mariadb_dr_socket_cloexec(my_socket sock_os)
+{
+#ifdef _WIN32
+  HANDLE handle = (HANDLE)sock_os;
+  DWORD flags;
+  int error;
+
+  if (!GetHandleInformation(handle, &flags))
+  {
+    error = GetLastError();
+    return error != 0 ? -error : -EINVAL;
+  }
+
+  if (flags & HANDLE_FLAG_INHERIT)
+  {
+    /*
+      Clearing HANDLE_FLAG_INHERIT does not have to work for TCP sockets
+      when certain 3rd party Layered Service Providers are installed.
+      Note that perl's strerror() works also for error codes returned by
+      WinAPI GetLastError() function.
+     */
+    if (!SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0))
+    {
+      error = GetLastError();
+      return error != 0 ? -error : -EINVAL;
+    }
+  }
+#else
+  int fd = (int)sock_os;
+  int flags;
+
+  flags = fcntl(fd, F_GETFD);
+  if (flags == -1)
+    return errno != 0 ? -errno : -EINVAL;
+
+  if (!(flags & FD_CLOEXEC))
+  {
+    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
+      return errno != 0 ? -errno : -EINVAL;
+  }
+#endif
+
+  return 0;
+}
+
 /***************************************************************************
  *
  *  Name:    mariadb_dr_connect
@@ -2312,6 +2357,53 @@ static bool mariadb_dr_connect(
       sock->reconnect = FALSE;
 #endif
 
+    {
+      my_socket sock_os;
+      int retval;
+
+      /*
+        mysql_get_socket() is not available:
+        - in all MySQL clients
+        - MariaDB clients prior to 5.5.38 and 10.0.11
+        - MariaDB Connector/C clients prior to 2.2.1
+        NOTE: MARIADB_PACKAGE_VERSION_ID is set since MariaDB Connector/C 2.3.5+
+      */
+#if defined(MARIADB_BASE_VERSION) && ((MYSQL_VERSION_ID >= 50538 && MYSQL_VERSION_ID < 100000) || MYSQL_VERSION_ID >= 100011 || (defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 20201))
+      sock_os = mysql_get_socket(sock);
+#else
+      sock_os = sock->net.fd;
+#endif
+      /*
+        Client library returns socket in my_socket type, which is C file
+        descriptor on Linux or Windows native socket type on Windows.
+        Perl requires sockets to always be in C file descriptor type,
+        so on Windows associate it with C file descriptor via Perl's
+        win32_open_osfhandle() function.
+      */
+#ifdef _WIN32
+      imp_dbh->sock_fd = win32_open_osfhandle(sock_os, O_RDWR|O_BINARY);
+#else
+      imp_dbh->sock_fd = sock_os;
+#endif
+
+      /*
+        MySQL and MariaDB clients do not set FD_CLOEXEC flag on socket
+        https://bugs.mysql.com/bug.php?id=3779
+        https://jira.mariadb.org/browse/CONC-405
+      */
+      retval = mariadb_dr_socket_cloexec(sock_os);
+      if (retval != 0)
+      {
+        /* Throw DBI warning when setting FD_CLOEXEC flag failed */
+        SV *errstr = DBIc_ERRSTR(imp_xxh);
+        SvUTF8_off(errstr);
+        sv_setpvf(errstr, "Cannot set close-on-exec flag: %s", strerror(-retval));
+        sv_utf8_decode(errstr);
+        sv_setuv(DBIc_ERR(imp_xxh), 0); /* 0 indicates warning */
+        sv_setpv(DBIc_STATE(imp_xxh), "01000"); /* "01000" is generic warning */
+      }
+    }
+
           imp_dbh->async_query_in_flight = NULL;
 
     mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
@@ -2392,6 +2484,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
       /* This imp_dbh data belongs to different connection, so destructor should not touch it */
       imp_dbh->list_entry = NULL;
       imp_dbh->pmysql = NULL;
+      imp_dbh->sock_fd = -1;
       mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: dbi_imp_data is not valid", "HY000");
       return FALSE;
     }
@@ -3023,6 +3116,21 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
   {
     mariadb_dr_close_mysql(aTHX_ imp_drh, imp_dbh->pmysql);
     imp_dbh->pmysql = NULL;
+#ifdef _WIN32
+    /*
+      C file descriptor sock_fd on Windows was opened via win32_open_osfhandle()
+      function from the Windows native socket. Therefore sock_fd needs to be
+      closed via close() function. This function also closes original Windows
+      native socket from which was sock_fd opened. But Windows native socket
+      was already closed by mariadb_dr_close_mysql() function and therefore we
+      need to avoid closing it more times. So first disassociate Windows native
+      socket from C file descriptor sock_fd via _set_osfhnd() function and then
+      close sock_fd via close() function.
+    */
+    _set_osfhnd(imp_dbh->sock_fd, INVALID_HANDLE_VALUE);
+    close(imp_dbh->sock_fd);
+#endif
+    imp_dbh->sock_fd = -1;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
     if (svp && *svp)
     {
@@ -3588,7 +3696,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_sock"))
       result = sv_2mortal(newSViv(PTR2IV(imp_dbh->pmysql)));
     else if (memEQs(key, kl, "mariadb_sockfd"))
-      result = imp_dbh->pmysql ? sv_2mortal(newSViv(imp_dbh->pmysql->net.fd)) : &PL_sv_undef;
+      result = (imp_dbh->sock_fd >= 0) ? sv_2mortal(newSViv(imp_dbh->sock_fd)) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_stat"))
     {
       const char *stats = imp_dbh->pmysql ? mysql_stat(imp_dbh->pmysql) : NULL;
@@ -6618,6 +6726,26 @@ my_ulonglong mariadb_db_async_result(SV* h, MYSQL_RES** resp)
  return retval;
 }
 
+static int mariadb_dr_socket_ready(int fd)
+{
+  dTHX;
+  struct timeval timeout;
+  fd_set fds;
+  int retval;
+
+  FD_ZERO(&fds);
+  FD_SET(fd, &fds);
+
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 0;
+
+  retval = select(fd+1, &fds, NULL, NULL, &timeout);
+  if (retval < 0)
+    return errno > 0 ? -errno : -EINVAL;
+
+  return retval;
+}
+
 int mariadb_db_async_ready(SV* h)
 {
   dTHX;
@@ -6645,9 +6773,9 @@ int mariadb_db_async_ready(SV* h)
 
   if(dbh->async_query_in_flight) {
       if (dbh->async_query_in_flight == imp_xxh) {
-          int retval = mariadb_dr_socket_ready(dbh->pmysql->net.fd);
+          int retval = mariadb_dr_socket_ready(dbh->sock_fd);
           if(retval < 0) {
-              mariadb_dr_do_error(h, -retval, strerror(-retval), "HY000");
+              mariadb_dr_do_error(h, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("mariadb_async_ready failed: %s", strerror(-retval)))), "HY000");
           }
           return retval;
       } else {

@@ -11,7 +11,6 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 MariaDB.xs
 README.pod
-socket.c
 t/testrules.yml
 t/00base.t
 t/05dbcreate.t
@@ -22,6 +21,7 @@ t/13disconnect.t
 t/14destruct.t
 t/15reconnect.t
 t/16dbi-get_info.t
+t/17close_on_exec.t
 t/20createdrop.t
 t/25lockunlock.t
 t/29warnings.t

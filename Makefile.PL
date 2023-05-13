@@ -448,7 +448,7 @@ my %o = ( 'NAME' => 'DBD::MariaDB',
 			      'COMPRESS'     => "gzip -9f" },
 	  'clean' => { 'FILES' => '*.xsi' },
 		'realclean' => { 'FILES' => 't/MariaDB.mtest' },
-          'C' => ["dbdimp.c", "MariaDB.c", "socket.c"],
+          'C' => ["dbdimp.c", "MariaDB.c"],
           'XS' => {'MariaDB.xs' => 'MariaDB.c'},
           'PM' => {
               'lib/DBD/MariaDB.pm' => '$(INST_LIB)/DBD/MariaDB.pm',
