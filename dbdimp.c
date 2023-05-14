@@ -2386,6 +2386,18 @@ static bool mariadb_dr_connect(
       imp_dbh->sock_fd = sock_os;
 #endif
 
+#ifdef _WIN32
+      {
+        /*
+         * Winsock SO_UPDATE_CONNECT_CONTEXT option needs to be set on the socket,
+         * otherwise getpeername, getsockname, getsockopt, setsockopt, and shutdown
+         * functions would fail with WSAENOTCONN error.
+         */
+        DWORD value = 1;
+        setsockopt(imp_dbh->sock_fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, (const char *)&value, sizeof(value));
+      }
+#endif
+
       /*
         MySQL and MariaDB clients do not set FD_CLOEXEC flag on socket
         https://bugs.mysql.com/bug.php?id=3779
