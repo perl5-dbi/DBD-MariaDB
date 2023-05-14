@@ -72,7 +72,7 @@ my $source = {};
   if ($opt->{'mysql_config'})
   {
     if ($opt->{'mysql_config'} ne 'skip') {
-    $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
+    $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'}) || $opt->{'mysql_config'}
         if $^O eq 'MSWin32';
     if (!CanExecute($opt->{'mysql_config'}))
     {
