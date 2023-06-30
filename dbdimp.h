@@ -21,10 +21,14 @@
 /*
  * On WIN32 windows.h and winsock.h need to be included before mysql.h
  * Otherwise SOCKET type which is needed for mysql.h is not defined
+ * SO_UPDATE_CONNECT_CONTEXT is not defined in all MinGW versions.
  */
 #ifdef _WIN32
 #include <windows.h>
 #include <winsock.h>
+#ifndef SO_UPDATE_CONNECT_CONTEXT
+#define SO_UPDATE_CONNECT_CONTEXT 0x7010
+#endif
 #endif
 
 #include <mysql.h>  /* Comes with MySQL-devel */
