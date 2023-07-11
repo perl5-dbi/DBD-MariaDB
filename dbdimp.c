@@ -2553,7 +2553,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
 		  "imp_dbh->mariadb_db_my_login : dbname = %s, uid = %s, pwd = %s,"
-		  "host = %s, port = %u\n",
+		  " host = %s, port = %u\n",
 		  dbname ? dbname : "NULL",
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****",
