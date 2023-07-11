@@ -7,7 +7,7 @@ use lib 't', '.';
 require 'lib.pl';
 
 my ($row, $sth, $dbh);
-my ($def, $rows, $errstr, $ret_ref);
+my ($def, $rows, $ret_ref);
 use vars qw($test_dsn $test_user $test_password);
 
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
@@ -30,7 +30,7 @@ ok($sth = $dbh->prepare("SHOW TABLES LIKE 'dbd_mysql_t35prepare'"),
 ok($sth->execute(), "Executing 'show tables'");
 
 ok((defined($row= $sth->fetchrow_arrayref) &&
-  (!defined($errstr = $sth->errstr) || $sth->errstr eq '')),
+  (!$sth->err)),
   "Testing if result set and no errors");
 
 ok($row->[0] eq 'dbd_mysql_t35prepare', "Checking if results equal to 'dbd_mysql_t35prepare' \n");

@@ -102,7 +102,7 @@ eval {
   $failed = 1;
 };
 $dbh->{PrintError} = 0;
-$SIG{__WARN__} = 'default';
+$SIG{__WARN__} = 'DEFAULT';
 
 ok($failed);
 like($DBI::errstr, $jpnErr);

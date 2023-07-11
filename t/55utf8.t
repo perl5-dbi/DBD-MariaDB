@@ -67,7 +67,7 @@ EOI
 # Do not use prepared statements because ST_GeomFromText() is not supported
 # With SET SQL_MODE='' is mariadb_server_prepare_disable_fallback not working
 # And without SET SQL_MODE='' below 'Incorrect string value' are fatal errors, not warnings...
-my $sth = $dbh->prepare($query, { mariadb_server_prepare => 0 }) or die "$DBI::errstr";
+my $sth = $dbh->prepare($query, { mariadb_server_prepare => 0 });
 ok $sth->bind_param(1, $unicode_str);
 ok $sth->bind_param(2, $blob, DBI::SQL_BINARY);
 ok $sth->bind_param(3, $unicode_str);
@@ -75,7 +75,7 @@ ok $sth->bind_param(4, $unicode_str);
 ok $sth->bind_param(5, $unicode_str2);
 ok $sth->bind_param(6, $unicode_str);
 ok $sth->bind_param(7, $unicode_str2);
-ok $sth->execute() or die("Execute failed: ".$DBI::errstr);
+ok $sth->execute();
 
 cmp_ok($dbh->{mariadb_warning_count}, '==', 1, 'got warning for INSERT') or do { diag("SHOW WARNINGS:"); diag($_->[2]) foreach $dbh->selectall_array("SHOW WARNINGS", { mariadb_server_prepare => 0 }); };
 my (undef, undef, $warning) = $dbh->selectrow_array("SHOW WARNINGS", { mariadb_server_prepare => 0 });
@@ -85,7 +85,7 @@ like($warning, qr/^(?:Incorrect string value: '\\xC4\\x80dam'|Data truncated) fo
 my $asbinary = $dbh->{mariadb_serverversion} >= 50706 ? 'ST_AsBinary' : 'AsBinary';
 
 $query = "SELECT name,bincol,$asbinary(shape), binutf, profile, str2, ascii, latin FROM dbd_mysql_t55utf8 LIMIT 1";
-$sth = $dbh->prepare($query) or die "$DBI::errstr";
+$sth = $dbh->prepare($query);
 
 ok $sth->execute;
 

@@ -20,7 +20,7 @@ my $sth = $dbh->prepare("INSERT INTO dbd_mysql_t55utf8mb4(val) VALUES('😈')");
 $sth->execute();
 
 my $query = "SELECT val, HEX(val) FROM dbd_mysql_t55utf8mb4 LIMIT 1";
-$sth = $dbh->prepare($query) or die "$DBI::errstr";
+$sth = $dbh->prepare($query);
 ok $sth->execute;
 
 ok(my $ref = $sth->fetchrow_arrayref, 'fetch row');

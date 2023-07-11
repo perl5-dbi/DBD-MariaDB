@@ -36,12 +36,10 @@ ok defined($sth), "Prepare of select";
 
 ok  $sth->execute , "Execute";
 
-my ($row, $errstr);
-$errstr= '';
-$row = $sth->fetchrow_arrayref;
-$errstr= $sth->errstr;
+my $row = $sth->fetchrow_arrayref;
+my $err = $sth->err;
 ok !defined($row), "Fetch should have failed";
-ok !defined($errstr), "Fetch should have failed";
+ok !defined($err), "Fetch should have failed";
 
 ok $dbh->do("UNLOCK TABLES"), "Unlock tables";
 

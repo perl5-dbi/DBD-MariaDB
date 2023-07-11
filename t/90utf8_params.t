@@ -51,7 +51,7 @@ foreach my $server_prepare (0, 1) {
                 payload VARCHAR(20),
                 id int(10)
             ) CHARACTER SET $charset
-        }) or die $dbh->errstr;
+        });
 
 
         my $nasty_unicode1_param = $nasty_unicode1;
@@ -146,7 +146,7 @@ foreach my $server_prepare (0, 1) {
                 payload BLOB,
                 id int(10)
             ) CHARACTER SET $charset
-        }) or die $dbh->errstr;
+        });
 
         my $nasty_bytes1_param = $nasty_bytes1;
         my $nasty_bytes2_param = $nasty_bytes2;

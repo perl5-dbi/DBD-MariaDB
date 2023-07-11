@@ -28,7 +28,7 @@ ok(defined $dbh, "Handle 1 Connected to database");
 ok(defined $dbh2, "Handle 2 Connected to database");
 
 #kill first db connection to trigger an auto reconnect
-ok ($dbh2->do('kill ' . $dbh->{'mariadb_thread_id'}));
+ok ($dbh2->do('kill ' . connection_id($dbh)));
 
 #insert a temporary delay, try uncommenting this if it's not seg-faulting at first,
 # one of my initial tests without this delay didn't seg fault
