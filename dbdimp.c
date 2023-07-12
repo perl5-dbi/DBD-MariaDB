@@ -2341,9 +2341,6 @@ static bool mariadb_dr_connect(
       }
     }
 
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-");
-
       /*
         we turn off Mysql's auto reconnect and handle re-connecting ourselves
         so that we can keep track of when this happens.
@@ -2419,6 +2416,9 @@ static bool mariadb_dr_connect(
           imp_dbh->async_query_in_flight = NULL;
 
     mariadb_list_add(imp_drh->active_imp_dbhs, imp_dbh->list_entry, imp_dbh);
+
+    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "imp_dbh->mariadb_dr_connect: <-\n");
 
     return TRUE;
 }
@@ -2553,7 +2553,7 @@ static bool mariadb_db_my_login(pTHX_ SV* dbh, imp_dbh_t *imp_dbh)
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
 		  "imp_dbh->mariadb_db_my_login : dbname = %s, uid = %s, pwd = %s,"
-		  "host = %s, port = %u\n",
+		  " host = %s, port = %u\n",
 		  dbname ? dbname : "NULL",
 		  user ? user : "NULL",
 		  !password ? "NULL" : !password[0] ? "" : "****",
@@ -2704,6 +2704,9 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
   (void)hv_stores((HV *)SvRV(dbh), "Statement", SvREFCNT_inc(statement_sv));
   statement = SvPVutf8_nomg(statement_sv, statement_len);
 
+  if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t-> do() SQL statement: %.1000s%s\n", statement, statement_len > 1000 ? "..." : "");
+
   /*
    * Globally enabled using of server side prepared statement
    * for dbh->do() statements. It is possible to force driver
@@ -2747,16 +2750,16 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
       if (hv_exists(processed, key, len))
         continue;
 
-      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, SvPVX(sv_2mortal(newSVpvf("Unknown attribute %s", key))), "HY000");
+      error_unknown_attribute(dbh, key);
       return -2;
     }
   }
 
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "mysql.xs do() use_server_side_prepare %d\n", use_server_side_prepare ? 1 : 0);
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t\tuse_server_side_prepare %d\n", use_server_side_prepare ? 1 : 0);
 
   if (DBIc_DBISTATE(imp_dbh)->debug >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "mysql.xs do() async %d\n", (async ? 1 : 0));
+    PerlIO_printf(DBIc_LOGPIO(imp_dbh), "\t\tasync %d\n", (async ? 1 : 0));
 
   if (async)
   {
@@ -5381,7 +5384,7 @@ process:
     {
       if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
       {
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch, no more rows to fetch");
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\tmariadb_st_fetch, no more rows to fetch\n");
       }
       if (mysql_errno(imp_dbh->pmysql))
         mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql),
@@ -5460,7 +5463,7 @@ process:
         case PERL_TYPE_NUMERIC:
           if (!mysql_field_needs_string_type(&fields[i]))
           {
-            /* Coerce to dobule and set scalar as NV */
+            /* Coerce to double and set scalar as NV */
             sv_setnv(sv, SvNV(sv));
           }
           break;
@@ -6590,7 +6593,7 @@ SV* mariadb_db_quote(SV *dbh, SV *str, SV *type)
 
     SvPOK_on(result);
     SvCUR_set(result, sptr - SvPVX(result));
-    /* Never hurts NUL terminating a Per string */
+    /* Never hurts NUL terminating a Perl string */
     *sptr++= '\0';
 
     if (!is_binary)

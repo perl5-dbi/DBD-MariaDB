@@ -48,7 +48,7 @@ install:
   - cinst StrawberryPerl --version %perl% %x86% --allow-empty-checksums
   - refreshenv
   - perl -V
-  - perl -e "print qq(o conf urllist push http://www.cpan.org\no conf commit\n)" | cpan
+  - perl -e "print qq(o conf urllist push http://www.cpan.org\n)" | cpan
   - cpan -T App::cpanminus
   - perl "-MExtUtils::MakeMaker 6.58" -e "" || cpanm --quiet --notest ExtUtils::MakeMaker@6.58
   - perl "-MCPAN::Meta 2.112580" -e "" || cpanm --quiet --notest CPAN::Meta@2.112580
