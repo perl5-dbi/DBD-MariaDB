@@ -72,7 +72,7 @@ my $source = {};
   if ($opt->{'mysql_config'})
   {
     if ($opt->{'mysql_config'} ne 'skip') {
-    $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'})
+    $opt->{'mysql_config'} = Win32::GetShortPathName($opt->{'mysql_config'}) || $opt->{'mysql_config'}
         if $^O eq 'MSWin32';
     if (!CanExecute($opt->{'mysql_config'}))
     {
@@ -441,34 +441,35 @@ $cflags .= " -DHAVE_GET_CHARSET_NUMBER" if $have_get_charset_number;
 $cflags .= " -DHAVE_GET_OPTION" if $have_get_option;
 $cflags .= " -DHAVE_DEINITIALIZE_SSL" if $have_deinitialize_ssl;
 $cflags .= " -DHAVE_PROBLEM_WITH_OPENSSL" if $have_problem_with_openssl;
-my %o = ( 'NAME' => 'DBD::MariaDB',
-	  'INC' => $cflags,
-	  'dist'         => { 'SUFFIX'       => ".gz",
-			      'DIST_DEFAULT' => 'all tardist',
-			      'COMPRESS'     => "gzip -9f" },
-	  'clean' => { 'FILES' => '*.xsi' },
-		'realclean' => { 'FILES' => 't/MariaDB.mtest' },
-          'C' => ["dbdimp.c", "MariaDB.c"],
-          'XS' => {'MariaDB.xs' => 'MariaDB.c'},
-          'PM' => {
-              'lib/DBD/MariaDB.pm' => '$(INST_LIB)/DBD/MariaDB.pm',
-              'lib/DBD/MariaDB.pod' => '$(INST_LIB)/DBD/MariaDB.pod',
-              'lib/DBD/MariaDB/INSTALL.pod' => '$(INST_LIB)/DBD/MariaDB/INSTALL.pod',
-              'README.pod' => '$(INST_LIB)/DBD/MariaDB/README.pod',
-          },
-          'MAN3PODS' => {
-              'lib/DBD/MariaDB.pod' => '$(INST_MAN3DIR)/DBD::MariaDB.$(MAN3EXT)',
-              'lib/DBD/MariaDB/INSTALL.pod' => '$(INST_MAN3DIR)/DBD::MariaDB::INSTALL.$(MAN3EXT)',
-              'README.pod' => '$(INST_MAN3DIR)/DBD::MariaDB::README.$(MAN3EXT)',
-          },
-	  'OBJECT' => '$(O_FILES)',
-	  'LIBS' => (join ' ', @libdirs, $main_lib, @libs),
-	  @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
-	  'VERSION_FROM' => 'lib/DBD/MariaDB.pm'
-	);
-
-if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
-  %o=(%o,
+my %o =
+  (
+    'NAME' => 'DBD::MariaDB',
+    'INC' => $cflags,
+    'dist' => {
+      'SUFFIX' => ".gz",
+      'DIST_DEFAULT' => 'all tardist',
+      'TARFLAGS' => '--format=ustar -c -v -f',
+      'COMPRESS' => "gzip -9f",
+    },
+    'clean' => { 'FILES' => '*.xsi' },
+    'realclean' => { 'FILES' => 't/MariaDB.mtest' },
+    'C' => [ "dbdimp.c", "MariaDB.c" ],
+    'XS' => { 'MariaDB.xs' => 'MariaDB.c' },
+    'PM' => {
+      'lib/DBD/MariaDB.pm' => '$(INST_LIB)/DBD/MariaDB.pm',
+      'lib/DBD/MariaDB.pod' => '$(INST_LIB)/DBD/MariaDB.pod',
+      'lib/DBD/MariaDB/INSTALL.pod' => '$(INST_LIB)/DBD/MariaDB/INSTALL.pod',
+      'README.pod' => '$(INST_LIB)/DBD/MariaDB/README.pod',
+    },
+    'MAN3PODS' => {
+      'lib/DBD/MariaDB.pod' => '$(INST_MAN3DIR)/DBD::MariaDB.$(MAN3EXT)',
+      'lib/DBD/MariaDB/INSTALL.pod' => '$(INST_MAN3DIR)/DBD::MariaDB::INSTALL.$(MAN3EXT)',
+      'README.pod' => '$(INST_MAN3DIR)/DBD::MariaDB::README.$(MAN3EXT)',
+    },
+    'OBJECT' => '$(O_FILES)',
+    'LIBS' => (join ' ', @libdirs, $main_lib, @libs),
+    @ldflags ? (dynamic_lib => { OTHERLDFLAGS => (join ' ', @ldflags) }) : (),
+    'VERSION_FROM' => 'lib/DBD/MariaDB.pm',
     ABSTRACT => 'MariaDB and MySQL driver for the Perl5 Database Interface (DBI)',
     AUTHOR => 'Pali <pali@cpan.org>',
     LICENSE => 'perl',
@@ -594,6 +595,7 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
     },
     TEST_REQUIRES => {
       'bigint' => 0,
+      'constant' => 0,
       'lib' => 0,
       'strict' => 0,
       'utf8' => 0,
@@ -611,7 +613,6 @@ if (eval { ExtUtils::MakeMaker->VERSION(5.43) }) {
       'Time::HiRes' => 0,
     },
   );
-}
 
 WriteMakefile1(%o);
 exit 0;
@@ -962,8 +963,16 @@ sub WriteMakefile1 {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-
     $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , %{$params{TEST_REQUIRES}} };
     delete $params{TEST_REQUIRES};
   }
-  delete $params{CONFIGURE_REQUIRES} if $eumm_version < 6.52;
-  delete $params{MIN_PERL_VERSION} if $eumm_version < 6.48;
+  if ($params{CONFIGURE_REQUIRES} and $eumm_version < 6.52) {
+    #EUMM prior to 6.52 has problems with CONFIGURE_REQUIRES
+    $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , %{$params{CONFIGURE_REQUIRES}} };
+    delete $params{CONFIGURE_REQUIRES};
+  }
+  if ($params{MIN_PERL_VERSION} and $eumm_version < 6.48) {
+    #EUMM prior to 6.48 has problems with MIN_PERL_VERSION
+    $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , perl => $params{MIN_PERL_VERSION} };
+    delete $params{MIN_PERL_VERSION};
+  }
   delete $params{META_MERGE} if $eumm_version < 6.46;
   delete $params{META_ADD} if $eumm_version < 6.46;
   delete $params{LICENSE} if $eumm_version < 6.31;
