@@ -133,6 +133,10 @@ This is similar to the behavior of the C<mariadb> or C<mysql> command line
 client. Also, C<SELECT DATABASE()> will return the current database active for
 the handle.
 
+The DBD::MariaDB driver understands any connection attribute specified in
+L</DATABASE HANDLES> section which is read/write and additionally also any
+other attribute described below.
+
 =over
 
 =item host
@@ -349,58 +353,6 @@ client library by default. If your DSN contains the option
 C<mariadb_local_infile=1>, C<LOAD DATA LOCAL> will be enabled. However, this
 option is B<ineffective> if the server has also been configured to disallow
 C<LOCAL>.
-
-=item mariadb_multi_statements
-
-Support for multiple statements separated by a semicolon (C<;>) may be enabled
-by using this option. Enabling this option may cause problems if server-side
-prepared statements are also enabled.
-
-=item mariadb_server_prepare
-
-This option is used to enable server side prepared statements. By default
-prepared statements are not used and placeholder replacement is done by
-DBD::MariaDB prior to sending SQL statement to MariaDB or MySQL server.
-
-This default behavior may change in the future.
-
-To use server side prepared statements, all you need to do is set the variable
-I<mariadb_server_prepare> in the connect:
-
-  my $dbh = DBI->connect(
-      'DBI:MariaDB:database=test;host=localhost;mariadb_server_prepare=1',
-      'user',
-      'password',
-      { RaiseError => 1, PrintError => 0 },
-  );
-
-or:
-
-  my $dbh = DBI->connect(
-      'DBI:MariaDB:database=test;host=localhost',
-      'user',
-      'password',
-      { RaiseError => 1, PrintError => 0, mariadb_server_prepare => 1 },
-  );
-
-There are many benefits to using server side prepare statements, mostly if you
-are using SQL statements with placeholders or performing many inserts because of
-that fact that a single statement is prepared to accept multiple insert values.
-
-Please note that MariaDB or MySQL server cannot prepare or execute some prepared
-statements. In this case DBD::MariaDB fallbacks to normal non-prepared statement
-and tries again.
-
-=item mariadb_server_prepare_disable_fallback
-
-This option disable fallback to normal non-prepared statement when MariaDB or
-MySQL server does not support execution of current statement as prepared.
-
-Useful when you want to be sure that the statement is going to be executed as
-server side prepared. Error message and code in case of failure is propagated
-back to DBI.
-
-This default behavior may change in the future.
 
 =item mariadb_embedded_options
 
@@ -795,6 +747,58 @@ intermediate string and any bind parameter. Default value depends on client
 MariaDB/MySQL library and should be 1GB.
 
   $dbh->{mariadb_max_allowed_packet} = 32*1024*1024; # limit max size to 32MB
+
+=item mariadb_multi_statements
+
+Support for multiple statements separated by a semicolon (C<;>) may be enabled
+by using this option. Enabling this option may cause problems if server-side
+prepared statements are also enabled.
+
+=item mariadb_server_prepare
+
+This option is used to enable server side prepared statements. By default
+prepared statements are not used and placeholder replacement is done by
+DBD::MariaDB prior to sending SQL statement to MariaDB or MySQL server.
+
+This default behavior may change in the future.
+
+To use server side prepared statements, all you need to do is set the variable
+I<mariadb_server_prepare> in the connect:
+
+  my $dbh = DBI->connect(
+      'DBI:MariaDB:database=test;host=localhost;mariadb_server_prepare=1',
+      'user',
+      'password',
+      { RaiseError => 1, PrintError => 0 },
+  );
+
+or:
+
+  my $dbh = DBI->connect(
+      'DBI:MariaDB:database=test;host=localhost',
+      'user',
+      'password',
+      { RaiseError => 1, PrintError => 0, mariadb_server_prepare => 1 },
+  );
+
+There are many benefits to using server side prepare statements, mostly if you
+are using SQL statements with placeholders or performing many inserts because of
+that fact that a single statement is prepared to accept multiple insert values.
+
+Please note that MariaDB or MySQL server cannot prepare or execute some prepared
+statements. In this case DBD::MariaDB fallbacks to normal non-prepared statement
+and tries again.
+
+=item mariadb_server_prepare_disable_fallback
+
+This option disable fallback to normal non-prepared statement when MariaDB or
+MySQL server does not support execution of current statement as prepared.
+
+Useful when you want to be sure that the statement is going to be executed as
+server side prepared. Error message and code in case of failure is propagated
+back to DBI.
+
+This default behavior may change in the future.
 
 =back
 
