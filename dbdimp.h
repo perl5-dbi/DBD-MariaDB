@@ -42,6 +42,11 @@
 #include <DBIXS.h>  /* installed by the DBI module */
 #include <stdint.h> /* For uint32_t */
 
+
+/*******************************************************************************
+ * Standard MariaDB macros which are not defined in every MySQL/MariaDB client *
+ *******************************************************************************/
+
 #if !defined(MARIADB_BASE_VERSION) && defined(MARIADB_PACKAGE_VERSION)
 #define MARIADB_BASE_VERSION
 #endif
@@ -80,6 +85,11 @@
 #ifndef CR_STMT_CLOSED
 #define CR_STMT_CLOSED 2056
 #endif
+
+
+/********************************************************************
+ * Standard Perl macros which are not defined in every Perl version *
+ ********************************************************************/
 
 #ifndef PERL_STATIC_INLINE
 #define PERL_STATIC_INLINE static
@@ -133,6 +143,28 @@ extern __declspec(dllimport) ioinfo* __pioinfo[];
 #define SvPV_nomg_nolen(sv) ((SvFLAGS(sv) & (SVf_POK)) == SVf_POK ? SvPVX(sv) : sv_2pv_flags(sv, &PL_na, 0))
 #endif
 
+/* Remove wrong SV_NOSTEAL macro defined by ppport.h */
+#if defined(SV_NOSTEAL) && (SV_NOSTEAL == 0)
+#undef SV_NOSTEAL
+#endif
+
+#ifndef newSVsv_nomg
+PERL_STATIC_INLINE SV *newSVsv_nomg(pTHX_ SV *sv)
+{
+  SV *ret = newSV(0);
+#ifndef SV_NOSTEAL
+  U32 tmp = SvFLAGS(sv) & SVs_TEMP;
+  SvTEMP_off(sv);
+  sv_setsv_flags(ret, sv, 0);
+  SvFLAGS(sv) |= tmp;
+#else
+  sv_setsv_flags(ret, sv, SV_NOSTEAL);
+#endif
+  return ret;
+}
+#define newSVsv_nomg(sv) newSVsv_nomg(aTHX_ (sv))
+#endif
+
 /* looks_like_number() process get magic prior to perl 5.15.4, so reimplement it */
 #if PERL_VERSION < 15 || (PERL_VERSION == 15 && PERL_SUBVERSION < 4)
 #undef looks_like_number
@@ -179,10 +211,8 @@ PERL_STATIC_INLINE char * SvPVbyte_nomg(pTHX_ SV *sv, STRLEN *len)
 #endif
 
 #ifndef SvTRUE_nomg
-#define SvTRUE_nomg SvTRUE /* SvTRUE does not process get magic for scalars with already cached values, so we are safe */
+#define SvTRUE_nomg(sv) (!SvGMAGICAL((sv)) ? SvTRUE((sv)) : SvTRUEx(sv_2mortal(newSVsv_nomg((sv)))))
 #endif
-
-/* Sorry, there is no way to handle integer magic scalars properly prior to perl 5.9.1 */
 
 /* Remove wrong SvIV_nomg macro defined by ppport.h */
 #if defined(SvIV_nomg) && (PERL_VERSION < 9 | (PERL_VERSION == 9 && PERL_SUBVERSION < 1))
@@ -192,42 +222,19 @@ PERL_STATIC_INLINE char * SvPVbyte_nomg(pTHX_ SV *sv, STRLEN *len)
 #ifndef SvIV_nomg
 PERL_STATIC_INLINE IV SvIV_nomg(pTHX_ SV *sv)
 {
-  UV uv;
-  char *str;
-  STRLEN len;
-  int num_type;
-  if (SvIOK(sv) || SvIOKp(sv))
-  {
-    if (!SvIsUV(sv))
-      return SvIVX(sv);
-    uv = SvUVX(sv);
-    if (uv > (UV)IV_MAX)
-      return IV_MAX;
-    return (IV)uv;
-  }
-  if (SvNOK(sv) || SvNOKp(sv))
-    return (IV)SvNVX(sv);
-  str = SvPV_nomg(sv, len);
-  num_type = grok_number(str, len, &uv);
-  if (!(num_type & (IS_NUMBER_IN_UV)) || (num_type & IS_NUMBER_NOT_INT))
-  {
-    warner(packWARN(WARN_NUMERIC), "Argument \"%s\" isn't numeric", str);
-    return 0;
-  }
-  if (num_type & IS_NUMBER_NEG)
-  {
-    if (uv > (UV)IV_MAX+1)
-      return IV_MIN;
-    return -(IV)uv;
-  }
+  IV iv;
+  SV *tmp;
+  if (!SvGMAGICAL(sv))
+    return SvIV(sv);
+  tmp = sv_2mortal(newSVsv_nomg(sv));
+  iv = SvIV(tmp);
+  if (SvIsUV(tmp))
+    SvIsUV_on(sv);
   else
-  {
-    if (uv > (UV)IV_MAX)
-      return IV_MAX;
-    return (IV)uv;
-  }
+    SvIsUV_off(sv);
+  return iv;
 }
-#define SvIV_nomg(sv) SvIV_nomg(aTHX_ sv)
+#define SvIV_nomg(sv) SvIV_nomg(aTHX_ (sv))
 #endif
 
 /* Remove wrong SvUV_nomg macro defined by ppport.h */
@@ -238,52 +245,27 @@ PERL_STATIC_INLINE IV SvIV_nomg(pTHX_ SV *sv)
 #ifndef SvUV_nomg
 PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 {
-  IV iv;
   UV uv;
-  char *str;
-  STRLEN len;
-  int num_type;
-  if (SvIOK(sv) || SvIOKp(sv))
-  {
-    if (SvIsUV(sv))
-      return SvUVX(sv);
-    iv = SvIVX(sv);
-    if (iv < 0)
-      return 0;
-    return (UV)iv;
-  }
-  if (SvNOK(sv) || SvNOKp(sv))
-    return (UV)SvNVX(sv);
-  str = SvPV_nomg(sv, len);
-  num_type = grok_number(str, len, &uv);
-  if (!(num_type & (IS_NUMBER_IN_UV)) || (num_type & IS_NUMBER_NOT_INT))
-  {
-    warner(packWARN(WARN_NUMERIC), "Argument \"%s\" isn't numeric", str);
-    return 0;
-  }
-  if (num_type & IS_NUMBER_NEG)
-    return 0;
+  SV *tmp;
+  if (!SvGMAGICAL(sv))
+    return SvUV(sv);
+  tmp = sv_2mortal(newSVsv_nomg(sv));
+  uv = SvUV(tmp);
+  if (SvIsUV(tmp))
+    SvIsUV_on(sv);
+  else
+    SvIsUV_off(sv);
   return uv;
 }
-#define SvUV_nomg(sv) SvUV_nomg(aTHX_ sv)
+#define SvUV_nomg(sv) SvUV_nomg(aTHX_ (sv))
 #endif
 
-/* Sorry, there is no way to handle numeric magic scalars properly prior to perl 5.13.2 */
 #ifndef SvNV_nomg
-#define SvNV_nomg(sv)                       \
-  ((SvNOK(sv) || SvNOKp(sv))                \
-    ? SvNVX(sv)                             \
-    : (SvIOK(sv) || SvIOKp(sv))             \
-      ? (SvIsUV(sv)                         \
-        ? ((NV)SvUVX(sv))                   \
-        : ((NV)SvIVX(sv)))                  \
-      : (SvPOK(sv) || SvPOKp(sv))           \
-        ? ((NV)Atof(SvPVX(sv)))             \
-        : ((NV)Atof(SvPV_nomg_nolen(sv))))
+#define SvNV_nomg(sv) (!SvGMAGICAL((sv)) ? SvNV((sv)) : SvNVx(sv_2mortal(newSVsv_nomg((sv)))))
 #endif
 
 #ifndef sv_cmp_flags
-#define sv_cmp_flags(a,b,c) sv_cmp(a,b) /* Sorry, there is no way to compare magic scalars properly prior to perl 5.13.6 */
+#define sv_cmp_flags(sv1, sv2, flags) (((flags) & SV_GMAGIC) ? sv_cmp((sv1), (sv2)) : sv_cmp((!SvGMAGICAL((sv1)) ? (sv1) : sv_2mortal(newSVsv_nomg((sv1)))), (!SvGMAGICAL((sv2)) ? (sv2) : sv_2mortal(newSVsv_nomg((sv2))))))
 #endif
 
 #ifndef gv_stashpvs
@@ -314,6 +296,10 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define strBEGINs(s1, s2) strnEQ((s1), "" s2 "", sizeof((s2))-1)
 #endif
 
+
+/**************************************
+ * Custom DBD-MariaDB specific macros *
+ **************************************/
 
 #define GEO_DATATYPE_VERSION 50007
 #define NEW_DATATYPE_VERSION 50003
