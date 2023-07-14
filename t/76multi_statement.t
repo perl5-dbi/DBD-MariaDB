@@ -14,7 +14,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0,
                         mariadb_multi_statements => 1 });
 
-plan tests => 77;
+plan tests => 81;
 
 ok (defined $dbh, "Connected to database with multi statement support");
 
@@ -124,5 +124,13 @@ $dbh->{mariadb_server_prepare}= 0;
   ok(!eval { $sth->{NAME} });
   ok(!eval { $sth->{mariadb_type} });
   is($sth->rows, -1);
+
+  # Check that it is possible to turn off/on mariadb_multi_statements at runtime
+  $dbh->{mariadb_multi_statements} = 0;
+  ok(!$dbh->{mariadb_multi_statements});
+  ok(!eval { $dbh->do("SELECT 1; SELECT 1;") });
+  $dbh->{mariadb_multi_statements} = 1;
+  ok($dbh->{mariadb_multi_statements});
+  ok($dbh->do("SELECT 1; SELECT 1;"));
 
 $dbh->disconnect();
