@@ -104,6 +104,7 @@ jobs:
             - mysql-8.0.22
             - mysql-8.0.33
             - mysql-8.0.34
+            - mysql-8.0.35
             - mariadb-5.5.40
             - mariadb-5.5.44
             - mariadb-5.5.47
@@ -255,6 +256,12 @@ jobs:
               client-version: mariadbconc-3.0.2
             - server-version: mysql-4.1.22
               client-version: mariadbconc-3.0.6
+          # MySQL client versions 8.0.4 - 8.0.34 and 8.1.0 have bug which
+          # prevents connection to MySQL server versions prior 5.5.7
+            - server-version: mysql-4.1.22
+              client-version: mysql-8.0.35
+            - server-version: mysql-5.1.72
+              client-version: mysql-8.0.3-rc
             - server-version: none
               client-version: system
             - perl-version: 5.12.0
@@ -330,8 +337,9 @@ jobs:
             *)                  DB=unknown ;;
           esac
           case "${{ matrix.client-version }}" in
-            mysql*)             CLIENT_DB=MySQL ;;
-            mariadb*)           CLIENT_DB=MariaDB ;;
+            mysql-*)            CLIENT_DB=MySQL-Server ;;
+            mysqlconc-*)        CLIENT_DB=MySQL-ConC ;;
+            mariadbconc-*)      CLIENT_DB=MariaDB-ConC ;;
             system)             CLIENT_DB=""; ;;
             system-pic)         CLIENT_DB=""; ;;
             same-as-server)     CLIENT_DB=""; ;;
@@ -381,7 +389,7 @@ jobs:
               SANDBOX_OPTIONS="$SANDBOX_OPTIONS --init_options=--innodb_use_native_aio=0 --my_clause=innodb_use_native_aio=0 --my_clause=performance_schema=ON"
             fi
           fi
-          if [ "$CLIENT_DB" = "MySQL" ]; then
+          if [ "$CLIENT_DB" = "MySQL-ConC" ]; then
             case "$CLIENT_VERSION" in
               *-labs)           CLIENT_URL=https://downloads.mysql.com/snapshots/pb/mysql-connector-c-$CLIENT_VERSION/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
               6.0.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.3-x86-64bit.tar.gz ;;
@@ -390,12 +398,21 @@ jobs:
               *)                echo "Unsupported MySQL Connector/C version '$CLIENT_VERSION'"; exit 1 ;;
             esac
             CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
-          elif [ "$CLIENT_DB" = "MariaDB" ]; then
+          elif [ "$CLIENT_DB" = "MariaDB-ConC" ]; then
             case "$CLIENT_VERSION" in
               3.0.*)            CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
               3.1.[01234567])   CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
               3.*)              CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-ubuntu-focal-amd64.tar.gz ;;
               *)                CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
+            esac
+            CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
+          elif [ "$CLIENT_DB" = "MySQL-Server" ]; then
+            case "$CLIENT_VERSION" in
+              # FIXME: Only MySQL 8.x server versions are defined here for usage as client library for now
+              8.0.?-*|8.0.11)   CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              8.0.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.xz ;;
+              8.1.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.28-x86_64.tar.xz ;;
+              *)                echo "Unsupported MySQL version '$CLIENT_VERSION'"; exit 1 ;;
             esac
             CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
           elif [ -n "$CLIENT_DB" ]; then
@@ -461,6 +478,9 @@ jobs:
             export DBD_MARIADB_TESTPASSWORD=msandbox
             export DBD_MARIADB_TESTHOST=127.0.0.1
             export DBD_MARIADB_TESTPORT=3310
+          fi
+          if [[ ${{ matrix.client-version }} =~ mysql-8 ]]; then
+            export DBD_MARIADB_TESTAUTHPLUGIN=mysql_native_password
           fi
           if [ "${{ matrix.client-version }}" != "system" ] && [ "${{ matrix.client-version }}" != "system-pic" ] && [ "${{ matrix.client-version }}" != "same-as-server" ]; then
             if [ -x $HOME/client/bin/mysql_config ]; then
