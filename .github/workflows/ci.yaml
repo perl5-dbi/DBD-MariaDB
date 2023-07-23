@@ -330,15 +330,15 @@ jobs:
             *)                  DB=unknown ;;
           esac
           case "${{ matrix.client-version }}" in
-            mysql*)             CONC_DB=MySQL ;;
-            mariadb*)           CONC_DB=MariaDB ;;
-            system)             CONC_DB=""; ;;
-            system-pic)         CONC_DB=""; ;;
-            same-as-server)     CONC_DB=""; ;;
-            *)                  CONC_DB=unknown ;;
+            mysql*)             CLIENT_DB=MySQL ;;
+            mariadb*)           CLIENT_DB=MariaDB ;;
+            system)             CLIENT_DB=""; ;;
+            system-pic)         CLIENT_DB=""; ;;
+            same-as-server)     CLIENT_DB=""; ;;
+            *)                  CLIENT_DB=unknown ;;
           esac
           VERSION=`echo "${{ matrix.server-version }}" | sed 's/^[^-]*-//'`
-          CONC_VERSION=`echo "${{ matrix.client-version }}" | sed 's/^[^-]*-//'`
+          CLIENT_VERSION=`echo "${{ matrix.client-version }}" | sed 's/^[^-]*-//'`
           if [ "$DB" = "MySQL" ]; then
             case "$VERSION" in
               4.1.*)            SANDBOX_URL=https://mysql.linux.cz/Downloads/MySQL-4.1/mysql-standard-$VERSION-unknown-linux-gnu-x86_64-glibc23.tar.gz ;;
@@ -381,28 +381,28 @@ jobs:
               SANDBOX_OPTIONS="$SANDBOX_OPTIONS --init_options=--innodb_use_native_aio=0 --my_clause=innodb_use_native_aio=0 --my_clause=performance_schema=ON"
             fi
           fi
-          if [ "$CONC_DB" = "MySQL" ]; then
-            case "$CONC_VERSION" in
-              *-labs)           CONC_URL=https://downloads.mysql.com/snapshots/pb/mysql-connector-c-$CONC_VERSION/mysql-connector-c-$CONC_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
-              6.0.*)            CONC_URL=https://dev.mysql.com/get/mysql-connector-c-$CONC_VERSION-linux-glibc2.3-x86-64bit.tar.gz ;;
-              6.1.[0123456789]) CONC_URL=https://dev.mysql.com/get/mysql-connector-c-$CONC_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
-              6.1.*)            CONC_URL=https://dev.mysql.com/get/mysql-connector-c-$CONC_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
-              *)                echo "Unsupported MySQL Connector/C version '$CONC_VERSION'"; exit 1 ;;
+          if [ "$CLIENT_DB" = "MySQL" ]; then
+            case "$CLIENT_VERSION" in
+              *-labs)           CLIENT_URL=https://downloads.mysql.com/snapshots/pb/mysql-connector-c-$CLIENT_VERSION/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+              6.0.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.3-x86-64bit.tar.gz ;;
+              6.1.[0123456789]) CLIENT_URL=https://dev.mysql.com/get/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+              6.1.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-connector-c-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              *)                echo "Unsupported MySQL Connector/C version '$CLIENT_VERSION'"; exit 1 ;;
             esac
-            CONC_FILE="$HOME/cache/$(basename "$CONC_URL")"
-          elif [ "$CONC_DB" = "MariaDB" ]; then
-            case "$CONC_VERSION" in
-              3.0.*)            CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
-              3.1.[01234567])   CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
-              3.*)              CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-ubuntu-focal-amd64.tar.gz ;;
-              *)                CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
+            CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
+          elif [ "$CLIENT_DB" = "MariaDB" ]; then
+            case "$CLIENT_VERSION" in
+              3.0.*)            CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
+              3.1.[01234567])   CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
+              3.*)              CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-ubuntu-focal-amd64.tar.gz ;;
+              *)                CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
             esac
-            CONC_FILE="$HOME/cache/$(basename "$CONC_URL")"
-          elif [ -n "$CONC_DB" ]; then
-            echo "Unsupported Connector/C '$CONC_DB'"; exit 1
+            CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
+          elif [ -n "$CLIENT_DB" ]; then
+            echo "Unsupported Connector/C '$CLIENT_DB'"; exit 1
           fi
-          if [ -n "$CONC_DB" ]; then
-            if [ ! -f "$CONC_FILE" ]; then wget --progress=bar:force "$CONC_URL" -O "$CONC_FILE" || exit 1; fi
+          if [ -n "$CLIENT_DB" ]; then
+            if [ ! -f "$CLIENT_FILE" ]; then wget --progress=bar:force "$CLIENT_URL" -O "$CLIENT_FILE" || exit 1; fi
           fi
           if [ "${{ matrix.client-version }}" = "system-pic" ]; then
             sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic"
@@ -422,14 +422,14 @@ jobs:
             printf '#!/bin/sh\nexec %s/msb/my sql_config "$@"\n' $SANDBOX_HOME > "$HOME/mysql_config"
             chmod +x $HOME/mysql_config
           fi
-          if [ -n "$CONC_DB" ]; then
-            mkdir -p "$HOME/conc"
-            tar --strip-components=1 --directory="$HOME/conc" -xf "$CONC_FILE" || exit 1
-            if $HOME/conc/bin/mysql_config 2>&1 | grep -q /usr/local; then
-              rm -f $HOME/conc/bin/mysql_config
+          if [ -n "$CLIENT_DB" ]; then
+            mkdir -p "$HOME/client"
+            tar --strip-components=1 --directory="$HOME/client" -xf "$CLIENT_FILE" || exit 1
+            if $HOME/client/bin/mysql_config 2>&1 | grep -q /usr/local; then
+              rm -f $HOME/client/bin/mysql_config
             fi
-            if [ -x $HOME/conc/bin/mysql_config ]; then
-              sed 's/-l "/-lmysqlclient "/g' -i "$HOME/conc/bin/mysql_config" || exit 1
+            if [ -x $HOME/client/bin/mysql_config ]; then
+              sed 's/-l "/-lmysqlclient "/g' -i "$HOME/client/bin/mysql_config" || exit 1
             fi
           fi
       - name: Install dependences
@@ -463,12 +463,12 @@ jobs:
             export DBD_MARIADB_TESTPORT=3310
           fi
           if [ "${{ matrix.client-version }}" != "system" ] && [ "${{ matrix.client-version }}" != "system-pic" ] && [ "${{ matrix.client-version }}" != "same-as-server" ]; then
-            if [ -x $HOME/conc/bin/mysql_config ]; then
-              export DBD_MARIADB_CONFIG="$HOME/conc/bin/mysql_config"
+            if [ -x $HOME/client/bin/mysql_config ]; then
+              export DBD_MARIADB_CONFIG="$HOME/client/bin/mysql_config"
             else
-              INCLUDE_PATH=`find "$HOME/conc" -name "mysql.h" | sort | head -1`
+              INCLUDE_PATH=`find "$HOME/client" -name "mysql.h" | sort | head -1`
               if [ -z "$INCLUDE_PATH" ]; then echo "File mysql.h was not found"; exit 1; fi
-              LIB_PATH=`find "$HOME/conc" -name "lib*.so" | sort | head -1`
+              LIB_PATH=`find "$HOME/client" -name "lib*.so" | sort | head -1`
               if [ -z "$INCLUDE_PATH" ]; then echo "File lib*.so was not found"; exit 1; fi
               export DBD_MARIADB_CFLAGS="-I`dirname $INCLUDE_PATH`"
               export DBD_MARIADB_LIBS="-L`dirname $LIB_PATH` -l`echo $LIB_PATH | sed 's/.*\/lib//;s/\.so//'`"
