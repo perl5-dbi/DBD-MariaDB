@@ -39,6 +39,7 @@ jobs:
             - 5.32.0
             - 5.34.0
             - 5.36.0
+            - 5.38.0
             - system
           dbi-version:
             - 1.627
@@ -50,6 +51,7 @@ jobs:
             - mysql-5.0.96
             - mysql-5.1.30
             - mysql-5.1.72
+            - mysql-5.1.73
             - mysql-5.5.8
             - mysql-5.5.47
             - mysql-5.5.49
@@ -71,6 +73,7 @@ jobs:
             - mysql-5.6.41
             - mysql-5.6.43
             - mysql-5.6.45
+            - mysql-5.6.51
             - mysql-5.7.8-rc
             - mysql-5.7.11
             - mysql-5.7.12
@@ -83,6 +86,7 @@ jobs:
             - mysql-5.7.23
             - mysql-5.7.25
             - mysql-5.7.27
+            - mysql-5.7.43
             - mysql-8.0.0-dmr
             - mysql-8.0.1-dmr
             - mysql-8.0.2-dmr
@@ -95,6 +99,11 @@ jobs:
             - mysql-8.0.15
             - mysql-8.0.16
             - mysql-8.0.17
+            - mysql-8.0.20
+            - mysql-8.0.21
+            - mysql-8.0.22
+            - mysql-8.0.33
+            - mysql-8.0.34
             - mariadb-5.5.40
             - mariadb-5.5.44
             - mariadb-5.5.47
@@ -109,6 +118,7 @@ jobs:
             - mariadb-5.5.61
             - mariadb-5.5.63
             - mariadb-5.5.65
+            - mariadb-5.5.68
             - mariadb-10.0.14
             - mariadb-10.0.20
             - mariadb-10.0.23
@@ -132,6 +142,7 @@ jobs:
             - mariadb-10.1.37
             - mariadb-10.1.38
             - mariadb-10.1.41
+            - mariadb-10.1.48
             - mariadb-10.2.0
             - mariadb-10.2.1
           # Incompatible, broken mysql_config
@@ -154,6 +165,7 @@ jobs:
             - mariadb-10.2.21
             - mariadb-10.2.22
             - mariadb-10.2.26
+            - mariadb-10.2.44
             - mariadb-10.3.0
             - mariadb-10.3.1
             - mariadb-10.3.2
@@ -166,6 +178,7 @@ jobs:
             - mariadb-10.3.11
             - mariadb-10.3.12
             - mariadb-10.3.17
+            - mariadb-10.3.39
             - mariadb-10.4.0
             - mariadb-10.4.1
             - mariadb-10.4.2
@@ -213,6 +226,12 @@ jobs:
             - mariadbconc-3.1.1
             - mariadbconc-3.1.2
             - mariadbconc-3.1.3
+            - mariadbconc-3.1.10
+            - mariadbconc-3.1.21
+            - mariadbconc-3.2.0
+            - mariadbconc-3.2.7
+            - mariadbconc-3.3.0-rc1
+            - mariadbconc-3.3.5
             - system
             - same-as-server
           include:
@@ -338,10 +357,11 @@ jobs:
               5.6.[12]*)        SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
               5.6.3[0123456]*)  SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
               5.6.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
-              5.7.19*|5.7.[2]*) SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              5.7.19*|5.7.[234]*) SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
               5.7.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.5-x86_64.tar.gz ;;
               8.0.?-*|8.0.11)   SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.gz ;;
               8.0.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.12-x86_64.tar.xz ;;
+              8.1.*)            SANDBOX_URL=https://dev.mysql.com/get/mysql-$VERSION-linux-glibc2.28-x86_64.tar.xz ;;
               *)                echo "Unsupported MySQL version '$VERSION'"; exit 1 ;;
             esac
             SANDBOX_CACHE_FILE="$HOME/cache/$(basename "$SANDBOX_URL")"
@@ -376,8 +396,13 @@ jobs:
             esac
             CONC_FILE="$HOME/cache/$(basename "$CONC_URL")"
           elif [ "$CONC_DB" = "MariaDB" ]; then
-            CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz
-            CONC_FILE="$HOME/cache/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz"
+            case "$CONC_VERSION" in
+              3.0.*)            CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
+              3.1.[01234567])   CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
+              3.*)              CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-ubuntu-focal-amd64.tar.gz ;;
+              *)                CONC_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CONC_VERSION/-*/}/mariadb-connector-c-$CONC_VERSION-linux-x86_64.tar.gz ;;
+            esac
+            CONC_FILE="$HOME/cache/$(basename "$CONC_URL")"
           elif [ -n "$CONC_DB" ]; then
             echo "Unsupported Connector/C '$CONC_DB'"; exit 1
           fi
