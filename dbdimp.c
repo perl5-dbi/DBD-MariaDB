@@ -3098,6 +3098,7 @@ static void mariadb_dr_close_mysql(pTHX_ imp_drh_t *imp_drh, MYSQL *pmysql)
      * - infinite loop when calling mysql_server_end() more then once in case Embedded server was not started
      * Therefore do not call mysql_server_end() when Embedded server was not in used.
      * These bugs were fixed in MariaDB Connector/C 3.0.5, see: https://jira.mariadb.org/browse/CONC-336
+     * And fixed also in MySQL 8.0.20, see: https://bugs.mysql.com/bug.php?id=93276
      * But remains in MariaDB Embedded server, see: https://jira.mariadb.org/browse/MDEV-16578
      */
 #if !defined(HAVE_BROKEN_INIT) && (defined(HAVE_DEINITIALIZE_SSL) || !defined(HAVE_PROBLEM_WITH_OPENSSL))
