@@ -2362,10 +2362,13 @@ static bool mariadb_dr_connect(
         so that we can keep track of when this happens.
       */
 #if MYSQL_VERSION_ID >= 50013
+    /* Beginning with MySQL 8.0.34, the automatic reconnection feature is deprecated and disabled by default. */
+#if defined(MARIADB_BASE_VERSION) || MYSQL_VERSION_ID < 80034
     {
       my_bool reconnect = FALSE;
       mysql_options(sock, MYSQL_OPT_RECONNECT, &reconnect);
     }
+#endif
 #else
       sock->reconnect = FALSE;
 #endif
