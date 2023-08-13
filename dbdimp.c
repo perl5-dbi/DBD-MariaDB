@@ -1855,6 +1855,29 @@ static bool mariadb_dr_connect(
           }
         }
 
+        (void)hv_stores(processed, "mariadb_auth_plugin", &PL_sv_yes);
+        if ((svp = hv_fetchs(hv, "mariadb_auth_plugin", FALSE)) && *svp)
+        {
+          int error = 1;
+          STRLEN len;
+          char *auth_plugin = SvPVutf8(*svp, len);
+          if (strlen(auth_plugin) != len)
+          {
+            error_nul_character(dbh, "mariadb_auth_plugin");
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return FALSE;
+          }
+#if MYSQL_VERSION_ID >= 50507 && MYSQL_VERSION_ID != 60000
+          error = mysql_options(sock, MYSQL_DEFAULT_AUTH, auth_plugin);
+#endif
+          if (error)
+          {
+            mariadb_dr_do_error(dbh, CR_CONNECTION_ERROR, "Connection error: mariadb_auth_plugin is not supported", "HY000");
+            mariadb_db_disconnect(dbh, imp_dbh);
+            return FALSE;
+          }
+        }
+
         (void)hv_stores(processed, "mariadb_read_default_file", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_read_default_file", FALSE)) && *svp && SvTRUE(*svp))
         {
@@ -1924,13 +1947,8 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_client_found_rows", &PL_sv_yes);
-        if ((svp = hv_fetchs(hv, "mariadb_client_found_rows", FALSE)) && *svp)
-        {
-          if (SvTRUE(*svp))
-            client_flag |= CLIENT_FOUND_ROWS;
-          else
-            client_flag &= ~CLIENT_FOUND_ROWS;
-        }
+        if ((svp = hv_fetchs(hv, "mariadb_client_found_rows", FALSE)) && *svp && !SvTRUE(*svp))
+          client_flag &= ~CLIENT_FOUND_ROWS;
 
         (void)hv_stores(processed, "mariadb_auto_reconnect", &PL_sv_yes);
         if ((svp = hv_fetchs(hv, "mariadb_auto_reconnect", FALSE)) && *svp)
@@ -1999,13 +2017,11 @@ static bool mariadb_dr_connect(
         }
 
         (void)hv_stores(processed, "mariadb_multi_statements", &PL_sv_yes);
-	if ((svp = hv_fetchs(hv, "mariadb_multi_statements", FALSE)) && *svp)
+        if ((svp = hv_fetchs(hv, "mariadb_multi_statements", FALSE)) && *svp && SvTRUE(*svp))
         {
-	  if (SvTRUE(*svp))
-	    client_flag |= CLIENT_MULTI_STATEMENTS;
-          else
-            client_flag &= ~CLIENT_MULTI_STATEMENTS;
-	}
+          imp_dbh->use_multi_statements = TRUE;
+          client_flag |= CLIENT_MULTI_STATEMENTS;
+        }
 
         (void)hv_stores(processed, "mariadb_server_prepare", &PL_sv_yes);
 	if ((svp = hv_fetchs(hv, "mariadb_server_prepare", FALSE)) && *svp)
@@ -3471,6 +3487,17 @@ mariadb_db_STORE_attrib(
       return 0;
 #endif
     }
+    else if (memEQs(key, kl, "mariadb_multi_statements"))
+    {
+      if (!imp_dbh->connected) /* When not connected, it is handled in mariadb_dr_connect() */
+        return 0;
+      if (mysql_set_server_option(imp_dbh->pmysql, bool_value ? MYSQL_OPTION_MULTI_STATEMENTS_ON : MYSQL_OPTION_MULTI_STATEMENTS_OFF) != 0)
+      {
+        mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
+        return 0;
+      }
+      imp_dbh->use_multi_statements = bool_value;
+    }
     else
     {
       if (imp_dbh->connected) /* Ignore unknown attributes passed by DBI->connect, they are handled in mariadb_dr_connect() */
@@ -3732,6 +3759,8 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
       result = imp_dbh->pmysql ? sv_2mortal(newSVuv(mysql_warning_count(imp_dbh->pmysql))) : &PL_sv_undef;
     else if (memEQs(key, kl, "mariadb_use_result"))
       result = boolSV(imp_dbh->use_mysql_use_result);
+    else if (memEQs(key, kl, "mariadb_multi_statements"))
+      result = boolSV(imp_dbh->use_multi_statements);
     else
     {
       error_unknown_attribute(dbh, key);
