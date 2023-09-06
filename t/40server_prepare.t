@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use DBI;
+use DBI::Const::GetInfoType;
 use lib 't', '.';
 require 'lib.pl';
 use vars qw($test_dsn $test_user $test_password $test_db);
@@ -73,7 +74,7 @@ ok($sth3->execute(1, 2), "insert t3");
 is_deeply($dbh->selectall_arrayref('SELECT id, mydata FROM t3'), [[1, 2]]);
 
 # MariaDB server since version 10.6.2 can prepare all statements except PREPARE, EXECUTE, and DEALLOCATE / DROP PREPARE. Previous MariaDB and MySQL versions cannot prepare USE statement.
-my $non_preparable_statement = ($dbh->{mariadb_serverversion} >= 100602) ? q(PREPARE stmt FROM "SELECT 1") : ("USE " . $dbh->quote_identifier($test_db));
+my $non_preparable_statement = ($dbh->get_info($GetInfoType{SQL_DBMS_NAME}) eq 'MariaDB' and $dbh->{mariadb_serverversion} >= 100602) ? q(PREPARE stmt FROM "SELECT 1") : ("USE " . $dbh->quote_identifier($test_db));
 
 $dbh->{mariadb_server_prepare_disable_fallback} = 1;
 my $error_handler_called = 0;
