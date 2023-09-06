@@ -1643,9 +1643,32 @@ static bool mariadb_dr_connect(
   {
     if (imp_drh->instances == 0 && !imp_drh->non_embedded_started)
     {
+      int init_failed;
+
+      /*
+       * MariaDB Connector/C 3.0.0 in function mysql_server_init() for non-Windows systems started
+       * setting SIGPIPE handler to SIG_IGN. This breaks Perl applications which installed its own
+       * SIGPIPE signal handler. As a workaround use Perl rsignal_save() function to save existing
+       * SIGPIPE handler before calling mysql_server_init() and after that restore saved handler via
+       * Perl rsignal_restore() function. Note that Perl rsignal_save() function overwrites current
+       * handler (to our specified SIG_IGN), but this is not an issue as we always restored the
+       * saved handler. See reported issue: http://jira.mariadb.org/browse/CONC-591
+       */
+#if !defined(_WIN32) && defined(SIGPIPE) && defined(MARIADB_PACKAGE_VERSION) && defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 30000
+      Sigsave_t pipehand;
+      int pipehand_failed = Perl_rsignal_save(aTHX_ SIGPIPE, (Sighandler_t)(void (*)())SIG_IGN, &pipehand);
+#endif
+
       /* negative value means to not start embedded server and just to initialize client library */
       /* initializing client library is needed prior to any other mysql_* call from client library */
-      if (mysql_server_init(-1, NULL, NULL))
+      init_failed = mysql_server_init(-1, NULL, NULL);
+
+#if !defined(_WIN32) && defined(SIGPIPE) && defined(MARIADB_PACKAGE_VERSION) && defined(MARIADB_PACKAGE_VERSION_ID) && MARIADB_PACKAGE_VERSION_ID >= 30000
+      if (!pipehand_failed)
+        Perl_rsignal_restore(aTHX_ SIGPIPE, &pipehand);
+#endif
+
+      if (init_failed)
       {
         error_no_connection(dbh, "Connection error: Cannot initialize client library");
         return FALSE;
