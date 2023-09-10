@@ -522,16 +522,18 @@ my %o =
         'David Farrell <davidnmfarrell@gmail.com>',
         'David Steinbrunner <dsteinbrunner@pobox.com>',
         'Dominik Sauer <dominik.sauer@gooddata.com>',
+        'E. Choroba <choroba@matfyz.cz>',
         'Giovanni Bechis <giovanni@bigio.snb.it>',
         'Graham Ollis <plicease@cpan.org>',
         'H.Merijn Brand - Tux <h.m.brand@xs4all.nl>',
         'Hanno <hanno@gentoo.org>',
         'James McCoy <jamessan@jamessan.com>',
-        'Jan Holcapek <jan.holcapek@gooddata.com>',
+        'Jan Holčapek <holcapek@gmail.com>',
         'Jim Winstead <jimw@trainedmonkey.com>',
         'Juergen Weigert <jw@suse.com>',
         'Kenny Gryp <kenny.gryp@percona.com>',
         'Lu Shengliang <lushl9301@gmail.com>',
+        'Martin Cermak <martin.cermak2@gooddata.com>',
         'Masahiro Chiba <chiba@everqueue.com>',
         'Matthew Horsfall (alh) <WolfSage@gmail.com>',
         'Michiel Beijen <michiel.beijen@gmail.com>',
@@ -557,6 +559,7 @@ my %o =
         'Tim Mullin <tim@cpanel.net>',
         'Ville Skyttä <ville.skytta@iki.fi>',
         'Vladimir Marek <vlmarek@volny.cz>',
+        'Walt Mankowski <waltman@pobox.com>',
         'katyavoid <katyavoid@gmail.com>',
         'kmx <kmx@cpan.org>',
         'tokuhirom <tokuhirom@gmail.com>',
@@ -833,6 +836,11 @@ as 'drop table', 'create table', 'drop procedure', 'create procedure'
 as well as others.
 
 mysql> grant all privileges on test.* to '$user'\@'localhost' identified by 's3kr1t';
+
+For MySQL 8 it is needed to use different syntax:
+
+mysql> create user '$user'\@'localhost' identified by 's3kr1t';
+mysql> grant all privileges on test.* to '$user'\@'localhost';
 
 You can also optionally set the user to run 'make test' with:
 
