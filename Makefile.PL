@@ -834,6 +834,11 @@ as well as others.
 
 mysql> grant all privileges on test.* to '$user'\@'localhost' identified by 's3kr1t';
 
+For MySQL 8 it is needed to use different syntax:
+
+mysql> create user '$user'\@'localhost' identified by 's3kr1t';
+mysql> grant all privileges on test.* to '$user'\@'localhost';
+
 You can also optionally set the user to run 'make test' with:
 
 perl Makefile.PL --testuser=username
