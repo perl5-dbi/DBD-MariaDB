@@ -14,23 +14,24 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 110;
+plan tests => 120;
 
 ok(defined $dbh, "Connected to database");
 
 ok($dbh->do("DROP TABLE IF EXISTS dbd_mysql_t35"), "making slate clean");
 
-ok($dbh->do("CREATE TABLE dbd_mysql_t35 (id INT(4), name VARCHAR(64))"), "creating table");
+ok($dbh->do("CREATE TABLE dbd_mysql_t35 (id INT(4), name VARCHAR(64), name_limit INT, limit_by INT)"), "creating table");
 
-ok(($sth = $dbh->prepare("INSERT INTO dbd_mysql_t35 VALUES (?,?)")));
+ok(($sth = $dbh->prepare("INSERT INTO dbd_mysql_t35 VALUES (?,?,?,?)")));
 
 for my $i (0..99) {
   my @chars = grep !/[0O1Iil]/, 0..9, 'A'..'Z', 'a'..'z';
   my $random_chars = join '', map { $chars[rand @chars] } 0 .. 16;
+  my $random_num = int(rand(1000));
 
   # save these values for later testing
   $testInsertVals->{$i} = $random_chars;
-  ok(($rows = $sth->execute($i, $random_chars)));
+  ok(($rows = $sth->execute($i, $random_chars, $random_num, $random_num)));
 }
 
 ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35 LIMIT ?, ?"),
@@ -39,10 +40,38 @@ ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35 LIMIT ?, ?"),
 ok($sth->execute(20, 50), 'testing exec of bind vars for limit');
 
 my ($array_ref);
-ok( (defined($array_ref = $sth->fetchall_arrayref) &&
-  (!$sth->err)));
+ok(defined($array_ref = $sth->fetchall_arrayref));
+ok(!$sth->err);
 
-ok(@$array_ref == 50);
+is(scalar @$array_ref, 50);
+
+ok($sth = $dbh->prepare("SELECT * FROM dbd_mysql_t35 WHERE limit_by > ?"),
+  "testing prepare of select statement with started by 'limit' column");
+
+ok($sth->execute(-1), 'testing exec of bind vars for placeholder');
+
+ok(defined($array_ref = $sth->fetchall_arrayref));
+ok(!$sth->err);
+
+is(scalar @$array_ref, 100);
+
+ok($dbh->do("UPDATE dbd_mysql_t35 SET name_limit = ? WHERE id = ?", undef, 128, 1));
+
+ok($dbh->do("UPDATE dbd_mysql_t35 SET name = ? WHERE name_limit > ?", undef, "updated_string", 999999));
+
+# newline before LIMIT
+ok($dbh->do(<<'SQL'
+UPDATE dbd_mysql_t35 SET name = ?
+LIMIT ?
+SQL
+, undef, "updated_string", 0));
+
+# tab before LIMIT
+ok($dbh->do(<<'SQL'
+	UPDATE dbd_mysql_t35 SET name = ?
+	LIMIT ?
+SQL
+, undef, "updated_string", 0));
 
 ok($dbh->do("DROP TABLE dbd_mysql_t35"));
 
