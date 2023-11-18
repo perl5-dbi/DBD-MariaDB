@@ -83,6 +83,7 @@ my %sth_args = (
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 0, PrintError => 0, AutoCommit => 0 });
+plan skip_all => 'Async mode is not supported for Embedded server' if $dbh->{mariadb_hostinfo} eq 'Embedded';
 plan tests =>
   2 * @db_safe_methods     +
   4 * @db_unsafe_methods   +
