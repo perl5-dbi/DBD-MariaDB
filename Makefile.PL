@@ -414,9 +414,11 @@ EOF
 print "Client library deinitialize OpenSSL library functions: " . ($have_problem_with_openssl ? "yes" : "no") . "\n\n";
 
 my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
+print "Writing $fileName for test suite\n";
 (open(FILE, ">$fileName") &&
- (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
-	      " local " . Data::Dumper->Dump([$source], ["source"]) .
+ (print FILE ("{\n" .
+	      "local " . Data::Dumper->new([$opt], ["opt"])->Sortkeys(1)->Indent(1)->Dump() .
+	      "local " . Data::Dumper->new([$source], ["source"])->Sortkeys(1)->Indent(1)->Dump() .
 	      "\$::test_host = \$opt->{'testhost'};\n" .
 	      "\$::test_port = \$opt->{'testport'};\n" .
 	      "\$::test_user = \$opt->{'testuser'};\n" .
