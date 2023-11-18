@@ -16,6 +16,9 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
+if ($dbh->{mariadb_hostinfo} eq 'Embedded') {
+    plan skip_all => 'Async mode is not supported for Embedded server';
+}
 plan tests => 150;
 
 is $dbh->get_info($GetInfoType{'SQL_ASYNC_MODE'}), 2; # statement-level async

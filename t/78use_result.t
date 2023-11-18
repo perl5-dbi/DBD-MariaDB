@@ -4,6 +4,7 @@ use warnings;
 use Test::More;
 use Test::Deep;
 use DBI;
+use DBI::Const::GetInfoType;
 
 use vars qw($test_dsn $test_user $test_password);
 use lib 't', '.';
@@ -11,7 +12,10 @@ require 'lib.pl';
 
 my $dbh1 = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0 });
 
-plan tests => 12 + 2*2*2*1 + 3 * (2*2*2*13 + 2*2*2 + 2*2*9);
+my $have_async_support = $dbh1->get_info($GetInfoType{'SQL_ASYNC_MODE'});
+
+my $mult = ($have_async_support ? 2 : 1);
+plan tests => 12 + 2*$mult*2*1 + 3 * (2*$mult*2*13 + 2*$mult*9) + ($have_async_support ? 3*2*2*2 : 0);
 
 $SIG{__WARN__} = sub { die @_ };
 
@@ -45,7 +49,7 @@ for my $multi_statements (0, 1) {
   $dbh->do('INSERT INTO t VALUES(1, 20)');
   $dbh->do('INSERT INTO t VALUES(2, 30)');
 
-  for my $async (0, 1) {
+  for my $async (0, ($have_async_support ? 1 : ())) {
 
     for my $use_result (0, 1) {
 
