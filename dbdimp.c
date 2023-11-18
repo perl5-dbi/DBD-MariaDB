@@ -2376,6 +2376,12 @@ static bool mariadb_dr_connect(
       sock->reconnect = FALSE;
 #endif
 
+    /* Connection to Embedded server does not have socket */
+    if (imp_dbh->is_embedded)
+    {
+      imp_dbh->sock_fd = -1;
+    }
+    else
     {
       my_socket sock_os;
       int retval;
@@ -3171,8 +3177,11 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
       socket from C file descriptor sock_fd via _set_osfhnd() function and then
       close sock_fd via close() function.
     */
+    if (imp_dbh->sock_fd >= 0)
+    {
     _set_osfhnd(imp_dbh->sock_fd, INVALID_HANDLE_VALUE);
     close(imp_dbh->sock_fd);
+    }
 #endif
     imp_dbh->sock_fd = -1;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);

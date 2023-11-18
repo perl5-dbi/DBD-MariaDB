@@ -10,6 +10,8 @@ require "lib.pl";
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 
+plan skip_all => "Connection to Embedded server does not have socket" if $dbh->{mariadb_hostinfo} eq 'Embedded';
+
 plan tests => 4;
 
 my $fd = $dbh->mariadb_sockfd;

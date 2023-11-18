@@ -38,11 +38,17 @@ ok($dbh->do("SELECT 1"), "implicitly reconnecting handle with 'do'");
 
 ok($dbh->{Active}, "checking for reactivated handle");
 
+SKIP: {
+
+skip "Connection to Embedded server does not have socket", 3 if $dbh->{mariadb_hostinfo} eq 'Embedded';
+
 ok(shutdown_mariadb_socket($dbh), "shutdown socket handle");
 
 ok($dbh->do("SELECT 1"), "implicitly reconnecting handle after shutdown with 'do'");
 
 ok($dbh->{Active}, "checking for reactivated handle");
+
+}
 
 ok($dbh->disconnect(), "disconnecting active handle");
 
