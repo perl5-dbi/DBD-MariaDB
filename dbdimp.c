@@ -1691,6 +1691,7 @@ static bool mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_embedded_options", &PL_sv_yes);
 
         mysql_options(sock, MYSQL_OPT_USE_EMBEDDED_CONNECTION, NULL);
+        imp_dbh->is_embedded = TRUE;
         host = NULL;
       }
       else
@@ -2643,6 +2644,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->bind_comment_placeholders= FALSE;
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
+  imp_dbh->is_embedded = FALSE;
 
   if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
     return 0;
