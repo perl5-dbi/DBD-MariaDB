@@ -3,7 +3,7 @@ use warnings;
 
 use Test::More;
 use FindBin qw($Bin);
-use vars qw($test_dsn $test_user $test_password $test_db);
+use vars qw($test_dsn $test_user $test_password $test_db $test_emboptions);
 
 use DBD::MariaDB;
 
