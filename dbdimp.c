@@ -3668,7 +3668,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (memEQs(key, kl, "mariadb_hostinfo"))
     {
-      const char *hostinfo = imp_dbh->pmysql ? mysql_get_host_info(imp_dbh->pmysql) : NULL;
+      const char *hostinfo = imp_dbh->pmysql ? (imp_dbh->is_embedded ? "Embedded" : mysql_get_host_info(imp_dbh->pmysql)) : NULL;
       result = hostinfo ? sv_2mortal(newSVpv(hostinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
