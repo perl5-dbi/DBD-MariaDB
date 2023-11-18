@@ -8,6 +8,9 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
+if ($dbh->{mariadb_hostinfo} eq 'Embedded') {
+    plan skip_all => "Connection to Embedded server is not disconnected on wait_timeout";
+}
 my $sth;
 my $ok = eval {
     note "Connecting...\n";
