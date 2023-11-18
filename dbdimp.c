@@ -2786,6 +2786,11 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
   if (async)
   {
+    if (imp_dbh->is_embedded)
+    {
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Async option not supported for Embedded server", "HY000");
+      return -2;
+    }
     if (disable_fallback_for_server_prepare)
     {
       mariadb_dr_do_error(dbh, ER_UNSUPPORTED_PS, "Async option not supported with server side prepare", "HY000");
@@ -3963,6 +3968,11 @@ mariadb_st_prepare_sv(
     (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_async");
     if(svp && SvTRUE(*svp)) {
+        if (imp_dbh->is_embedded)
+        {
+          mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Async option not supported for Embedded server", "HY000");
+          return 0;
+        }
         imp_sth->is_async = TRUE;
         if (imp_sth->disable_fallback_for_server_prepare)
         {
