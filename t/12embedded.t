@@ -6,7 +6,7 @@ use DBI;
 use DBD::MariaDB;
 use File::Temp;
 
-use vars qw($test_dsn $test_user $test_password);
+use vars qw($test_dsn $test_user $test_password $test_emboptions);
 use lib 't', '.';
 require 'lib.pl';
 
@@ -31,9 +31,9 @@ sub fatal_connection_error {
 
 sub connect_to_embedded_server {
     my ($tmpdir, $database) = @_;
-    my $lang_arg = $ENV{DBD_MARIADB_TESTLANGDIR} ? ",--language=$ENV{DBD_MARIADB_TESTLANGDIR}" : '';
-    my $emb_dsn = "DBI:MariaDB:host=embedded;mariadb_embedded_options=--datadir=$tmpdir$lang_arg;";
-    $emb_dsn .= "database=$database" if defined $database;
+    my $emb_dsn = "DBI:MariaDB:host=embedded;mariadb_embedded_options=--datadir=$tmpdir";
+    $emb_dsn .= ",$test_emboptions" if length $test_emboptions;
+    $emb_dsn .= ";database=$database" if defined $database;
     return eval { DBI->connect($emb_dsn, undef, undef, { RaiseError => 1, PrintError => 0 }) };
 }
 
