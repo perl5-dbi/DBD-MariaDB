@@ -32,8 +32,9 @@ for my $attribute ( qw(
   mariadb_stat
   mariadb_protoinfo
 ) ) {
-  ok($dbh->{$attribute}, "Value of '$attribute'");
-  diag "$attribute is: ". $dbh->{$attribute};
+  my $value = $dbh->{$attribute};
+  ok(defined $value, "Value of '$attribute'");
+  diag "$attribute is: ". (defined $value ? $value : "(undef)");
 }
 
 my $sql_dbms_name = $dbh->get_info($GetInfoType{SQL_DBMS_NAME});
