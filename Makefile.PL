@@ -24,7 +24,7 @@ push @mysql_headers, 'mysql.h';
 
 our $opt = { "help" => \&Usage, };
 
-my ($test_host, $test_port, $test_socket, $test_authplugin);
+my ($test_host, $test_port, $test_socket);
 {
 local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_authplugin, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } and do {
@@ -34,10 +34,10 @@ $opt->{'testdb'} = $::test_db;
 $opt->{'mysql_config'} = $::test_mysql_config;
 $opt->{'cflags'} = $::test_cflags;
 $opt->{'libs'} = $::test_libs;
+$opt->{'testauthplugin'} = $::test_authplugin;
 $test_host = $::test_host;
 $test_port = $::test_port;
 $test_socket = $::test_socket;
-$test_authplugin = $::test_authplugin;
 }
 }
 
@@ -138,7 +138,7 @@ if ( $opt->{testport} && !$opt->{testhost} ) {
   $source->{testhost} = 'guessed';
 }
 
-foreach (qw(testhost testport testsocket testauthplugin)) {
+foreach (qw(testhost testport testsocket)) {
   next if defined $opt->{$_};
   $opt->{$_} = '';
   $source->{$_} = 'default';
@@ -860,6 +860,10 @@ perl Makefile.PL --testuser=username
       $source->{$param} = "default";
       $opt->{$param} = "";
     }
+    elsif ($param eq "testauthplugin") {
+      $source->{$param} = "default";
+      $opt->{$param} = "";
+    }
     elsif ($param eq "cflags") {
       $source->{$param} = "guessed";
       my ($dir, $file) = SearchFor('include', 'mysql.h');
@@ -902,7 +906,7 @@ section "Linker flags" or type
   perl Makefile.PL --help
 MSG
     }
-    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket" || $param eq "testauthplugin") {
+    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket") {
       # known parameter, but do nothing
     }
     else {
