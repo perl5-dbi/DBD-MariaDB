@@ -527,6 +527,7 @@ struct imp_dbh_st {
     MYSQL *pmysql;
     int sock_fd;
     bool connected;          /* Set to true after DBI->connect finished */
+    bool is_embedded;
     bool auto_reconnect;
     bool bind_type_guessing;
     bool bind_comment_placeholders;
