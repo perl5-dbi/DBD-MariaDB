@@ -3487,6 +3487,11 @@ mariadb_db_STORE_attrib(
   #endif
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
+      if (imp_dbh->is_embedded)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_max_allowed_packet is not supported for Embedded server", "HY000");
+        return 0;
+      }
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
@@ -3691,6 +3696,11 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
       unsigned long packet_size;
+      if (imp_dbh->is_embedded)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_max_allowed_packet is not supported for Embedded server", "HY000");
+        return Nullsv;
+      }
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* mysql_get_option() is not available in all versions */
       /* if we do not have mysql_get_option() we cannot retrieve max_allowed_packet */
