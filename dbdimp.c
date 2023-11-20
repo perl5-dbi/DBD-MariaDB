@@ -2834,7 +2834,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 #endif
     /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
     error = mysql_errno(imp_dbh->pmysql);
-    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == ER_CLIENT_INTERACTION_TIMEOUT || error == CR_UNKNOWN_ERROR)
     {
       mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
       return -2;
@@ -4241,7 +4241,7 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
 
     /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
     error = mysql_errno(imp_dbh->pmysql);
-    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == ER_CLIENT_INTERACTION_TIMEOUT || error == CR_UNKNOWN_ERROR)
     {
       mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
       return FALSE;
@@ -6432,8 +6432,10 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
   if (imp_dbh->pmysql &&
       mysql_errno(imp_dbh->pmysql) != CR_SERVER_GONE_ERROR &&
       mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST &&
+      mysql_errno(imp_dbh->pmysql) != ER_CLIENT_INTERACTION_TIMEOUT &&
       (!stmt || (mysql_stmt_errno(stmt) != CR_SERVER_GONE_ERROR &&
                  mysql_stmt_errno(stmt) != CR_SERVER_LOST &&
+                 mysql_stmt_errno(stmt) != ER_CLIENT_INTERACTION_TIMEOUT &&
                  mysql_stmt_errno(stmt) != CR_STMT_CLOSED)))
   {
     /* Other error */
