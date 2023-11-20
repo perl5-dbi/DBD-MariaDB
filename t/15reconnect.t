@@ -16,7 +16,7 @@ $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 $dbh->disconnect();
 
-plan tests => 21 * 2;
+plan tests => 30 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
@@ -73,6 +73,35 @@ ok($sth->execute(), "implicitly reconnecting handle with executing prepared stat
 ok($dbh->{Active}, "checking for reactivated handle");
 
 $sth->finish();
+
+ok($dbh->do("SET SESSION wait_timeout=1"), "set wait_timeout to 1");
+
+note("call perl sleep 2 for implicit disconnect due to wait_timeout");
+sleep(2);
+
+ok($sth = $dbh->prepare("SELECT 1"), "implicitly reconnecting handle with preparing statement");
+
+ok($sth->execute(), "execute prepared statement");
+
+ok($dbh->{Active}, "checking for reactivated handle");
+
+ok($sth = $dbh->prepare("SELECT 1"), "prepare statement");
+
+note("call perl sleep 2 for implicit disconnect due to wait_timeout");
+sleep(2);
+
+ok($sth->execute(), "implicitly reconnecting handle with executing prepared statement");
+
+ok($dbh->{Active}, "checking for reactivated handle");
+
+$sth->finish();
+
+note("call perl sleep 2 for implicit disconnect due to wait_timeout");
+sleep(2);
+
+ok($dbh->do("SELECT 1"), "implicitly reconnecting handle with 'do'");
+
+ok($dbh->{Active}, "checking for reactivated handle");
 
 $dbh->disconnect();
 }
