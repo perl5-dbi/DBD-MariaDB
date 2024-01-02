@@ -273,12 +273,12 @@ jobs:
     steps:
       - name: Checkout git commit ${{ github.sha }}
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
       - name: Checkout git commit ${{ github.event.pull_request.head.sha }} (fixup for pull request)
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Setup cpan sources cache
