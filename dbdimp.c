@@ -3389,17 +3389,7 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 {
   dTHX;
   D_imp_drh_from_dbh;
-
-    /*
-     *  Being on the safe side never hurts ...
-     */
-  if (DBIc_ACTIVE(imp_dbh))
-  {
-      if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) && imp_dbh->pmysql)
-        if (mysql_rollback(imp_dbh->pmysql))
-          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
-    mariadb_db_disconnect(dbh, imp_dbh);
-  }
+  PERL_UNUSED_ARG(dbh);
 
   /* Ensure that the imp_dbh is disassociated from the imp_drh->active_imp_dbhs.
    * This is needed because mariadb_dr_discon_all() tries to release all imp_dbh
