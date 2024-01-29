@@ -3386,18 +3386,6 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
  **************************************************************************/
 
 void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
-
-    /*
-     *  Being on the safe side never hurts ...
-     */
-  if (DBIc_ACTIVE(imp_dbh))
-  {
-      if (!DBIc_has(imp_dbh, DBIcf_AutoCommit) && imp_dbh->pmysql)
-        if (mysql_rollback(imp_dbh->pmysql))
-          mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
-    mariadb_db_disconnect(dbh, imp_dbh);
-  }
-
   /* Tell DBI, that dbh->destroy must no longer be called */
   DBIc_off(imp_dbh, DBIcf_IMPSET);
 }
