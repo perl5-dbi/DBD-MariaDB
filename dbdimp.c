@@ -2147,8 +2147,20 @@ static bool mariadb_dr_connect(
 	      }
 	    }
 
+  #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+	    if (mysql_options(sock, MYSQL_OPT_SSL_KEY, client_key) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CERT, client_cert) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CA, ca_file) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CAPATH, ca_path) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CIPHER, cipher) != 0) {
+	      mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, "SSL connection error: Setting SSL options failed", "HY000");
+	      mariadb_db_disconnect(dbh, imp_dbh);
+	      return FALSE;
+	    }
+  #else
 	    mysql_ssl_set(sock, client_key, client_cert, ca_file,
 			  ca_path, cipher);
+  #endif
 
 	    if (ssl_verify && !(ca_file || ca_path)) {
 	      mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, "SSL connection error: mariadb_ssl_verify_server_cert=1 is not supported without mariadb_ssl_ca_file or mariadb_ssl_ca_path", "HY000");
