@@ -4657,7 +4657,11 @@ static my_ulonglong mariadb_st_internal_execute41(
 
   if (!reconnected && num_params > 0 && !(*has_been_bound))
   {
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+    if (mysql_stmt_bind_named_param(stmt, bind, num_params, NULL) == 0)
+#else
     if (mysql_stmt_bind_param(stmt,bind) == 0)
+#endif
     {
       *has_been_bound = TRUE;
     }
@@ -4699,7 +4703,11 @@ static my_ulonglong mariadb_st_internal_execute41(
     *stmt_ptr = stmt;
     if (num_params > 0)
     {
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+      if (mysql_stmt_bind_named_param(stmt, bind, num_params, NULL) == 0)
+#else
       if (mysql_stmt_bind_param(stmt,bind))
+#endif
         goto error;
       *has_been_bound = TRUE;
     }
