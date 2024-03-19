@@ -2682,7 +2682,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 
 
 static my_ulonglong mariadb_st_internal_execute(SV *h, char *sbuf, STRLEN slen, int num_params, imp_sth_ph_t *params, MYSQL_RES **result, MYSQL **svsock, bool use_mysql_use_result);
-static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, bool has_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
+static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, int num_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
 
 /**************************************************************************
  *
@@ -4601,7 +4601,7 @@ static my_ulonglong mariadb_st_internal_execute(
  *  Inputs:  h - object handle, for storing error messages
  *           statement - query being executed
  *           attribs - statement attributes, currently ignored
- *           has_params - non-zero parameters being bound
+ *           num_params - number of parameters being bound
  *           params - parameter array
  *           result - where to store results, if any
  *           svsock - socket connected to the database
@@ -4612,7 +4612,7 @@ static my_ulonglong mariadb_st_internal_execute41(
                                          SV *h,
                                          char *sbuf,
                                          STRLEN slen,
-                                         bool has_params,
+                                         int num_params,
                                          MYSQL_RES **result,
                                          MYSQL_STMT **stmt_ptr,
                                          MYSQL_BIND *bind,
@@ -4655,7 +4655,7 @@ static my_ulonglong mariadb_st_internal_execute41(
     we have to rebind them
   */
 
-  if (!reconnected && has_params && !(*has_been_bound))
+  if (!reconnected && num_params > 0 && !(*has_been_bound))
   {
     if (mysql_stmt_bind_param(stmt,bind) == 0)
     {
@@ -4670,7 +4670,9 @@ static my_ulonglong mariadb_st_internal_execute41(
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_internal_execute41 calling mysql_execute\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "\t\tmariadb_st_internal_execute41 calling mysql_execute with %d num_params\n",
+                  num_params);
 
   if (!reconnected)
   {
@@ -4695,7 +4697,7 @@ static my_ulonglong mariadb_st_internal_execute41(
     }
     mysql_stmt_close(*stmt_ptr);
     *stmt_ptr = stmt;
-    if (has_params)
+    if (num_params > 0)
     {
       if (mysql_stmt_bind_param(stmt,bind))
         goto error;
@@ -4856,7 +4858,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                     sth,
                                                     imp_sth->statement,
                                                     imp_sth->statement_len,
-                                                    !!(DBIc_NUM_PARAMS(imp_sth) > 0),
+                                                    DBIc_NUM_PARAMS(imp_sth),
                                                     &imp_sth->result,
                                                     &imp_sth->stmt,
                                                     imp_sth->bind,
