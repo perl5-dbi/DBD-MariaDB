@@ -288,10 +288,8 @@ jobs:
           key: cache-cpan
       - name: Install client dependences (1)
         if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libgnutls28-dev libncurses5 libncursesw5 libstdc++5
-          version: 1.0
+        run: |
+          sudo apt install libgnutls28-dev libncurses5 libncursesw5 libstdc++5
       - name: Install client dependences (2)
         if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
         run: |
@@ -300,10 +298,8 @@ jobs:
           sudo dpkg -i /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb /tmp/libjemalloc1_3.6.0-11_amd64.deb
       - name: Install MariaDB client system
         if: ${{ matrix.client-version == 'system' || ( matrix.server-version == 'system' && matrix.client-version == 'same-as-server' ) }}
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libmariadb-dev
-          version: 1.0
+        run: |
+          sudo apt install libmariadb-dev
       - name: Install MariaDB server system
         if: ${{ matrix.server-version == 'system' }}
         run: |
@@ -312,10 +308,9 @@ jobs:
           sudo mariadb -e "GRANT ALL PRIVILEGES ON test.* TO 'test'@'localhost' IDENTIFIED BY 'test'"
       - name: Install Perl system
         if: ${{ matrix.perl-version == 'system' }}
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: perl cpanminus liblocal-lib-perl
-          version: 1.0
+        run: |
+          sudo apt install perl cpanminus liblocal-lib-perl
+
       - name: Install Perl ${{ matrix.perl-version }}
         if: ${{ matrix.perl-version != 'system' }}
         uses: shogo82148/actions-setup-perl@v1
