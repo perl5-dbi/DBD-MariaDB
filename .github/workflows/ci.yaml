@@ -266,7 +266,7 @@ jobs:
   build-n-test:
     name: perl-${{ matrix.perl-version }}/${{ matrix.server-version }}/${{ matrix.client-version }}/dbi-${{ matrix.dbi-version }}
     needs: build-matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.build-matrix.outputs.matrix) }}
