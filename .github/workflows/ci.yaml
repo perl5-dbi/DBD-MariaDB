@@ -307,6 +307,9 @@ jobs:
         with:
           path: ~/.cpan/sources
           key: cache-cpan
+      - name: Uninstall system MySQL/MariaDB
+        run: |
+          sudo apt purge `{ dpkg --get-selections '*mysql*'; dpkg --get-selections '*mariadb*'; } | sed 's/[:\t].*//'`
       - name: Install client dependences (1)
         if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
         run: |
