@@ -337,7 +337,7 @@ jobs:
           wget --progress=bar:force http://archive.ubuntu.com/ubuntu/pool/main/m/mysql-5.5/libmysqlclient-dev_5.5.62-0ubuntu0.14.04.1_amd64.deb -O /tmp/libmysqlclient-dev_5.5.62-0ubuntu0.14.04.1_amd64.deb
           wget --progress=bar:force http://archive.ubuntu.com/ubuntu/pool/main/m/mysql-5.5/libmysqlclient18_5.5.62-0ubuntu0.14.04.1_amd64.deb -O /tmp/libmysqlclient18_5.5.62-0ubuntu0.14.04.1_amd64.deb
           sudo apt install libaio-dev
-          sudo dpkg -i /tmp/libmysqld-pic_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient-dev_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient18_5.5.62-0ubuntu0.14.04.1_amd64.deb
+          sudo apt install /tmp/libmysqld-pic_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient-dev_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient18_5.5.62-0ubuntu0.14.04.1_amd64.deb
       - name: Install Perl system
         if: ${{ matrix.perl-version == 'system' }}
         run: |
