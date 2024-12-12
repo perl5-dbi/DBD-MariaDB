@@ -339,6 +339,7 @@ jobs:
         if: ${{ matrix.perl-version == 'system' }}
         run: |
           sudo apt install perl cpanminus liblocal-lib-perl
+          mkdir -p "$HOME"/perl5
 
       - name: Install Perl ${{ matrix.perl-version }}
         if: ${{ matrix.perl-version != 'system' }}
