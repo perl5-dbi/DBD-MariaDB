@@ -883,7 +883,7 @@ static char *parse_params(
 
 	/* in case this is a nested LIMIT */
       case ')':
-        /* in case this is table named "limit" */
+        /* in case this is a column named "limit" */
       case '=':
         limit_flag = FALSE;
 	*ptr++ = *statement_ptr++;

@@ -75,7 +75,7 @@ SQL
 
 ok($dbh->do("DROP TABLE dbd_mysql_t35"));
 
-# Issue #205: A table named "limits" shouldn't be parsed as LIMIT.
+# Issue #205: A column named "limits" shouldn't be parsed as LIMIT.
 my $limits = 500;
 my $flag = 1;
 my $id = 1;
