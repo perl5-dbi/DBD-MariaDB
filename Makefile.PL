@@ -116,7 +116,7 @@ for my $key (qw(testdb testhost testuser testpassword testsocket testport testem
 }
 
 # Reusing old test host is possible if it does not conflict with new test port, new test socket or new test embdatadir
-if (!defined $opt->{testhost} && length $test_host &&
+if (!defined $opt->{testhost} && defined $test_host && length $test_host &&
     ((defined $opt->{testport} && $test_host ne 'localhost' && $test_host ne 'embedded') ||
      (defined $opt->{testsocket} && $test_host eq 'localhost') ||
      (defined $opt->{testembdatadir} && $test_host eq 'embedded') ||
@@ -126,7 +126,7 @@ if (!defined $opt->{testhost} && length $test_host &&
 }
 
 # Reusing old test port is possible if it does not conflict with new test host, new test socket or new test embdatadir
-if (!defined $opt->{testport} && length $test_port &&
+if (!defined $opt->{testport} && defined $test_port && length $test_port &&
     (!defined $opt->{testhost} || ($opt->{testhost} ne 'localhost' && $opt->{testhost} ne 'embedded')) &&
     !defined $opt->{testsocket} &&
     !defined $opt->{testembdatadir}) {
@@ -135,7 +135,7 @@ if (!defined $opt->{testport} && length $test_port &&
 }
 
 # Reusing old test socket is possible if it does not conflict with new test host, new test port or new test embdatadir
-if (!defined $opt->{testsocket} && length $test_socket &&
+if (!defined $opt->{testsocket} && defined $test_socket && length $test_socket &&
     (!defined $opt->{testhost} || $opt->{testhost} eq 'localhost') &&
     !defined $opt->{testport} &&
     !defined $opt->{testembdatadir}) {
@@ -144,7 +144,7 @@ if (!defined $opt->{testsocket} && length $test_socket &&
 }
 
 # Reusing old test embdatadir is possible if it does not conflict with new test host, new test port or new test socket
-if (!defined $opt->{testembdatadir} && length $test_embdatadir &&
+if (!defined $opt->{testembdatadir} && defined $test_embdatadir && length $test_embdatadir &&
     (!defined $opt->{testhost} || $opt->{testhost} eq 'embedded') &&
     !defined $opt->{testport} &&
     !defined $opt->{testsocket}) {
