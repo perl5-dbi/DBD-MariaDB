@@ -531,7 +531,7 @@ jobs:
           perl '-Mv5.12' -e '' || cpanm --quiet --notest Test::Deep@1.130
           if [ "${{ matrix.dbi-version }}" != "latest" ]; then cpanm --quiet --notest DBI@${{ matrix.dbi-version }}; fi
           cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
-          cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
+          cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests . &> $HOME/cpanm_fail || { cat "$HOME"/cpanm_fail ; cat `grep -o '/home/runner.*log' "$HOME"/cpanm_fail` ; exit 1; }
       - name: Configure
         run: |
           if [ "${{ matrix.perl-version }}" = "system" ]; then
