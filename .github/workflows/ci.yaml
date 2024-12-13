@@ -485,18 +485,7 @@ jobs:
               sed 's/-l "/-lmysqlclient "/g' -i "$HOME/client/bin/mysql_config" || exit 1
             fi
           fi
-      - name: Install dependences
-        run: |
-          if [ "${{ matrix.perl-version }}" = "system" ]; then
-            eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
-          fi
-          perl '-MExtUtils::MakeMaker 7.00' -e '' || cpanm --quiet --notest ExtUtils::MakeMaker@7.00
-          perl '-MCPAN::Meta 2.112580' -e '' || cpanm --quiet --notest CPAN::Meta@2.112580
-          perl '-Mv5.12' -e '' || cpanm --quiet --notest Test::Deep@1.130
-          if [ "${{ matrix.dbi-version }}" != "latest" ]; then cpanm --quiet --notest DBI@${{ matrix.dbi-version }}; fi
-          cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
-          cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
-      - name: Configure
+      - name: Setup DBD_MARIADB_* env
         run: |
           if [ "${{ matrix.perl-version }}" = "system" ]; then
             eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
@@ -540,6 +529,23 @@ jobs:
             export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic"
             export DBD_MARIADB_TESTEMBOPTIONS="--language=$HOME/mysql-server-core-5.5/usr/share/mysql/,--log-error=/dev/null"
             export DBD_MARIADB_REQUIREEMBSUP=1
+          fi
+          export | sed 's/^declare -x //;s/="/=/;s/"$//' | grep '^DBD_MARIADB_' >> $GITHUB_ENV
+      - name: Install dependences
+        run: |
+          if [ "${{ matrix.perl-version }}" = "system" ]; then
+            eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
+          fi
+          perl '-MExtUtils::MakeMaker 7.00' -e '' || cpanm --quiet --notest ExtUtils::MakeMaker@7.00
+          perl '-MCPAN::Meta 2.112580' -e '' || cpanm --quiet --notest CPAN::Meta@2.112580
+          perl '-Mv5.12' -e '' || cpanm --quiet --notest Test::Deep@1.130
+          if [ "${{ matrix.dbi-version }}" != "latest" ]; then cpanm --quiet --notest DBI@${{ matrix.dbi-version }}; fi
+          cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
+          cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
+      - name: Configure
+        run: |
+          if [ "${{ matrix.perl-version }}" = "system" ]; then
+            eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
           fi
           make realclean || true
           perl Makefile.PL
