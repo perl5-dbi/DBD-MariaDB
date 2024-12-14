@@ -432,6 +432,7 @@ jobs:
               3.*)              CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-ubuntu-focal-amd64.tar.gz ;;
               *)                CLIENT_URL=https://downloads.mariadb.com/Connectors/c/connector-c-${CLIENT_VERSION/-*/}/mariadb-connector-c-$CLIENT_VERSION-linux-x86_64.tar.gz ;;
             esac
+            CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
           elif [ "$CLIENT_DB" = "MySQL-Server" ]; then
             case "$CLIENT_VERSION" in
               # FIXME: Only MySQL 8.x server versions are defined here for usage as client library for now
