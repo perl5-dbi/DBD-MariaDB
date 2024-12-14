@@ -521,7 +521,7 @@ jobs:
           elif [ "${{ matrix.client-version }}" = "system-pic" ]; then
             export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic"
           fi
-          export | sed 's/^declare -x //' | grep '^DBD_MARIADB_' >> $GITHUB_ENV
+          export | sed 's/^declare -x //;s/="/=/;s/"$//' | grep '^DBD_MARIADB_' >> $GITHUB_ENV
       - name: Install dependences
         run: |
           if [ "${{ matrix.perl-version }}" = "system" ]; then
