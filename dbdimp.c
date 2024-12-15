@@ -1401,6 +1401,10 @@ static int mariadb_dr_socket_cloexec(my_socket sock_os)
   DWORD flags;
   int error;
 
+  /* Ignore connections without valid socket handle */
+  if (sock_os == 0)
+    return 0;
+
   if (!GetHandleInformation(handle, &flags))
   {
     error = GetLastError();
@@ -2413,17 +2417,19 @@ static bool mariadb_dr_connect(
       /*
         Client library returns socket in my_socket type, which is C file
         descriptor on Linux or Windows native socket type on Windows.
+        On Windows it can be zero in case connection type is not socket.
         Perl requires sockets to always be in C file descriptor type,
         so on Windows associate it with C file descriptor via Perl's
         win32_open_osfhandle() function.
       */
 #ifdef _WIN32
-      imp_dbh->sock_fd = win32_open_osfhandle(sock_os, O_RDWR|O_BINARY);
+      imp_dbh->sock_fd = sock_os != 0 ? win32_open_osfhandle(sock_os, O_RDWR|O_BINARY) : -1;
 #else
       imp_dbh->sock_fd = sock_os;
 #endif
 
 #ifdef _WIN32
+      if (imp_dbh->sock_fd >= 0)
       {
         /*
          * Winsock SO_UPDATE_CONNECT_CONTEXT option needs to be set on the socket,
