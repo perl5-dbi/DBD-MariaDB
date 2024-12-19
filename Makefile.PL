@@ -518,7 +518,7 @@ my %o =
         'Damyan Ivanov <dmn@debian.org>',
         'Dan Book <grinnz@gmail.com>',
         'Daniël van Eeden <daniel.vaneeden@booking.com>',
-        'Dave Lambley <davel@isosceles.(none)>',
+        'Dave Lambley <dave@lambley.me.uk>',
         'David Farrell <davidnmfarrell@gmail.com>',
         'David Steinbrunner <dsteinbrunner@pobox.com>',
         'Dominik Sauer <dominik.sauer@gooddata.com>',
