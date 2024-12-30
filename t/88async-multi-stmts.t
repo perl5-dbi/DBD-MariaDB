@@ -10,6 +10,7 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 0, PrintError => 0, AutoCommit => 0, mariadb_multi_statements => 1 });
+plan skip_all => 'Async mode is not supported for Embedded server' if $dbh->{mariadb_hostinfo} eq 'Embedded';
 plan tests => 104;
 
 ok $dbh->do(<<SQL);
