@@ -297,6 +297,7 @@ my $have_embedded = check_lib(
   ldflags => (join ' ', @libdirs, @libs, @ldflags),
   header => \@mysql_headers,
   function => 'return mysql_embedded() ? 0 : 1;',
+  debug => 1,
 );
 
 print "Embedded server: " . ($have_embedded ? "supported" : "not supported by client library") . "\n\n";
@@ -850,6 +851,7 @@ sub Configure {
                             header => \@mysql_headers,
                             function => $function,
                             not_execute => 1,
+                            debug => 1,
                         ) or next;
                     }
                     # and now create executable and do real version check
@@ -859,6 +861,7 @@ sub Configure {
                         ccflags => $opt->{cflags},
                         header => \@mysql_headers,
                         function => $function,
+                        debug => 1,
                     ) or next;
                     $str .= ' ' . $add_ldflags if defined $add_ldflags;
                     $check_passed = 1;
