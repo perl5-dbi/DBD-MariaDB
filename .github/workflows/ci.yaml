@@ -456,6 +456,7 @@ jobs:
           if [ "${{ matrix.server-version }}" = "system-pic" ]; then
             wget --progress=bar:force http://archive.ubuntu.com/ubuntu/pool/main/m/mysql-5.5/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb -O /tmp/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb
             dpkg -x /tmp/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb $HOME/mysql-server-core-5.5
+            mkdir -p "$HOME/datadir"
           fi
           if [ -n "$DB" ]; then
             cpanm --quiet --notest --skip-satisfied MySQL::Sandbox || exit 1
