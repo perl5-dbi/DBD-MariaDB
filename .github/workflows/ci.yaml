@@ -529,6 +529,7 @@ jobs:
             export DBD_MARIADB_CONFIG="$HOME/mysql_config"
           elif [ "${{ matrix.client-version }}" = "system-pic" ]; then
             export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic"
+            export DBD_MARIADB_REQUIREEMBSUP=1
           fi
           export | sed 's/^declare -x //;s/="/=/;s/"$//' | grep '^DBD_MARIADB_' >> $GITHUB_ENV
       - name: Install dependences
