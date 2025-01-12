@@ -55,6 +55,7 @@ Getopt::Long::GetOptions(
     "testembdatadir:s",
     "testemboptions:s",
     "testauthplugin:s",
+    "requireembsup!",
     "cflags:s",
     "libs:s",
     "mysql_config:s",
@@ -109,6 +110,21 @@ not contain the path to mariadb_config or mysql_config. Resorting to guessed val
 MSG
     }
   }
+
+if (exists $opt->{requireembsup})
+{
+  $source->{'requireembsup'} = "User's choice";
+}
+elsif (defined $ENV{'DBD_MARIADB_REQUIREEMBSUP'})
+{
+  $source->{'requireembsup'} = 'environment';
+  $opt->{'requireembsup'} = !!$ENV{DBD_MARIADB_REQUIREEMBSUP};
+}
+else
+{
+  $source->{'requireembsup'} = 'default';
+  $opt->{'requireembsup'} = 0;
+}
 
 for my $key (qw(testdb testhost testuser testpassword testsocket testport testembdatadir testemboptions testauthplugin cflags libs))
 {
@@ -301,11 +317,11 @@ my $have_embedded = check_lib(
 
 print "Embedded server: " . ($have_embedded ? "supported" : "not supported by client library") . "\n\n";
 
-if (!$have_embedded && $opt->{testhost} eq 'embedded') {
+if (!$have_embedded && ($opt->{testhost} eq 'embedded' || $opt->{requireembsup})) {
   die << "MSG";
 Cannot run test suite against Embedded server (specified via
-option --testhost=embedded) because Embedded server is not
-supported by client library.
+option --testhost=embedded or option --requireembsup) because
+Embedded server is not supported by client library.
 MSG
 }
 
@@ -726,6 +742,7 @@ Possible options are:
   --testauthplugin=<ap>  Use <ap> auth plugin when doing user authentication
                          handshake with server; for older server versions it is
                          needed to pass "mysql_native_password"
+  --requireembsup        Require client library with embedded server support
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --help                 Print this message and exit
