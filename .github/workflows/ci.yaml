@@ -339,6 +339,12 @@ jobs:
           wget --progress=bar:force http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1.6_amd64.deb -O /tmp/multiarch-support_2.27-3ubuntu1.6_amd64.deb
           sudo apt install libaio-dev libwrap0-dev
           sudo apt install /tmp/libmysqld-pic_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient-dev_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/libmysqlclient18_5.5.62-0ubuntu0.14.04.1_amd64.deb /tmp/multiarch-support_2.27-3ubuntu1.6_amd64.deb
+          echo 'extern int sched_yield(void); int pthread_yield(void) { return sched_yield(); }' > "$HOME/libpthread_yield.c"
+          gcc -O2 -o "$HOME/libpthread_yield.o" -c "$HOME/libpthread_yield.c"
+          rm -f "$HOME/libpthread_yield.a"
+          ar rcs "$HOME/libpthread_yield.a" "$HOME/libpthread_yield.o"
+          sudo cp "$HOME/libpthread_yield.a" /usr/lib/mysql/
+
       - name: Install Perl system
         if: ${{ matrix.perl-version == 'system' }}
         run: |
@@ -450,7 +456,7 @@ jobs:
             if [ ! -f "$CLIENT_FILE" ]; then wget --progress=bar:force "$CLIENT_URL" -O "$CLIENT_FILE" || exit 1; fi
           fi
           if [ "${{ matrix.client-version }}" = "system-pic" ]; then
-            sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic /' `which mysql_config_pic` > "$HOME/mysql_config_pic"
+            sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic -lpthread_yield /' `which mysql_config_pic` > "$HOME/mysql_config_pic"
             chmod +x $HOME/mysql_config_pic
           fi
           if [ "${{ matrix.server-version }}" = "system-pic" ]; then
