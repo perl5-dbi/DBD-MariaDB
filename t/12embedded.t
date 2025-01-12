@@ -60,7 +60,7 @@ my $dbh2 = connect_to_embedded_server($tmpdir1, 'dbd_mariadb_embedded');
 ok(defined $dbh2, "Second connection to embedded server with datadir in $tmpdir1") or fatal_connection_error('embedded');
 
 my $dbh3 = connect_to_embedded_server($tmpdir1, 'dbd_mariadb_embedded');
-ok(defined $dbh3, "Third conection to embedded server with datadir in $tmpdir1") or fatal_connection_error('embedded');
+ok(defined $dbh3, "Third connection to embedded server with datadir in $tmpdir1") or fatal_connection_error('embedded');
 
 ok($dbh1->do('CREATE TABLE dbd_mariadb_embedded(id INT)'), 'Created table with first connection');
 ok($dbh2->do('INSERT INTO dbd_mariadb_embedded(id) VALUES(10)'), 'Inserted values into table with second connection');
