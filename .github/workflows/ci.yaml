@@ -498,6 +498,7 @@ jobs:
             export DBD_MARIADB_CONFIG="$HOME/mysql_config"
           elif [ "${{ matrix.client-version }}" = "system-pic" ]; then
             export DBD_MARIADB_CONFIG="$HOME/mysql_config_pic"
+            export DBD_MARIADB_REQUIREEMBSUP=1
           fi
           make realclean || true
           perl Makefile.PL
