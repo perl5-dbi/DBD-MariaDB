@@ -459,7 +459,7 @@ jobs:
             sed 's/-L\$pkglibdir  *-lmysqld/-L\/usr\/lib\/mysql -lmysqld_pic -lpthread_yield /' `which mysql_config_pic` > "$HOME/mysql_config_pic"
             chmod +x $HOME/mysql_config_pic
           fi
-          if [ "${{ matrix.server-version }}" = "system-pic" ]; then
+          if [ "${{ matrix.client-version }}" = "system-pic" ] || [ "${{ matrix.server-version }}" = "system-pic" ]; then
             wget --progress=bar:force http://archive.ubuntu.com/ubuntu/pool/main/m/mysql-5.5/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb -O /tmp/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb
             dpkg -x /tmp/mysql-server-core-5.5_5.5.62-0ubuntu0.14.04.1_amd64.deb $HOME/mysql-server-core-5.5
             mkdir -p "$HOME/datadir"
