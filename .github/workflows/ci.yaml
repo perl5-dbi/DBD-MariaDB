@@ -558,6 +558,7 @@ jobs:
           make
       - name: Test
         run: |
+          TEST_VERBOSE=0
           if [ "${{ matrix.perl-version }}" = "system" ]; then
             eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
           fi
@@ -565,7 +566,10 @@ jobs:
             export HARNESS_OPTIONS=j4
           fi
           export RELEASE_TESTING=1
+          if [ "${{ matrix.server-version }}" = "system-pic" ] && [ "${{ matrix.client-version }}" = "system-pic" ]; then
+            export TEST_VERBOSE=1
+          fi
           if [ "${{ matrix.server-version }}" != "none" ]; then
             export CONNECTION_TESTING=1
           fi
-          make test
+          make test TEST_VERBOSE=$TEST_VERBOSE
