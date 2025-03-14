@@ -14,7 +14,7 @@ require 'lib.pl';
 
 my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
-plan tests => 120;
+plan tests => 124;
 
 ok(defined $dbh, "Connected to database");
 
@@ -74,5 +74,25 @@ SQL
 , undef, "updated_string", 0));
 
 ok($dbh->do("DROP TABLE dbd_mysql_t35"));
+
+# Issue #205: A column named "limits" shouldn't be parsed as LIMIT.
+my $limits = 500;
+my $flag = 1;
+my $id = 1;
+$dbh->do('CREATE TABLE IF NOT EXISTS dbd_mysql_t35_1 ( id INT(10) PRIMARY KEY, lxmxts INT(10), flag ENUM("9","0","1") )');
+$dbh->do('INSERT INTO dbd_mysql_t35_1 SET id=?, lxmxts=?, flag=?', undef, $id, $limits, $flag);
+my ($set_flag1) = $dbh->selectrow_array('SELECT flag FROM dbd_mysql_t35_1 WHERE id=?', undef, $id);
+
+is($set_flag1, $flag, 'flag set without limits involved');
+
+ok($dbh->do('DROP TABLE dbd_mysql_t35_1'));
+
+$dbh->do('CREATE TABLE IF NOT EXISTS dbd_mysql_t35_2 ( id INT(10) PRIMARY KEY, limits INT(10), flag ENUM("9","0","1") )');
+$dbh->do('INSERT INTO dbd_mysql_t35_2 SET id=?, limits=?, flag=?', undef, $id, $limits, $flag);
+my ($set_flag2) = $dbh->selectrow_array('SELECT flag FROM dbd_mysql_t35_2 WHERE id=?', undef, $id);
+
+is($set_flag2, $flag, 'flag set with limits involved');
+
+ok($dbh->do('DROP TABLE dbd_mysql_t35_2'));
 
 ok($dbh->disconnect);
