@@ -12,6 +12,7 @@ require 'lib.pl';
 my $dbh;
 my $sth;
 
+# Test connection
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
   { RaiseError => 1, PrintError => 0 });
 $dbh->disconnect();
