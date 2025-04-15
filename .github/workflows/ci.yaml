@@ -307,6 +307,9 @@ jobs:
         with:
           path: ~/.cpan/sources
           key: cache-cpan
+      - name: Update apt
+        run: |
+          sudo apt update
       - name: Uninstall system MySQL/MariaDB
         run: |
           sudo apt purge `{ dpkg --get-selections '*mysql*'; dpkg --get-selections '*mariadb*'; } | sed 's/[:\t].*//'`
