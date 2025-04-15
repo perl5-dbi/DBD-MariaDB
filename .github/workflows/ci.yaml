@@ -256,10 +256,10 @@ jobs:
               client-version: mariadbconc-3.0.2
             - server-version: mysql-4.1.22
               client-version: mariadbconc-3.0.6
-          # MySQL client versions 8.0.4 - 8.0.34 and 8.1.0 have bug which
+          # MySQL client versions 8.0.4 - 8.4.0 and 8.1.0 have bug which
           # prevents connection to MySQL server versions prior 5.5.7
             - server-version: mysql-4.1.22
-              client-version: mysql-8.0.40
+              client-version: mysql-8.0.3-rc
             - server-version: mysql-5.1.72
               client-version: mysql-8.0.3-rc
             - server-version: system-pic
