@@ -20,7 +20,7 @@ plan tests => 40 * 2;
 
 for my $mariadb_server_prepare (0, 1) {
 $dbh= DBI->connect("$test_dsn;mariadb_server_prepare=$mariadb_server_prepare;mariadb_server_prepare_disable_fallback=1", $test_user, $test_password,
-                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
+                      { RaiseError => 1, PrintError => 1, AutoCommit => 0 });
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t55utf8");
 
@@ -80,6 +80,8 @@ ok $sth->execute();
 cmp_ok($dbh->{mariadb_warning_count}, '==', 1, 'got warning for INSERT') or do { diag("SHOW WARNINGS:"); diag($_->[2]) foreach $dbh->selectall_array("SHOW WARNINGS", { mariadb_server_prepare => 0 }); };
 my (undef, undef, $warning) = $dbh->selectrow_array("SHOW WARNINGS", { mariadb_server_prepare => 0 });
 like($warning, qr/^(?:Incorrect string value: '\\xC4\\x80dam'|Data truncated) for column (?:'ascii'|`.*`\.`.*`\.`ascii`) at row 1$/, 'warning is correct');
+
+DBI->trace(100) if $ENV{TEST_VERBOSE};
 
 # AsBinary() is deprecated as of MySQL 5.7.6, use ST_AsBinary() instead
 my $asbinary = $dbh->{mariadb_serverversion} >= 50706 ? 'ST_AsBinary' : 'AsBinary';
