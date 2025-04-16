@@ -709,7 +709,7 @@ my @odbc_keywords = qw(
     KEYS
     LIMIT
     LONGBLOB
-    MEDIMUMBLOB
+    MEDIUMBLOB
     MEDIUMINT
     MEDIUMTEXT
     PROCEDURE
