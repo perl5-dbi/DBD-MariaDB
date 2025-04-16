@@ -3374,14 +3374,6 @@ mariadb_db_STORE_attrib(
   char *key = SvPV(keysv, kl); /* needs to process get magic */
   const bool bool_value = SvTRUE_nomg(valuesv);
 
-  if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
-  {
-    mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
-    if (memEQs(key, kl, "AutoCommit"))
-      croak_autocommit_failure(); /* does not return */
-    return 0;
-  }
-
   if (memEQs(key, kl, "AutoCommit"))
   {
       bool oldval = DBIc_has(imp_dbh, DBIcf_AutoCommit) ? TRUE : FALSE;
@@ -3392,6 +3384,11 @@ mariadb_db_STORE_attrib(
       /* if setting AutoCommit on ... */
       if (!imp_dbh->no_autocommit_cmd)
       {
+        if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+        {
+          mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+          croak_autocommit_failure(); /* does not return */
+        }
         if (
             mysql_autocommit(imp_dbh->pmysql, bool_value)
            )
@@ -3442,10 +3439,20 @@ mariadb_db_STORE_attrib(
         error_nul_character(dbh, "mariadb_fabric_opt_group");
         return 0;
       }
+      if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+      {
+        mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+        return 0;
+      }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_GROUP, str);
     }
     else if (memEQs(key, kl, "mariadb_fabric_opt_default_mode"))
     {
+      if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+      {
+        mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+        return 0;
+      }
       if (SvOK(valuesv)) {
         STRLEN len;
         const char *str = SvPV_nomg(valuesv, len);
@@ -3470,6 +3477,11 @@ mariadb_db_STORE_attrib(
         mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Valid settings for FABRIC_OPT_MODE are 'ro' or 'rw'", "HY000");
         return 0;
       }
+      if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+      {
+        mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+        return 0;
+      }
       mysql_options(imp_dbh->pmysql, FABRIC_OPT_MODE, str);
     }
     else if (memEQs(key, kl, "mariadb_fabric_opt_group_credentials"))
@@ -3485,6 +3497,11 @@ mariadb_db_STORE_attrib(
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
       UV uv = SvUV_nomg(valuesv);
       unsigned long packet_size = (uv <= ULONG_MAX ? uv : ULONG_MAX);
+      if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+      {
+        mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+        return 0;
+      }
       mysql_options(imp_dbh->pmysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &packet_size);
 #else
       /* before MySQL 5.7.9 and MariaDB 10.2.6 and MariaDB 10.3.0 it is not possible to change max_allowed_packet after connection was established */
@@ -3497,6 +3514,11 @@ mariadb_db_STORE_attrib(
     {
       if (!imp_dbh->connected) /* When not connected, it is handled in mariadb_dr_connect() */
         return 0;
+      if (!imp_dbh->pmysql && !mariadb_db_reconnect(dbh, NULL))
+      {
+        mariadb_dr_do_error(dbh, CR_SERVER_GONE_ERROR, "MySQL server has gone away", "HY000");
+        return 0;
+      }
       if (mysql_set_server_option(imp_dbh->pmysql, bool_value ? MYSQL_OPTION_MULTI_STATEMENTS_ON : MYSQL_OPTION_MULTI_STATEMENTS_OFF) != 0)
       {
         mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
