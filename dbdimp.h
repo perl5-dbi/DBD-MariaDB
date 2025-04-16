@@ -86,6 +86,11 @@
 #define CR_STMT_CLOSED 2056
 #endif
 
+/* Macro was added in MySQL 8.0.24 */
+#ifndef ER_CLIENT_INTERACTION_TIMEOUT
+#define ER_CLIENT_INTERACTION_TIMEOUT 4031
+#endif
+
 
 /********************************************************************
  * Standard Perl macros which are not defined in every Perl version *
@@ -527,6 +532,7 @@ struct imp_dbh_st {
     MYSQL *pmysql;
     int sock_fd;
     bool connected;          /* Set to true after DBI->connect finished */
+    bool is_embedded;
     bool auto_reconnect;
     bool bind_type_guessing;
     bool bind_comment_placeholders;
