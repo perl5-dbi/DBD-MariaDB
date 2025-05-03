@@ -542,10 +542,10 @@ jobs:
           if [ "${{ matrix.perl-version }}" = "system" ]; then
             eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
           fi
-          perl -M5.008003 || cpanm --quiet --notest ExtUtils::ParseXS@3.51
-          perl '-MExtUtils::MakeMaker 7.00' -e '' || cpanm --quiet --notest ExtUtils::MakeMaker@7.00
-          perl '-MCPAN::Meta 2.112580' -e '' || cpanm --quiet --notest CPAN::Meta@2.112580
-          perl '-Mv5.12' -e '' || cpanm --quiet --notest Test::Deep@1.130
+          perl '-Mv5.8.3' -e1 || cpanm --quiet --notest ExtUtils::ParseXS@3.51
+          perl '-MExtUtils::MakeMaker 7.00' -e1 || cpanm --quiet --notest ExtUtils::MakeMaker@7.00
+          perl '-MCPAN::Meta 2.112580' -e1 || cpanm --quiet --notest CPAN::Meta@2.112580
+          perl '-Mv5.12' -e1 || cpanm --quiet --notest Test::Deep@1.130
           if [ "${{ matrix.dbi-version }}" != "latest" ]; then cpanm --quiet --notest DBI@${{ matrix.dbi-version }}; fi
           cpanm --quiet --notest --skip-satisfied DBI~1.608 Devel::CheckLib~1.12
           cpanm --quiet --notest --skip-satisfied --installdeps --with-configure --with-develop --with-recommends --with-suggests .
