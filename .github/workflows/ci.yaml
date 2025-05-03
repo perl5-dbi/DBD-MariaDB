@@ -320,16 +320,12 @@ jobs:
       - name: Uninstall system MySQL/MariaDB
         run: |
           sudo apt purge `{ dpkg --get-selections '*mysql*'; dpkg --get-selections '*mariadb*'; } | sed 's/[:\t].*//'`
-      - name: Install client dependences (1)
-        if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
-        run: |
-          sudo apt install libgnutls28-dev libncurses5 libncursesw5 libstdc++5
-      - name: Install client dependences (2)
+      - name: Install client dependencies
         if: ${{ matrix.client-version != 'system' && ( matrix.server-version != 'system' || matrix.client-version != 'same-as-server' ) }}
         run: |
           wget --progress=bar:force http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb -O /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb
           wget --progress=bar:force http://security.ubuntu.com/ubuntu/pool/universe/j/jemalloc/libjemalloc1_3.6.0-11_amd64.deb -O /tmp/libjemalloc1_3.6.0-11_amd64.deb
-          sudo dpkg -i /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb /tmp/libjemalloc1_3.6.0-11_amd64.deb
+          sudo apt install libgnutls28-dev libncurses5 libncursesw5 libstdc++5 /tmp/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb /tmp/libjemalloc1_3.6.0-11_amd64.deb
       - name: Install MariaDB client system
         if: ${{ matrix.client-version == 'system' || ( matrix.server-version == 'system' && matrix.client-version == 'same-as-server' ) }}
         run: |
@@ -541,7 +537,7 @@ jobs:
             export DBD_MARIADB_REQUIREEMBSUP=1
           fi
           export | sed 's/^declare -x //;s/="/=/;s/"$//' | grep '^DBD_MARIADB_' >> $GITHUB_ENV
-      - name: Install dependences
+      - name: Install dependencies
         run: |
           if [ "${{ matrix.perl-version }}" = "system" ]; then
             eval $(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)
