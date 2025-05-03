@@ -731,7 +731,6 @@ my %odbc_info_constants = (
     169 => 127,                                # SQL_AGGREGATE_FUNCTIONS
     117 => 0,                                  # SQL_ALTER_DOMAIN
      86 => 3,                                  # SQL_ALTER_TABLE
-  10021 => 2,                                  # SQL_ASYNC_MODE
     120 => 2,                                  # SQL_BATCH_ROW_COUNT
     121 => 2,                                  # SQL_BATCH_SUPPORT
      82 => 0,                                  # SQL_BOOKMARK_PERSISTENCE
@@ -905,6 +904,7 @@ my %odbc_info_constants = (
 );
 
 my %odbc_info_subs = (
+  10021 => sub { $_[0]->FETCH('mariadb_hostinfo') eq 'Embedded' ? 0 : 2 },                                                                # SQL_ASYNC_MODE
       2 => sub { "DBI:MariaDB:" . $_[0]->{Name} },                                                                                        # SQL_DATA_SOURCE_NAME
      17 => sub { ($_[0]->FETCH('mariadb_serverinfo') =~ /MariaDB|-maria-/) ? 'MariaDB' : 'MySQL' },                                       # SQL_DBMS_NAME
      18 => sub { my $ver = $_[0]->FETCH('mariadb_serverversion'); sprintf("%02u.%02u.%02u00", $ver/10000, ($ver%10000)/100, $ver%100) },  # SQL_DBMS_VER

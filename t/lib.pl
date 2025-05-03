@@ -3,7 +3,7 @@ use warnings;
 
 use Test::More;
 use FindBin qw($Bin);
-use vars qw($test_dsn $test_user $test_password $test_db);
+use vars qw($test_dsn $test_user $test_password $test_db $test_emboptions);
 
 use DBD::MariaDB;
 
@@ -91,7 +91,10 @@ sub shutdown_mariadb_socket {
     # close automatically close C file descriptor in Perl file handle
     # mysql client library does not expect if somebody closes its file descriptors
     # so always take a copy of mariadb_sockfd() C file descriptor and just shutdown it
-    open my $socket, '+<&', $dbh->mariadb_sockfd();
+    my $fd = $dbh->mariadb_sockfd();
+    return undef unless defined $fd;
+    open my $socket, '+<&', $fd;
+    return undef unless defined $socket;
     my $ret = shutdown($socket, 2);
     close $socket;
     return $ret;

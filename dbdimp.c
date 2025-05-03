@@ -1693,6 +1693,7 @@ static bool mariadb_dr_connect(
         (void)hv_stores(processed, "mariadb_embedded_options", &PL_sv_yes);
 
         mysql_options(sock, MYSQL_OPT_USE_EMBEDDED_CONNECTION, NULL);
+        imp_dbh->is_embedded = TRUE;
         host = NULL;
       }
       else
@@ -2146,8 +2147,20 @@ static bool mariadb_dr_connect(
 	      }
 	    }
 
+  #if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+	    if (mysql_options(sock, MYSQL_OPT_SSL_KEY, client_key) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CERT, client_cert) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CA, ca_file) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CAPATH, ca_path) != 0 ||
+	        mysql_options(sock, MYSQL_OPT_SSL_CIPHER, cipher) != 0) {
+	      mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, "SSL connection error: Setting SSL options failed", "HY000");
+	      mariadb_db_disconnect(dbh, imp_dbh);
+	      return FALSE;
+	    }
+  #else
 	    mysql_ssl_set(sock, client_key, client_cert, ca_file,
 			  ca_path, cipher);
+  #endif
 
 	    if (ssl_verify && !(ca_file || ca_path)) {
 	      mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, "SSL connection error: mariadb_ssl_verify_server_cert=1 is not supported without mariadb_ssl_ca_file or mariadb_ssl_ca_path", "HY000");
@@ -2375,6 +2388,12 @@ static bool mariadb_dr_connect(
       sock->reconnect = FALSE;
 #endif
 
+    /* Connection to Embedded server does not have socket */
+    if (imp_dbh->is_embedded)
+    {
+      imp_dbh->sock_fd = -1;
+    }
+    else
     {
       my_socket sock_os;
       int retval;
@@ -2645,6 +2664,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   imp_dbh->bind_comment_placeholders= FALSE;
   imp_dbh->auto_reconnect = FALSE;
   imp_dbh->connected = FALSE;       /* Will be switched to TRUE after DBI->connect finish */
+  imp_dbh->is_embedded = FALSE;
 
   if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
     return 0;
@@ -2662,7 +2682,7 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
 
 
 static my_ulonglong mariadb_st_internal_execute(SV *h, char *sbuf, STRLEN slen, int num_params, imp_sth_ph_t *params, MYSQL_RES **result, MYSQL **svsock, bool use_mysql_use_result);
-static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, bool has_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
+static my_ulonglong mariadb_st_internal_execute41(SV *h, char *sbuf, STRLEN slen, int num_params, MYSQL_RES **result, MYSQL_STMT **stmt_ptr, MYSQL_BIND *bind, MYSQL **svsock, bool *has_been_bound);
 
 /**************************************************************************
  *
@@ -2784,6 +2804,11 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 
   if (async)
   {
+    if (imp_dbh->is_embedded)
+    {
+      mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "Async option not supported for Embedded server", "HY000");
+      return -2;
+    }
     if (disable_fallback_for_server_prepare)
     {
       mariadb_dr_do_error(dbh, ER_UNSUPPORTED_PS, "Async option not supported with server side prepare", "HY000");
@@ -2821,7 +2846,7 @@ IV mariadb_db_do6(SV *dbh, imp_dbh_t *imp_dbh, SV *statement_sv, SV *attribs, I3
 #endif
     /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
     error = mysql_errno(imp_dbh->pmysql);
-    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == ER_CLIENT_INTERACTION_TIMEOUT || error == CR_UNKNOWN_ERROR)
     {
       mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
       return -2;
@@ -3164,8 +3189,11 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
       socket from C file descriptor sock_fd via _set_osfhnd() function and then
       close sock_fd via close() function.
     */
+    if (imp_dbh->sock_fd >= 0)
+    {
     _set_osfhnd(imp_dbh->sock_fd, INVALID_HANDLE_VALUE);
     close(imp_dbh->sock_fd);
+    }
 #endif
     imp_dbh->sock_fd = -1;
     svp = hv_fetchs((HV*)DBIc_MY_H(imp_dbh), "ChildHandles", FALSE);
@@ -3480,6 +3508,11 @@ mariadb_db_STORE_attrib(
   #endif
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
+      if (imp_dbh->is_embedded)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_max_allowed_packet is not supported for Embedded server", "HY000");
+        return 0;
+      }
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in mysql 5.7.9 */
       /* MYSQL_OPT_MAX_ALLOWED_PACKET was added in MariaDB 10.2.6 and MariaDB 10.3.1 */
@@ -3666,7 +3699,7 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     }
     else if (memEQs(key, kl, "mariadb_hostinfo"))
     {
-      const char *hostinfo = imp_dbh->pmysql ? mysql_get_host_info(imp_dbh->pmysql) : NULL;
+      const char *hostinfo = imp_dbh->pmysql ? (imp_dbh->is_embedded ? "Embedded" : mysql_get_host_info(imp_dbh->pmysql)) : NULL;
       result = hostinfo ? sv_2mortal(newSVpv(hostinfo, 0)) : &PL_sv_undef;
       sv_utf8_decode(result);
     }
@@ -3684,6 +3717,11 @@ SV* mariadb_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if (memEQs(key, kl, "mariadb_max_allowed_packet"))
     {
       unsigned long packet_size;
+      if (imp_dbh->is_embedded)
+      {
+        mariadb_dr_do_error(dbh, CR_UNKNOWN_ERROR, "mariadb_max_allowed_packet is not supported for Embedded server", "HY000");
+        return Nullsv;
+      }
 #if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709 && MYSQL_VERSION_ID != 60000) || (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100206 && MYSQL_VERSION_ID != 100300)
       /* mysql_get_option() is not available in all versions */
       /* if we do not have mysql_get_option() we cannot retrieve max_allowed_packet */
@@ -3961,6 +3999,11 @@ mariadb_st_prepare_sv(
     (void)hv_stores(processed, "mariadb_async", &PL_sv_yes);
     svp = MARIADB_DR_ATTRIB_GET_SVPS(attribs, "mariadb_async");
     if(svp && SvTRUE(*svp)) {
+        if (imp_dbh->is_embedded)
+        {
+          mariadb_dr_do_error(sth, CR_UNKNOWN_ERROR, "Async option not supported for Embedded server", "HY000");
+          return 0;
+        }
         imp_sth->is_async = TRUE;
         if (imp_sth->disable_fallback_for_server_prepare)
         {
@@ -4210,7 +4253,7 @@ static bool mariadb_st_free_result_sets(SV *sth, imp_sth_t *imp_sth, bool free_l
 
     /* This is error for previous unfetched result ret. So do not report server errors to caller which is expecting new result set. */
     error = mysql_errno(imp_dbh->pmysql);
-    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == CR_UNKNOWN_ERROR)
+    if (error == CR_COMMANDS_OUT_OF_SYNC || error == CR_OUT_OF_MEMORY || error == CR_SERVER_GONE_ERROR || error == CR_SERVER_LOST || error == ER_CLIENT_INTERACTION_TIMEOUT || error == CR_UNKNOWN_ERROR)
     {
       mariadb_dr_do_error(sth, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
       return FALSE;
@@ -4558,7 +4601,7 @@ static my_ulonglong mariadb_st_internal_execute(
  *  Inputs:  h - object handle, for storing error messages
  *           statement - query being executed
  *           attribs - statement attributes, currently ignored
- *           has_params - non-zero parameters being bound
+ *           num_params - number of parameters being bound
  *           params - parameter array
  *           result - where to store results, if any
  *           svsock - socket connected to the database
@@ -4569,7 +4612,7 @@ static my_ulonglong mariadb_st_internal_execute41(
                                          SV *h,
                                          char *sbuf,
                                          STRLEN slen,
-                                         bool has_params,
+                                         int num_params,
                                          MYSQL_RES **result,
                                          MYSQL_STMT **stmt_ptr,
                                          MYSQL_BIND *bind,
@@ -4612,9 +4655,13 @@ static my_ulonglong mariadb_st_internal_execute41(
     we have to rebind them
   */
 
-  if (!reconnected && has_params && !(*has_been_bound))
+  if (!reconnected && num_params > 0 && !(*has_been_bound))
   {
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+    if (mysql_stmt_bind_named_param(stmt, bind, num_params, NULL) == 0)
+#else
     if (mysql_stmt_bind_param(stmt,bind) == 0)
+#endif
     {
       *has_been_bound = TRUE;
     }
@@ -4627,7 +4674,9 @@ static my_ulonglong mariadb_st_internal_execute41(
   }
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tmariadb_st_internal_execute41 calling mysql_execute\n");
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "\t\tmariadb_st_internal_execute41 calling mysql_execute with %d num_params\n",
+                  num_params);
 
   if (!reconnected)
   {
@@ -4652,9 +4701,13 @@ static my_ulonglong mariadb_st_internal_execute41(
     }
     mysql_stmt_close(*stmt_ptr);
     *stmt_ptr = stmt;
-    if (has_params)
+    if (num_params > 0)
     {
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 80300
+      if (mysql_stmt_bind_named_param(stmt, bind, num_params, NULL) == 0)
+#else
       if (mysql_stmt_bind_param(stmt,bind))
+#endif
         goto error;
       *has_been_bound = TRUE;
     }
@@ -4813,7 +4866,7 @@ IV mariadb_st_execute_iv(SV* sth, imp_sth_t* imp_sth)
                                                     sth,
                                                     imp_sth->statement,
                                                     imp_sth->statement_len,
-                                                    !!(DBIc_NUM_PARAMS(imp_sth) > 0),
+                                                    DBIc_NUM_PARAMS(imp_sth),
                                                     &imp_sth->result,
                                                     &imp_sth->stmt,
                                                     imp_sth->bind,
@@ -6401,8 +6454,10 @@ bool mariadb_db_reconnect(SV *h, MYSQL_STMT *stmt)
   if (imp_dbh->pmysql &&
       mysql_errno(imp_dbh->pmysql) != CR_SERVER_GONE_ERROR &&
       mysql_errno(imp_dbh->pmysql) != CR_SERVER_LOST &&
+      mysql_errno(imp_dbh->pmysql) != ER_CLIENT_INTERACTION_TIMEOUT &&
       (!stmt || (mysql_stmt_errno(stmt) != CR_SERVER_GONE_ERROR &&
                  mysql_stmt_errno(stmt) != CR_SERVER_LOST &&
+                 mysql_stmt_errno(stmt) != ER_CLIENT_INTERACTION_TIMEOUT &&
                  mysql_stmt_errno(stmt) != CR_STMT_CLOSED)))
   {
     /* Other error */

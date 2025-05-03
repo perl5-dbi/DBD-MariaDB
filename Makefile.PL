@@ -24,9 +24,9 @@ push @mysql_headers, 'mysql.h';
 
 our $opt = { "help" => \&Usage, };
 
-my ($test_host, $test_port, $test_socket, $test_authplugin);
+my ($test_host, $test_port, $test_socket, $test_embdatadir);
 {
-local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_authplugin, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
+local ($::test_host, $::test_port, $::test_user, $::test_socket, $::test_embdatadir, $::test_emboptions, $::test_authplugin, $::test_password, $::test_db, $::test_mysql_config, $::test_cflags, $::test_libs);
 eval { require "./t/MariaDB.mtest" } and do {
 $opt->{'testuser'} = $::test_user;
 $opt->{'testpassword'} = $::test_password;
@@ -34,10 +34,12 @@ $opt->{'testdb'} = $::test_db;
 $opt->{'mysql_config'} = $::test_mysql_config;
 $opt->{'cflags'} = $::test_cflags;
 $opt->{'libs'} = $::test_libs;
+$opt->{'testemboptions'} = $::test_emboptions;
+$opt->{'testauthplugin'} = $::test_authplugin;
 $test_host = $::test_host;
 $test_port = $::test_port;
 $test_socket = $::test_socket;
-$test_authplugin = $::test_authplugin;
+$test_embdatadir = $::test_embdatadir;
 }
 }
 
@@ -50,7 +52,10 @@ Getopt::Long::GetOptions(
     "testuser:s",
     "testpassword:s",
     "testsocket:s",
+    "testembdatadir:s",
+    "testemboptions:s",
     "testauthplugin:s",
+    "requireembsup!",
     "cflags:s",
     "libs:s",
     "mysql_config:s",
@@ -106,62 +111,112 @@ MSG
     }
   }
 
-for my $key (qw(testdb testhost testuser testpassword testsocket testauthplugin testport cflags libs))
+if (exists $opt->{requireembsup})
+{
+  $source->{'requireembsup'} = "User's choice";
+}
+elsif (defined $ENV{'DBD_MARIADB_REQUIREEMBSUP'})
+{
+  $source->{'requireembsup'} = 'environment';
+  $opt->{'requireembsup'} = !!$ENV{DBD_MARIADB_REQUIREEMBSUP};
+}
+else
+{
+  $source->{'requireembsup'} = 'default';
+  $opt->{'requireembsup'} = 0;
+}
+
+for my $key (qw(testdb testhost testuser testpassword testsocket testport testembdatadir testemboptions testauthplugin cflags libs))
 {
   Configure($opt, $source, $key);
 }
 
-if (!$opt->{testport} && (!$opt->{testhost} || $opt->{testhost} eq 'localhost') && !defined $opt->{testsocket} && $test_socket) {
+# Reusing old test host is possible if it does not conflict with new test port, new test socket or new test embdatadir
+if (!defined $opt->{testhost} && defined $test_host && length $test_host &&
+    ((defined $opt->{testport} && $test_host ne 'localhost' && $test_host ne 'embedded') ||
+     (defined $opt->{testsocket} && $test_host eq 'localhost') ||
+     (defined $opt->{testembdatadir} && $test_host eq 'embedded') ||
+     (!defined $opt->{testsocket} && !defined $opt->{testembdatadir} && !defined $opt->{testport}))) {
+  $opt->{testhost} = $test_host;
+  $source->{testhost} = "User's choice";
+}
+
+# Reusing old test port is possible if it does not conflict with new test host, new test socket or new test embdatadir
+if (!defined $opt->{testport} && defined $test_port && length $test_port &&
+    (!defined $opt->{testhost} || ($opt->{testhost} ne 'localhost' && $opt->{testhost} ne 'embedded')) &&
+    !defined $opt->{testsocket} &&
+    !defined $opt->{testembdatadir}) {
+  $opt->{testport} = $test_port;
+  $source->{testport} = "User's choice";
+}
+
+# Reusing old test socket is possible if it does not conflict with new test host, new test port or new test embdatadir
+if (!defined $opt->{testsocket} && defined $test_socket && length $test_socket &&
+    (!defined $opt->{testhost} || $opt->{testhost} eq 'localhost') &&
+    !defined $opt->{testport} &&
+    !defined $opt->{testembdatadir}) {
   $opt->{testsocket} = $test_socket;
   $source->{testsocket} = "User's choice";
 }
 
-if (!$opt->{testsocket}) {
-  if (!defined $opt->{testhost} && $test_host && (!$opt->{testport} || $test_host ne 'localhost')) {
-    $opt->{testhost} = $test_host;
-    $source->{testhost} = "User's choice";
-  }
-  if (!defined $opt->{testport} && $test_port && (!$opt->{testhost} || $opt->{testhost} ne 'localhost')) {
-    $opt->{testport} = $test_port;
-    $source->{testport} = "User's choice";
-  }
-} else {
-  if (!defined $opt->{testhost} && $test_host && $test_host eq 'localhost') {
-    $opt->{testhost} = 'localhost';
-    $source->{testhost} = "User's choice";
-  }
+# Reusing old test embdatadir is possible if it does not conflict with new test host, new test port or new test socket
+if (!defined $opt->{testembdatadir} && defined $test_embdatadir && length $test_embdatadir &&
+    (!defined $opt->{testhost} || $opt->{testhost} eq 'embedded') &&
+    !defined $opt->{testport} &&
+    !defined $opt->{testsocket}) {
+  $opt->{testembdatadir} = $test_embdatadir;
+  $source->{testembdatadir} = "User's choice";
 }
 
-#if we have a testport but no host, assume 127.0.0.1
-if ( $opt->{testport} && !$opt->{testhost} ) {
+# if we have a testsocket but no host, set localhost
+if (defined $opt->{testsocket} && !defined $opt->{testhost}) {
+  $opt->{testhost} = 'localhost';
+  $source->{testhost} = 'guessed';
+}
+
+# if we have a testembdatadir but no host, set embedded
+if (defined $opt->{testembdatadir} && !defined $opt->{testhost}) {
+  $opt->{testhost} = 'embedded';
+  $source->{testhost} = 'guessed';
+}
+
+# if we have a testport but no host, assume 127.0.0.1
+if (defined $opt->{testport} && !defined $opt->{testhost}) {
   $opt->{testhost} = '127.0.0.1';
   $source->{testhost} = 'guessed';
 }
 
-foreach (qw(testhost testport testsocket testauthplugin)) {
+foreach (qw(testhost testport testsocket testembdatadir)) {
   next if defined $opt->{$_};
   $opt->{$_} = '';
   $source->{$_} = 'default';
 }
 
 # testsocket makes sense only when testhost is localhost
-if ($opt->{testsocket} && $opt->{testhost} && $opt->{testhost} ne 'localhost') {
+if (length $opt->{testsocket} && $opt->{testhost} ne 'localhost') {
   die << "MSG";
-Option --testport or --testhost different from localhost cannot be specified together with option --testsocket.
+Option --testhost different from localhost cannot be specified together with option --testsocket.
 MSG
 }
 
-# testport cannot be specified when host is localhost
-if ($opt->{testport} && $opt->{testhost} && $opt->{testhost} eq 'localhost') {
+# testembdatadir makes sense only when testhost is embedded
+if (length $opt->{testembdatadir} && $opt->{testhost} ne 'embedded') {
   die << "MSG";
-Option --testport cannot be specified when --testhost is localhost.
+Option --testhost different from embedded cannot be specified together with option --testembdatadir.
 MSG
 }
 
-# testhost cannot be embedded
-if ($opt->{testhost} && $opt->{testhost} eq 'embedded') {
+# there is no default testembdatadir, so check that it is set
+if ($opt->{testhost} eq 'embedded' && !length $opt->{testembdatadir}) {
   die << "MSG";
-Option --testhost cannot be embedded.
+Option --testembdatadir must be specified when --testhost is embedded.
+MSG
+}
+
+# testport cannot be specified when host is localhost or embedded
+if (length $opt->{testport} && ($opt->{testhost} eq 'localhost' || $opt->{testhost} eq 'embedded')) {
+  die << "MSG";
+Option --testport cannot be specified when --testhost is localhost or embedded.
 MSG
 }
 
@@ -261,6 +316,14 @@ my $have_embedded = check_lib(
 );
 
 print "Embedded server: " . ($have_embedded ? "supported" : "not supported by client library") . "\n\n";
+
+if (!$have_embedded && ($opt->{testhost} eq 'embedded' || $opt->{requireembsup})) {
+  die << "MSG";
+Cannot run test suite against Embedded server (specified via
+option --testhost=embedded or option --requireembsup) because
+Embedded server is not supported by client library.
+MSG
+}
 
 my $have_get_charset_number = check_lib(
   LIBS => (join ' ', @libdirs, $main_lib),
@@ -414,13 +477,17 @@ EOF
 print "Client library deinitialize OpenSSL library functions: " . ($have_problem_with_openssl ? "yes" : "no") . "\n\n";
 
 my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
+print "Writing $fileName for test suite\n";
 (open(FILE, ">$fileName") &&
- (print FILE ("{ local " . Data::Dumper->Dump([$opt], ["opt"]) .
-	      " local " . Data::Dumper->Dump([$source], ["source"]) .
+ (print FILE ("{\n" .
+	      "local " . Data::Dumper->new([$opt], ["opt"])->Sortkeys(1)->Indent(1)->Dump() .
+	      "local " . Data::Dumper->new([$source], ["source"])->Sortkeys(1)->Indent(1)->Dump() .
 	      "\$::test_host = \$opt->{'testhost'};\n" .
 	      "\$::test_port = \$opt->{'testport'};\n" .
 	      "\$::test_user = \$opt->{'testuser'};\n" .
               "\$::test_socket = \$opt->{'testsocket'};\n" .
+	      "\$::test_embdatadir = \$opt->{'testembdatadir'};\n" .
+	      "\$::test_emboptions = \$opt->{'testemboptions'};\n" .
               "\$::test_authplugin = \$opt->{'testauthplugin'};\n" .
 	      "\$::test_password = \$opt->{'testpassword'};\n" .
 	      "\$::test_db = \$opt->{'testdb'};\n" .
@@ -428,6 +495,8 @@ my $fileName = File::Spec->catfile("t", "MariaDB.mtest");
               "\$::test_dsn .= \":\$::test_host\" if \$::test_host;\n" .
 	      "\$::test_dsn .= \":\$::test_port\" if \$::test_port;\n".
 	      "\$::test_dsn .= \";mariadb_socket=\$::test_socket\" if \$::test_socket;\n" .
+	      "\$::test_dsn .= \";mariadb_embedded_options=--datadir=\$::test_embdatadir\" if \$::test_embdatadir;\n" .
+	      "\$::test_dsn .= \",\$::test_emboptions\" if \$::test_embdatadir and \$::test_emboptions;\n" .
 	      "\$::test_dsn .= \";mariadb_auth_plugin=\$::test_authplugin\" if \$::test_authplugin;\n" .
 	      "\$::test_dsn .= \";mariadb_connect_timeout=120;mariadb_read_timeout=120;mariadb_write_timeout=120\";\n" .
 	      "\$::test_mysql_config = \$opt->{'mysql_config'} if \$source->{'mysql_config'} eq 'User\\'s choice';\n" .
@@ -661,9 +730,19 @@ Possible options are:
                          the database server; by default unix socket is chosen
                          by mariadb/mysqlclient library; takes effect only
                          when --testhost is set to "localhost"
+  --testembdatadir=<dir> Use <dir> as database directory for embedded server,
+                         it may be and it is suggested to be empty, which means
+                         that database is uninitialized; takes effect only when
+                         --testhost is set to "embedded"
+  --testemboptions=<op>  Use <op> as additional options for embedded server
+                         separated by comma, it is recommended to set output
+                         log file (e.g. '--log-error=/dev/null') and language
+                         directory (e.g. '--language=/usr/local/share/mysql')
+                         if language directory is different than system one
   --testauthplugin=<ap>  Use <ap> auth plugin when doing user authentication
                          handshake with server; for older server versions it is
                          needed to pass "mysql_native_password"
+  --requireembsup        Require client library with embedded server support
   --mariadb_config       Synonym for --mysql_config, override it
   --mysql_config=<path>  Specify <path> for mariadb_config or mysql_config script
   --help                 Print this message and exit
@@ -858,6 +937,14 @@ perl Makefile.PL --testuser=username
       $source->{$param} = "default";
       $opt->{$param} = "";
     }
+    elsif ($param eq "testauthplugin") {
+      $source->{$param} = "default";
+      $opt->{$param} = "";
+    }
+    elsif ($param eq "testemboptions") {
+      $source->{$param} = "default";
+      $opt->{$param} = "";
+    }
     elsif ($param eq "cflags") {
       $source->{$param} = "guessed";
       my ($dir, $file) = SearchFor('include', 'mysql.h');
@@ -900,7 +987,7 @@ section "Linker flags" or type
   perl Makefile.PL --help
 MSG
     }
-    elsif ($param eq "testhost" || $param eq "testport" || $param eq "testsocket" || $param eq "testauthplugin") {
+    elsif (grep { $param eq $_ } ("testhost", "testport", "testsocket", "testembdatadir")) {
       # known parameter, but do nothing
     }
     else {

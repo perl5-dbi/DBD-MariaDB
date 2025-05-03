@@ -16,7 +16,10 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
 if ($dbh->{mariadb_serverversion} < 50012) {
     plan skip_all => "Servers < 5.0.12 do not support SLEEP()";
 }
-plan tests => 147;
+if ($dbh->{mariadb_hostinfo} eq 'Embedded') {
+    plan skip_all => 'Async mode is not supported for Embedded server';
+}
+plan tests => 150;
 
 is $dbh->get_info($GetInfoType{'SQL_ASYNC_MODE'}), 2; # statement-level async
 is $dbh->get_info($GetInfoType{'SQL_MAX_ASYNC_CONCURRENT_STATEMENTS'}), 1;
@@ -46,7 +49,7 @@ cmp_ok(($end - $start), '>=', 1.9);
 
 $start = Time::HiRes::gettimeofday();
 $rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { mariadb_async => 1 });
-ok(defined($dbh->mariadb_async_ready)) or die;
+ok defined($dbh->mariadb_async_ready);
 $end = Time::HiRes::gettimeofday();
 
 ok $rows;
@@ -54,7 +57,11 @@ is $rows, '0E0';
 
 cmp_ok(($end - $start), '<', 2);
 
-sleep 1 until $dbh->mariadb_async_ready;
+for (1..120) {
+  last if $dbh->mariadb_async_ready;
+  sleep 1;
+}
+ok $dbh->mariadb_async_ready;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
@@ -65,7 +72,7 @@ is $rows, 1;
 
 $start = Time::HiRes::gettimeofday();
 $rows = $dbh->do('INSERT INTO async_test VALUES (SLEEP(2), 0, 0)', { mariadb_async => 1 });
-ok(defined($dbh->mariadb_async_ready)) or die;
+ok defined($dbh->mariadb_async_ready);
 $end = Time::HiRes::gettimeofday();
 
 ok $rows;
@@ -104,7 +111,11 @@ is $rows, '0E0';
 
 cmp_ok(($end - $start), '<', 2);
 
-sleep 1 until $dbh->mariadb_async_ready;
+for (1..120) {
+  last if $dbh->mariadb_async_ready;
+  sleep 1;
+}
+ok $dbh->mariadb_async_ready;
 $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '>=', 1.9);
 
@@ -139,7 +150,11 @@ $end = Time::HiRes::gettimeofday();
 cmp_ok(($end - $start), '<', 2);
 ok $sth->{Active};
 
-sleep 1 until $sth->mariadb_async_ready;
+for (1..120) {
+  last if $sth->mariadb_async_ready;
+  sleep 1;
+}
+ok $sth->mariadb_async_ready;
 
 ok $sth->{Active};
 my $row = $sth->fetch;
