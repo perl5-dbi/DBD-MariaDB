@@ -257,9 +257,13 @@ jobs:
             - server-version: mysql-4.1.22
               client-version: mariadbconc-3.0.6
           # MySQL client versions 8.0.4 - 8.4.0 and 8.1.0 have bug which
-          # prevents connection to MySQL server versions prior 5.5.7
-            - server-version: mysql-4.1.22
-              client-version: mysql-8.0.3-rc
+          # prevents connection to MySQL server versions prior 5.5.7.
+          # Moreover, old server versions don't send Warning Count and Server
+          # Status fields in the response to prepare, but the client doesn't
+          # check the packet length and dereferences the memory out of the
+          # buffer.
+            #- server-version: mysql-4.1.22
+            #  client-version: mysql-8.0.3-rc
             - server-version: mysql-5.1.72
               client-version: mysql-8.0.3-rc
             - server-version: system-pic
