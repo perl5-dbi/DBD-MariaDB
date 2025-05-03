@@ -35,7 +35,7 @@ MODULE = DBD::MariaDB	PACKAGE = DBD::MariaDB
 BOOT:
 {
   HV *stash = gv_stashpvs("DBD::MariaDB", GV_ADD);
-#define newTypeSub(stash, type) newCONSTSUB((stash), #type + sizeof("MYSQL_")-1, newSViv(type))
+#define newTypeSub(stash, type) newCONSTSUB((stash), (const char *)#type + sizeof("MYSQL_")-1, newSViv(type))
   newTypeSub(stash, MYSQL_TYPE_DECIMAL);
   newTypeSub(stash, MYSQL_TYPE_TINY);
   newTypeSub(stash, MYSQL_TYPE_SHORT);
