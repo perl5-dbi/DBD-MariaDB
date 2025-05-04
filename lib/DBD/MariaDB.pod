@@ -217,6 +217,10 @@ config file, as in
   my $dsn = 'DBI:MariaDB:test;mariadb_read_default_file=/home/joe/my.cnf';
   my $dbh = DBI->connect($dsn, $user, $password);
 
+If the config file specifies the password, you need to use C<undef> in
+C<connect>, not just an empty string, to have it replaced by the config value.
+All other attributes replace even the empty string.
+
 The option I<mariadb_read_default_group> can be used to specify the default
 group in the config file: Usually this is the C<client> group, but see the
 following example:
