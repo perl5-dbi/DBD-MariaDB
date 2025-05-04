@@ -29,6 +29,9 @@ if (defined $dbh) {
     ok(defined $cipher, 'SSL connection was established') and diag("mariadb_ssl_cipher is: $cipher");
   }
 } else {
-  like($DBI::errstr, qr/^SSL connection error: /, 'DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and fail because cannot enforce SSL encryption') or diag('Error message: ' . ($DBI::errstr || 'unknown'));
+  like($DBI::errstr,
+       qr{^(?:SSL connection|TLS/SSL) error: },
+       'DBD::MariaDB supports mariadb_ssl=1 without mariadb_ssl_optional=1 and fail because cannot enforce SSL encryption')
+      or diag('Error message: ' . ($DBI::errstr || 'unknown'));
   is($DBI::err, 2026, 'DBD::MariaDB error code is SSL related') or diag('Error code: ' . ($DBI::err || 'unknown'));
 }
