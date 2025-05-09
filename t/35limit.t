@@ -79,7 +79,7 @@ ok($dbh->do("DROP TABLE dbd_mysql_t35"));
 my $limits = 500;
 my $flag = 1;
 my $id = 1;
-$dbh->do('CREATE TABLE IF NOT EXISTS dbd_mysql_t35_1 ( id INT(10) PRIMARY KEY, lxmxts INT(10), flag ENUM("9","0","1") )');
+$dbh->do(q{CREATE TABLE IF NOT EXISTS dbd_mysql_t35_1 ( id INT(10) PRIMARY KEY, lxmxts INT(10), flag ENUM('9','0','1') )});
 $dbh->do('INSERT INTO dbd_mysql_t35_1 SET id=?, lxmxts=?, flag=?', undef, $id, $limits, $flag);
 my ($set_flag1) = $dbh->selectrow_array('SELECT flag FROM dbd_mysql_t35_1 WHERE id=?', undef, $id);
 
@@ -87,7 +87,7 @@ is($set_flag1, $flag, 'flag set without limits involved');
 
 ok($dbh->do('DROP TABLE dbd_mysql_t35_1'));
 
-$dbh->do('CREATE TABLE IF NOT EXISTS dbd_mysql_t35_2 ( id INT(10) PRIMARY KEY, limits INT(10), flag ENUM("9","0","1") )');
+$dbh->do(q{CREATE TABLE IF NOT EXISTS dbd_mysql_t35_2 ( id INT(10) PRIMARY KEY, limits INT(10), flag ENUM('9','0','1') )});
 $dbh->do('INSERT INTO dbd_mysql_t35_2 SET id=?, limits=?, flag=?', undef, $id, $limits, $flag);
 my ($set_flag2) = $dbh->selectrow_array('SELECT flag FROM dbd_mysql_t35_2 WHERE id=?', undef, $id);
 
