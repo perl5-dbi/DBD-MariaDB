@@ -18,9 +18,9 @@ plan tests => 5;
 
 $dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1, mariadb_max_allowed_packet => 8192*2 });
 is $dbh->{mariadb_max_allowed_packet}, 8192*2, 'mariadb_max_allowed_packet is correct';
-ok !defined eval { $dbh->do('SELECT "' . ("X" x (8192*2)) . '"') }, 'Statement bigger then maximal packet size is not accepted';
+ok !defined eval { $dbh->do(q{SELECT '} . ("X" x (8192*2)) . q{'}) }, 'Statement bigger then maximal packet size is not accepted';
 like $dbh->err(), qr/^20(?:13|20)$/, 'Error code for bigger statement is CR_SERVER_LOST (2013) or CR_NET_PACKET_TOO_LARGE (2020)';
 
 $dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 1, mariadb_max_allowed_packet => 8192*2 });
 is $dbh->{mariadb_max_allowed_packet}, 8192*2, 'mariadb_max_allowed_packet is correct';
-ok eval { $dbh->do('SELECT "' . ("X" x (8192)) . '"') }, 'Statement smaller then maximal packet size is accepted';
+ok eval { $dbh->do(q{SELECT '} . ("X" x (8192)) . q{'}) }, 'Statement smaller then maximal packet size is accepted';
