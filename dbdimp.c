@@ -1679,6 +1679,17 @@ static bool mariadb_dr_connect(
         HV* processed = newHV();
         HE* he;
         SV** svp;
+        size_t i;
+
+        const char * const mariadb_ssl_attributes[] = {
+          "mariadb_ssl_optional",
+          "mariadb_ssl_verify_server_cert",
+          "mariadb_ssl_client_key",
+          "mariadb_ssl_client_cert",
+          "mariadb_ssl_ca_file",
+          "mariadb_ssl_ca_path",
+          "mariadb_ssl_cipher",
+        };
 
         sv_2mortal(newRV_noinc((SV *)processed)); /* Automatically free HV processed */
 
@@ -2054,13 +2065,8 @@ static bool mariadb_dr_connect(
                         imp_dbh->disable_fallback_for_server_prepare ? 1 : 0);
 
         (void)hv_stores(processed, "mariadb_ssl", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_optional", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_verify_server_cert", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_client_key", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_client_cert", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_ca_file", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_ca_path", &PL_sv_yes);
-        (void)hv_stores(processed, "mariadb_ssl_cipher", &PL_sv_yes);
+        for (i = 0; i < sizeof(mariadb_ssl_attributes)/sizeof(*mariadb_ssl_attributes); i++)
+          (void)hv_store(processed, mariadb_ssl_attributes[i], strlen(mariadb_ssl_attributes[i]), &PL_sv_yes, 0);
 	if ((svp = hv_fetchs(hv, "mariadb_ssl", FALSE)) && *svp && SvTRUE(*svp))
           {
 	    char *client_key = NULL;
@@ -2254,6 +2260,16 @@ static bool mariadb_dr_connect(
 	  }
 	else
 	  {
+	    for (i = 0; i < sizeof(mariadb_ssl_attributes)/sizeof(*mariadb_ssl_attributes); i++)
+	      {
+	        if ((svp = hv_fetch(hv, mariadb_ssl_attributes[i], strlen(mariadb_ssl_attributes[i]), FALSE)) && *svp)
+	          {
+	            mariadb_dr_do_error(dbh, CR_SSL_CONNECTION_ERROR, SvPVX(sv_2mortal(newSVpvf("SSL connection error: SSL attribute %s was specified but SSL encryption was not enabled via mariadb_ssl=1", mariadb_ssl_attributes[i]))), "HY000");
+	            mariadb_db_disconnect(dbh, imp_dbh);
+	            return FALSE;
+	          }
+	      }
+
 #ifdef HAVE_SSL_MODE
 	    unsigned int ssl_mode = SSL_MODE_DISABLED;
 	    mysql_options(sock, MYSQL_OPT_SSL_MODE, &ssl_mode);

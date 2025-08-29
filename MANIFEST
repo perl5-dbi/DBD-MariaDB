@@ -86,6 +86,7 @@ t/90utf8_params.t
 t/91errcheck.t
 t/92ssl_connection.t
 t/92ssl_optional.t
+t/92ssl_options.t
 t/92ssl_backronym_vulnerability.t
 t/92ssl_riddle_vulnerability.t
 t/93net_ssleay.t
