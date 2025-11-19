@@ -114,6 +114,8 @@
 
 /* _set_osfhnd() is copied from Perl source file win32.h */
 #ifdef _WIN32
+/* __pioinfo[] is exported only for msvcrt builds, not for UCRT builds */
+#ifndef _UCRT
 typedef intptr_t ioinfo;
 extern __declspec(dllimport) ioinfo* __pioinfo[];
 #  define IOINFO_L2E 5
@@ -126,6 +128,7 @@ extern __declspec(dllimport) ioinfo* __pioinfo[];
    )
 #  define _osfhnd(i) (*(_pioinfo(i)))
 #  define _set_osfhnd(fh, osfh) (void)(_osfhnd(fh) = (intptr_t)osfh)
+#endif
 #endif
 
 /* PERL_UNUSED_ARG does not exist prior to perl 5.9.3 */
