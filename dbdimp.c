@@ -2675,15 +2675,15 @@ int mariadb_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dsn, SV *user, SV *pas
   if (!mariadb_db_my_login(aTHX_ dbh, imp_dbh))
     return 0;
 
-    /*
-     *  Tell DBI, that dbh->disconnect should be called for this handle
-     */
-    DBIc_ACTIVE_on(imp_dbh);
+  /*
+   *  Tell DBI, that dbh->disconnect should be called for this handle
+   */
+  DBIc_ACTIVE_on(imp_dbh);
 
-    /* Tell DBI, that dbh->destroy should be called for this handle */
-    DBIc_on(imp_dbh, DBIcf_IMPSET);
+  /* Tell DBI, that dbh->destroy should be called for this handle */
+  DBIc_on(imp_dbh, DBIcf_IMPSET);
 
-    return 1;
+  return 1;
 }
 
 
