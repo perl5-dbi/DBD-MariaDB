@@ -3,7 +3,7 @@ freebsd_instance:
 
 freebsd_task:
   install_script:
-    - pkg install -y mariadb105-server mariadb105-client
+    - pkg install -y mariadb106-server mariadb106-client
     - sysrc mysql_enable="YES"
     - service mysql-server start
     - pkg install -y perl5
