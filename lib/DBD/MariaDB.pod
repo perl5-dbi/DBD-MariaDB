@@ -294,6 +294,8 @@ When set MariaDB or MySQL server certificate is checked that it is signed by
 some CA certificate in the list. I<Common Name> value is not verified unless
 L<I<mariadb_ssl_verify_server_cert>|/mariadb_ssl_verify_server_cert> is enabled.
 
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
+
 =item mariadb_ssl_ca_path
 
 The path to a directory that contains trusted SSL certificate authority
@@ -306,6 +308,8 @@ L<I<mariadb_ssl_verify_server_cert>|/mariadb_ssl_verify_server_cert> is enabled.
 Please note that this option is supported only if your MariaDB or MySQL client
 was compiled with OpenSSL library, and not with default yaSSL library.
 
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
+
 =item mariadb_ssl_verify_server_cert
 
 Checks the server's I<Common Name> value in the certificate that the server
@@ -316,15 +320,21 @@ attacks.
 
 Verification of the host name is disabled by default.
 
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
+
 =item mariadb_ssl_client_key
 
 The name of the SSL key file in PEM format to use for establishing a secure
 connection.
 
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
+
 =item mariadb_ssl_client_cert
 
 The name of the SSL certificate file in PEM format to use for establishing a
 secure connection.
+
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
 
 =item mariadb_ssl_cipher
 
@@ -333,6 +343,8 @@ the list is supported, encrypted connections will not work.
 
   mariadb_ssl_cipher=AES128-SHA
   mariadb_ssl_cipher=DHE-RSA-AES256-SHA:AES128-SHA
+
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
 
 =item mariadb_ssl_optional
 
@@ -349,6 +361,8 @@ driver prior DBD::MariaDB fork was created. DBD::MariaDB with C<mariadb_ssl=1>
 could refuse connection to MariaDB or MySQL server if underlying libmariadb or
 libmysqlclient library is vulnerable. Option I<mariadb_ssl_optional> can be used
 to make SSL connection vulnerable.
+
+Requires L<C<mariadb_ssl=1>|/mariadb_ssl>.
 
 =item mariadb_local_infile
 
