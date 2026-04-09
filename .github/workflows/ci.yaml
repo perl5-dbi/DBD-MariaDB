@@ -223,7 +223,8 @@ jobs:
             - mariadbconc-3.0.7
             - mariadbconc-3.0.8
             - mariadbconc-3.0.9
-            - mariadbconc-3.0.10
+         # Client not found for download
+         #  - mariadbconc-3.0.10
             - mariadbconc-3.1.0
             - mariadbconc-3.1.1
             - mariadbconc-3.1.2
