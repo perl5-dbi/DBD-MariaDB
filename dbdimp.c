@@ -3213,7 +3213,16 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh)
     */
     if (imp_dbh->sock_fd >= 0)
     {
+#ifdef _UCRT
+    /*
+      Disassociation is not possible for UCRT builds as UCRT does not provide
+      access to native Windows handle. Skipping disassociation introduce race
+      condition, double close, possible closing of recycled handle and crashes.
+     */
+    #warning DBD::MariaDB compiled with UCRT runtime may crash
+#else
     _set_osfhnd(imp_dbh->sock_fd, INVALID_HANDLE_VALUE);
+#endif
     close(imp_dbh->sock_fd);
     }
 #endif
