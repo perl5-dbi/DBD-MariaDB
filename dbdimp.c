@@ -509,15 +509,16 @@ static bool skip_attribute(const char *key)
   return strBEGINs(key, "private_") || strBEGINs(key, "dbd_") || strBEGINs(key, "dbi_") || isUPPER(*key);
 }
 
-PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id)
+PERL_STATIC_INLINE bool mysql_charsetnr_is_utf8(unsigned int id, unsigned int type)
 {
   /* Check if supplied id belongs to some UTF-8 related MySQL charset number */
   /* List of all utf8 charset numbers is harcoded in MySQL and MariaDB source code, to retrieve it grep source code */
   /* Shell fragment for MySQL or MariaDB server source code: grep -E '^(CHARSET_INFO|struct charset_info_st).*utf8' -A 2 -r strings | grep number | sed -E 's/^.*-  *([^,]+),.*$/\1/' | sort -n */
   /* Shell fragment for MariaDB Connector/C source code: sed -n '/mariadb_compiled_charsets\[\]/,/^};$/{/utf8/I{s%,.*%%;s%\s*{\s*%%p}}' libmariadb/ma_charset.c | sort -n */
   /* Runtime SQL statement (returns only subset selected at compile time): SELECT ID FROM INFORMATION_SCHEMA.COLLATIONS WHERE CHARACTER_SET_NAME LIKE 'utf8%' ORDER BY ID */
+  /* MySQL server signals UTF-8 encoded JSON field with BINARY (63) id, see: https://github.com/perl5-dbi/DBD-MariaDB/issues/142 */
   return (id == 33 || id == 45 || id == 46 || id == 56 || id == 76 || id == 83 || (id >= 192 && id <= 215) || (id >= 223 && id <= 247) || (id >= 254 && id <= 307) || (id >= 576 && id <= 578)
-      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270);
+      || (id >= 608 && id <= 610) || id == 1057 || (id >= 1069 && id <= 1070) || id == 1107 || id == 1216 || id == 1238 || id == 1248 || id == 1270 || (type == MYSQL_TYPE_JSON && id == 63));
 }
 
 /* 
@@ -3944,7 +3945,7 @@ AV *mariadb_db_data_sources(SV *dbh, imp_dbh_t *imp_dbh, SV *attr)
     SvPOK_on(sv);
     SvCUR_set(sv, prefix_len + lengths[0]);
 
-    if (mysql_charsetnr_is_utf8(field->charsetnr))
+    if (mysql_charsetnr_is_utf8(field->charsetnr, field->type))
       sv_utf8_decode(sv);
 
     if ((my_ulonglong)i == num_rows+1)
@@ -5066,7 +5067,7 @@ static int mariadb_st_describe(SV* sth, imp_sth_t* imp_sth)
                       fields[i].length, fields[i].max_length, fields[i].type, fields[i].flags, fields[i].charsetnr);
       }
 
-      fbh->is_utf8 = mysql_charsetnr_is_utf8(fields[i].charsetnr);
+      fbh->is_utf8 = mysql_charsetnr_is_utf8(fields[i].charsetnr, fields[i].type);
 
       buffer->buffer_type= fields[i].type;
       buffer->is_unsigned= (fields[i].flags & UNSIGNED_FLAG) ? TRUE : FALSE;
@@ -5591,7 +5592,7 @@ process:
         STRLEN len= lengths[i];
         if (ChopBlanks)
         {
-          if (mysql_charsetnr_is_utf8(fields[i].charsetnr))
+          if (mysql_charsetnr_is_utf8(fields[i].charsetnr, fields[i].type))
           while (len && col[len-1] == ' ')
           {	--len; }
         }
@@ -5627,7 +5628,7 @@ process:
 
         default:
           /* TEXT columns can be returned as MYSQL_TYPE_BLOB, so always check for charset */
-          if (mysql_charsetnr_is_utf8(fields[i].charsetnr))
+          if (mysql_charsetnr_is_utf8(fields[i].charsetnr, fields[i].type))
             sv_utf8_decode(sv);
           break;
         }
@@ -5913,7 +5914,7 @@ static SV* mariadb_st_fetch_internal(
           length = strlen(curField->name);
 #endif
         sv= newSVpvn(curField->name, length);
-        if (mysql_charsetnr_is_utf8(curField->charsetnr))
+        if (mysql_charsetnr_is_utf8(curField->charsetnr, curField->type))
           sv_utf8_decode(sv);
         break;
 
@@ -5927,7 +5928,7 @@ static SV* mariadb_st_fetch_internal(
           length = strlen(curField->table);
 #endif
         sv= newSVpvn(curField->table, length);
-        if (mysql_charsetnr_is_utf8(curField->charsetnr))
+        if (mysql_charsetnr_is_utf8(curField->charsetnr, curField->type))
           sv_utf8_decode(sv);
         break;
 
