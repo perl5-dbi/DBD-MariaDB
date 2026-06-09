@@ -354,7 +354,8 @@ man-in-the-middle attacks. Default value is false which means that
 L<I<mariadb_ssl>|/mariadb_ssl> set to true enforces SSL encryption.
 
 Due to L<CVE-2015-3152|https://www.cve.org/CVERecord?id=CVE-2015-3152> and
-L<CVE-2017-3305|https://www.cve.org/CVERecord?id=CVE-2017-3305> vulnerabilities in libmariadb and
+L<CVE-2017-3305|https://www.cve.org/CVERecord?id=CVE-2017-3305> (L<RIDDLE|https://riddle.link/>)
+vulnerabilities in libmariadb and
 libmysqlclient libraries, enforcement of SSL encryption was not possible and
 therefore C<mariadb_ssl_optional=1> was effectively set for old DBD::mysql
 driver prior DBD::MariaDB fork was created. DBD::MariaDB with C<mariadb_ssl=1>
