@@ -322,6 +322,10 @@ PERL_STATIC_INLINE UV SvUV_nomg(pTHX_ SV *sv)
 #define MYSQL_TYPE_GEOMETRY 255
 #endif
 
+#if (!defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID < 80000) || (defined(MARIADB_BASE_VERSION) && (MYSQL_VERSION_ID < 100206 || MYSQL_VERSION_ID == 100300)) || (defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 30000))
+#define MYSQL_TYPE_JSON 245
+#endif
+
 /*
  * This is the versions of libmysql that supports MySQL Fabric.
  * We need to check for special macro LIBMYSQL_VERSION_ID.
