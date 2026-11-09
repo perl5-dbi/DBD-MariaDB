@@ -56,6 +56,7 @@ t/43count_params.t
 t/44call_placeholder.t
 t/44limit_placeholder.t
 t/45bind_no_backslash_escapes.t
+t/46inactive_destroy_crash.t
 t/50chopblanks.t
 t/50commit.t
 t/51bind_type_guessing.t
