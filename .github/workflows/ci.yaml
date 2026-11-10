@@ -21,11 +21,6 @@ jobs:
           # in every field. This reduced number of jobs because full build matrix is too big.
           { printf "matrix="; yq -o=json '.' | jq -M -c '{ "include" : [ . as $top | del(.include) | map_values(last) as $defaults | ( $top | (keys | map(select(. != "include"))[] | { (.) : $top[.][] }) , .include[] ) | . = $defaults * . ] }'; } << EOF >> $GITHUB_OUTPUT
           perl-version:
-            - 5.8.1
-            - 5.8.2
-            - 5.8.8
-            - 5.8.9
-            - 5.10.0
             - 5.12.0
             - 5.14.0
             - 5.16.0
@@ -288,6 +283,16 @@ jobs:
               client-version: system
             - perl-version: 5.12.0
               dbi-version: 1.608
+            - perl-version: 5.10.0
+              dbi-version: 1.651
+            - perl-version: 5.8.1
+              dbi-version: 1.651
+            - perl-version: 5.8.2
+              dbi-version: 1.651
+            - perl-version: 5.8.8
+              dbi-version: 1.651
+            - perl-version: 5.8.9
+              dbi-version: 1.651
           EOF
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
