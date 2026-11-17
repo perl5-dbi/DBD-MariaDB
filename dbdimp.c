@@ -3385,7 +3385,10 @@ int mariadb_dr_discon_all (SV *drh, imp_drh_t *imp_drh) {
  *
  **************************************************************************/
 
-void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
+void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
+{
+  dTHX;
+  D_imp_drh_from_dbh;
 
     /*
      *  Being on the safe side never hurts ...
@@ -3397,6 +3400,13 @@ void mariadb_db_destroy(SV* dbh, imp_dbh_t* imp_dbh) {
           mariadb_dr_do_error(dbh, mysql_errno(imp_dbh->pmysql), mysql_error(imp_dbh->pmysql), mysql_sqlstate(imp_dbh->pmysql));
     mariadb_db_disconnect(dbh, imp_dbh);
   }
+
+  /* Ensure that the imp_dbh is disassociated from the imp_drh->active_imp_dbhs.
+   * This is needed because mariadb_dr_discon_all() tries to release all imp_dbh
+   * inside the imp_drh->active_imp_dbhs and cause double free. Normally this is
+   * done during the mariadb_db_disconnect() but for imp_dbh which is already
+   * marked with DBIc_ACTIVE_off(), DBI skips the mariadb_db_disconnect() call. */
+  mariadb_db_close_mysql(aTHX_ imp_drh, imp_dbh);
 
   /* Tell DBI, that dbh->destroy must no longer be called */
   DBIc_off(imp_dbh, DBIcf_IMPSET);
