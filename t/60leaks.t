@@ -36,7 +36,7 @@ my ($dbh, $sth);
 $dbh = DbiTestConnect($test_dsn, $test_user, $test_password,
                                             { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
 $dbh->disconnect;
-plan tests => 30 * 2;
+plan tests => 30 * 2 * 2;
 
 if (not SHOW_PROGRESS and $ENV{TEST_VERBOSE}) {
     note "You can set \$ENV{SHOW_PROGRESS} to monitor the progress of slow tests";
@@ -54,12 +54,13 @@ sub size {
     exit 0;
 }
 
+for my $inactive_destroy (0, 1) {
 for my $mariadb_server_prepare (0, 1) {
 
-note "Testing memory leaks with mariadb_server_prepare=$mariadb_server_prepare\n";
+note "Testing memory leaks with inactive_destroy=$inactive_destroy mariadb_server_prepare=$mariadb_server_prepare\n";
 
 $dbh = DBI->connect($test_dsn, $test_user, $test_password,
-                   { RaiseError => 1, PrintError => 0, AutoCommit => 0, mariadb_server_prepare => $mariadb_server_prepare, mariadb_server_prepare_disable_fallback => 1 });
+                   { RaiseError => 1, PrintError => 0, AutoCommit => 0, InactiveDestroy => $inactive_destroy, mariadb_server_prepare => $mariadb_server_prepare, mariadb_server_prepare_disable_fallback => 1 });
 
 ok $dbh->do("DROP TABLE IF EXISTS dbd_mysql_t60leaks");
 
@@ -85,6 +86,7 @@ for (my $i = 0;    $i < $COUNT_CONNECT;    $i++) {
                                { RaiseError => 1, 
                                  PrintError => 0,
                                  AutoCommit => 0,
+                                 InactiveDestroy => $inactive_destroy,
                                  mariadb_server_prepare => $mariadb_server_prepare,
                                });
 
@@ -124,6 +126,7 @@ undef $prev_size;
 $dbh2 = DBI->connect($test_dsn, $test_user, $test_password,
                      { RaiseError => 1,
                        PrintError => 0,
+                       InactiveDestroy => $inactive_destroy,
                        mariadb_server_prepare => $mariadb_server_prepare,
                        mariadb_auto_reconnect => 1,
                      });
@@ -373,4 +376,5 @@ cmp_ok $ok, '>', $not_ok, "\$ok $ok \$not_ok $not_ok";
 ok $dbh->do("DROP TABLE dbd_mysql_t60leaks");
 ok $dbh->disconnect;
 
+}
 }

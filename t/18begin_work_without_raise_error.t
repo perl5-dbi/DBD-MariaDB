@@ -12,7 +12,7 @@ my $dbh = DbiTestConnect($test_dsn, $test_user, $test_password, { RaiseError => 
 
 plan skip_all => "Connection to Embedded server does not have socket" if $dbh->{mariadb_hostinfo} eq 'Embedded';
 
-plan tests => 12;
+plan tests => 14;
 
 my $warn;
 $SIG{__WARN__} = sub { $warn = $_[0]; note "Caught DBI warn: $warn"; };
@@ -24,6 +24,8 @@ $SIG{__DIE__} = sub { $error = $_[0]; note "Caught DBI error: $error"; };
 # This check that begin_work throw error on failure also when RaiseError is turned off
 ok(shutdown_mariadb_socket($dbh), "shutdown socket handle");
 
+ok($dbh->{Active}, "Active is still set");
+
 ok(!$dbh->{RaiseError}, "RaiseError is not set");
 
 $error = undef;
@@ -31,6 +33,11 @@ ok(!eval { $dbh->begin_work() }, "begin_work failed");
 like($error, qr/Changing AutoCommit attribute failed/, "begin_work croaked");
 ok($dbh->err(), "err is set");
 ok(length($dbh->errstr()), "errstr is set");
+
+TODO: {
+    local $TODO = 'Active is broken.';
+    ok(!$dbh->{Active}, "after failed begin_work, Active is not set anymore");
+}
 
 ok(!$dbh->do('SELECT 1'), "do failed");
 ok($dbh->err(), "err is set");
