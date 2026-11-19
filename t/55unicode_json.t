@@ -27,8 +27,7 @@ plan tests => 11*2*2;
 for my $mariadb_server_prepare (0, 1) {
     $dbh->{mariadb_server_prepare} = $mariadb_server_prepare;
     for my $str ("\xC3", "\N{U+C3}", "\xC3\xA1", "\N{U+C3}\N{U+A1}", "á", "č", "\x{263A}", "\N{U+263A}", "☺", "\N{U+1F4A9}", "💩") {
-        my $ins = qq({"key":"$str"});
-        my $exp = qr/\{"key": ?"$str"\}/;
+        my $ins = qq({"key": "$str"});
         SKIP: {
             skip 'Server does not support utf8mb4', 1 if $ins =~ /[^\x{0000}-\x{FFFF}]/ and not $utf8mb4;
             skip 'Client does not support JSON type in prepared statements', 1 if $mariadb_server_prepare and not $client_supports_json_server_prepare;
@@ -36,7 +35,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $sth = $dbh->prepare("INSERT INTO t(j) VALUES('$ins')");
             $sth->execute();
             my $fetch = $dbh->selectrow_array("SELECT j FROM t");
-            like($fetch, $exp, "test json $ins without bind");
+            is($fetch, $ins, "test json $ins without bind");
             $dbh->do("DROP TEMPORARY TABLE t");
         }
         SKIP: {
@@ -46,7 +45,7 @@ for my $mariadb_server_prepare (0, 1) {
             my $sth = $dbh->prepare("INSERT INTO t(j) VALUES(?)");
             $sth->execute($ins);
             my $fetch = $dbh->selectrow_array("SELECT j FROM t");
-            like($fetch, $exp, "test json $ins with bind");
+            is($fetch, $ins, "test json $ins with bind");
             $dbh->do("DROP TEMPORARY TABLE t");
         }
     }
