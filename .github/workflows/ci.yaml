@@ -240,7 +240,7 @@ jobs:
             - server-version: mariadb-5.5.40
               client-version: mysqlconc-6.1.11
             - server-version: mysql-8.0.3-rc
-              client-version: mariadbconc-2.3.1
+              client-version: mariadbconc-2.3.2
             - server-version: mariadb-10.3.3
               client-version: mysqlconc-6.0.0-beta
             - server-version: mariadb-10.3.3
