@@ -4865,6 +4865,26 @@ static my_ulonglong mariadb_st_internal_execute41(
   else
   {
     num_fields = mysql_stmt_field_count(stmt);
+
+    /*
+      MariaDB Connector/C clients prior 3.0.0 cannot handle MYSQL_TYPE_JSON and crashes during mysql_stmt_fetch().
+      Other MariaDB and MySQL client versions which cannot handle MYSQL_TYPE_JSON return error CR_UNSUPPORTED_PARAM_TYPE from mysql_stmt_execute().
+      So for affected MariaDB Connector/C clients simulate the CR_UNSUPPORTED_PARAM_TYPE error here if MYSQL_TYPE_JSON column type is detected.
+     */
+#if defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 30000)
+    for (i = 0; i < num_fields; ++i)
+    {
+      MYSQL_FIELD *field = mysql_fetch_field_direct(*result, i);
+      if (field->type == MYSQL_TYPE_JSON)
+      {
+        if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+          PerlIO_printf(DBIc_LOGPIO(imp_xxh), "\t\tfield %d is of unsupported type MYSQL_TYPE_JSON\n", i);
+        mariadb_dr_do_error(h, CR_UNSUPPORTED_PARAM_TYPE, SvPVX(sv_2mortal(newSVpvf("Using unsupported buffer type: %d (parameter: %d)", MYSQL_TYPE_JSON, i+1))), "HY000");
+        goto custom_error;
+      }
+    }
+#endif
+
     for (i = 0; i < num_fields; ++i)
     {
       MYSQL_FIELD *field = mysql_fetch_field_direct(*result, i);
@@ -4889,11 +4909,6 @@ static my_ulonglong mariadb_st_internal_execute41(
   return(rows);
 
 error:
-  if (*result)
-  {
-    mysql_free_result(*result);
-    *result = NULL;
-  }
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
                   "     errno %d err message %s\n",
@@ -4901,6 +4916,14 @@ error:
                   mysql_stmt_error(stmt));
   mariadb_dr_do_error(h, mysql_stmt_errno(stmt), mysql_stmt_error(stmt),
            mysql_stmt_sqlstate(stmt));
+#if defined(MARIADB_PACKAGE_VERSION) && (!defined(MARIADB_PACKAGE_VERSION_ID) || MARIADB_PACKAGE_VERSION_ID < 30000)
+custom_error:
+#endif
+  if (*result)
+  {
+    mysql_free_result(*result);
+    *result = NULL;
+  }
   mysql_stmt_reset(stmt);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
