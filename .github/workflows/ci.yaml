@@ -240,7 +240,7 @@ jobs:
             - server-version: mariadb-5.5.40
               client-version: mysqlconc-6.1.11
             - server-version: mysql-8.0.3-rc
-              client-version: mariadbconc-2.3.0
+              client-version: mariadbconc-2.3.1
             - server-version: mariadb-10.3.3
               client-version: mysqlconc-6.0.0-beta
             - server-version: mariadb-10.3.3
@@ -263,6 +263,8 @@ jobs:
             #  client-version: mysql-8.0.3-rc
             - server-version: mysql-5.1.72
               client-version: mysql-8.0.3-rc
+            - server-version: mysql-5.7.43
+              client-version: mysql-5.5.62
             # This combination stops responding during the first test and
             # times out in GHA. We haven't found the cause.
             - server-version: system-pic
@@ -453,7 +455,19 @@ jobs:
             CLIENT_FILE="$HOME/cache/$(basename "$CLIENT_URL")"
           elif [ "$CLIENT_DB" = "MySQL-Server" ]; then
             case "$CLIENT_VERSION" in
-              # FIXME: Only MySQL 8.x server versions are defined here for usage as client library for now
+              4.1.*)            CLIENT_URL=https://mysql.linux.cz/Downloads/MySQL-4.1/mysql-standard-$CLIENT_VERSION-unknown-linux-gnu-x86_64-glibc23.tar.gz ;;
+              5.0.[012]*)       CLIENT_URL=https://downloads.mysql.com/archives/get/p/23/file/mysql-standard-$CLIENT_VERSION-linux-x86_64-glibc23.tar.gz ;;
+              5.[01].*)         CLIENT_URL=https://downloads.mysql.com/archives/get/p/23/file/mysql-$CLIENT_VERSION-linux-x86_64-glibc23.tar.gz ;;
+              5.5.?)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux2.6-x86_64.tar.gz ;;
+              5.5.[1234]*)      CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux2.6-x86_64.tar.gz ;;
+              5.5.5[012345]*)   CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux2.6-x86_64.tar.gz ;;
+              5.5.56*)          CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+              5.5.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              5.6.[12]*)        CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+              5.6.3[0123456]*)  CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
+              5.6.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              5.7.19*|5.7.[234]*) CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
+              5.7.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.5-x86_64.tar.gz ;;
               8.0.?-*|8.0.11)   CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.gz ;;
               8.0.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.12-x86_64.tar.xz ;;
               8.1.*)            CLIENT_URL=https://dev.mysql.com/get/mysql-$CLIENT_VERSION-linux-glibc2.28-x86_64.tar.xz ;;
