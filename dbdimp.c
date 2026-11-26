@@ -3191,7 +3191,7 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh,
 #ifdef _WIN32
   SOCKET sock_os;
 #else
-  int empty_sock_fd;
+  int sock_fds[2];
 #endif
 
   if (DBIc_TRACE_LEVEL(imp_dbh) >= 2)
@@ -3229,8 +3229,9 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh,
         /*
           InactiveDestroy implementation for UNIX platforms:
           Disassociate underlaying sock_fd from the connection with database
-          server. Do it by creating a new empty temporary disconnected socket
-          and associate it via dup2() with the sock_fd file descriptor number
+          server. Do it by creating a new pair of sockets via socketpair(),
+          close one of them (which simulates remote closed connection) and
+          associate second via dup2() with the sock_fd file descriptor number
           which is used by the MariaDB or MySQL client library for connection
           to the database server. Client library can still call on it any
           socket related function without nothing unexpected (it just detects
@@ -3240,20 +3241,20 @@ static void mariadb_db_close_mysql(pTHX_ imp_drh_t *imp_drh, imp_dbh_t *imp_dbh,
           then close the underlaying sock_fd to ensure that MariaDB or MySQL
           client library does not contact server.
         */
-        empty_sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (empty_sock_fd < 0)
+        if (socketpair(AF_UNIX, SOCK_STREAM, 0, sock_fds) < 0)
         {
           warn("DBD::MariaDB InactiveDestroy: failed to create a new temporary socket: %s", strerror(errno));
           close(imp_dbh->sock_fd);
         }
         else
         {
-          if (dup2(empty_sock_fd, imp_dbh->sock_fd) < 0)
+          if (dup2(sock_fds[0], imp_dbh->sock_fd) < 0)
           {
             warn("DBD::MariaDB InactiveDestroy: failed to setup temporary socket: %s", strerror(errno));
             close(imp_dbh->sock_fd);
           }
-          close(empty_sock_fd);
+          close(sock_fds[0]);
+          close(sock_fds[1]);
         }
 #endif
       }
