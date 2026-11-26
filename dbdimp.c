@@ -5436,15 +5436,6 @@ process:
         }
     }
 
-    if (rebind_result)
-    {
-      if (mysql_stmt_bind_result(imp_sth->stmt, imp_sth->buffer))
-      {
-        mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt), mysql_stmt_error(imp_sth->stmt), mysql_stmt_sqlstate(imp_sth->stmt));
-        return Nullav;
-      }
-    }
-
     for (
          buffer= imp_sth->buffer,
          fbh= imp_sth->fbh,
@@ -5590,6 +5581,15 @@ process:
             sv_utf8_decode(sv);
           break;
         }
+      }
+    }
+
+    if (rebind_result)
+    {
+      if (mysql_stmt_bind_result(imp_sth->stmt, imp_sth->buffer))
+      {
+        mariadb_dr_do_error(sth, mysql_stmt_errno(imp_sth->stmt), mysql_stmt_error(imp_sth->stmt), mysql_stmt_sqlstate(imp_sth->stmt));
+        return Nullav;
       }
     }
 
